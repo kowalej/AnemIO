@@ -2,12 +2,13 @@
 
 PressureProvider::PressureProvider() : bmx280(BMP280_IC2_ADDRESS) {}
 
-void PressureProvider::setup() {
-	// begin() checks the Interface, reads the sensor ID(to differentiate between BMP280 and BME280)
+bool PressureProvider::setup() {
+	// Check the interface, and read the sensor ID (to differentiate between BMP280 and BME280).
 	if (!bmx280.begin())
 	{
 		Serial.println("Setup failed, cannot find valid BMP or BME 280 device. Check wiring and your BMx280 Interface / I2C Address.");
-		while (1);
+		_isOnline = false;
+		return _isOnline;
 	}
 
 	if (bmx280.isBME280())
@@ -29,6 +30,9 @@ void PressureProvider::setup() {
 	// If sensor is a BME280, set an oversampling setting for humidity measurements.
 	if (bmx280.isBME280())
 		bmx280.writeOversamplingHumidity(BMx280MI::OSRS_H_x16);
+
+	_isOnline = true;
+	return _isOnline;
 }
 
 void PressureProvider::measure() {
@@ -44,36 +48,36 @@ void PressureProvider::measure() {
 		delay(100);
 	} while (!bmx280.hasValue());
 
-	pressureRead = false;
-	temperatureRead = false;
-	altitudeRead = false;
+	_pressureRead = false;
+	_temperatureRead = false;
+	_altitudeRead = false;
 }
 
 float PressureProvider::getPressure() {
-	if (pressureRead) {
+	if (_pressureRead) {
 		measure();
 	}
-	pressureRead = true;
-	lastPressure = bmx280.getPressure();
-	return lastPressure;
+	_pressureRead = true;
+	_lastPressure = bmx280.getPressure();
+	return _lastPressure;
 }
 
 float PressureProvider::getTemperature() {
-	if (temperatureRead) {
+	if (_temperatureRead) {
 		measure();
 	}
-	temperatureRead = true;
+	_temperatureRead = true;
 	return bmx280.getTemperature();
 }
 
 float PressureProvider::getAltitude() {
-	if (altitudeRead) {
+	if (_altitudeRead) {
 		measure();
 	}
-	altitudeRead = true;
+	_altitudeRead = true;
 	
 	float altitude;
-	float pressure = lastPressure != NAN ? lastPressure : getPressure();
+	float pressure = _lastPressure != NAN ? _lastPressure : getPressure();
 	float pressurehPa = pressure/100; // Convert to hPA (aka millibar).
 
 	// Use crazy formula to get altitude in meters. See https://en.wikipedia.org/wiki/Pressure_altitude.

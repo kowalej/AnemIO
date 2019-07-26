@@ -1,13 +1,24 @@
-#ifndef PressureProvider_H
-#define PressureProvider_H
+// PressureProvider.h
+
+#ifndef PRESSURE_PROVIDER_H
+#define PRESSURE_PROVIDER_H
+
+#if defined(ARDUINO) && ARDUINO >= 100
+#include "arduino.h"
+#else
+#include "WProgram.h"
+#endif
+
 #include <BMx280MI.h>
 #include "Constants.h"
+#include "IDataProvider.h"
 
-class PressureProvider {
+class PressureProvider : public IDataProvider {
     public:
 		PressureProvider();
 
-        void setup();
+        bool setup();
+
 		// Gets the pressure in Pa (Pascals).
         float getPressure();
 
@@ -22,11 +33,10 @@ class PressureProvider {
 		void measure();
 
 		// Flags for avoiding multiple measurements.
-		bool temperatureRead = true;
-		bool pressureRead = true;
-		bool altitudeRead = true;
-		float lastPressure = NAN; // Keep track of last pressure value (to use for altitude calculation).
+		bool _temperatureRead = true;
+		bool _pressureRead = true;
+		bool _altitudeRead = true;
+		float _lastPressure = NAN; // Keep track of last pressure value (to use for altitude calculation).
 };
 
 #endif
-

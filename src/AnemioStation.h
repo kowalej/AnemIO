@@ -1,9 +1,19 @@
-#ifndef AnemioStation_H
-#define AnemioStation_H
+// AnemioStation.h
 
-#include "PressureProvider.h"
+#ifndef ANEMIO_STATION_H
+#define ANEMIO_STATION_H
+
+#if defined(ARDUINO) && ARDUINO >= 100
+#include "arduino.h"
+#else
+#include "WProgram.h"
+#endif
+
 #include <PrintEx.h>
 #include <Wire.h>
+#include "PressureProvider.h"
+#include "RainProvider.h"
+#include "TemperatureHumidityProvider.h"
 
 class AnemioStation {
     public:
@@ -12,8 +22,10 @@ class AnemioStation {
 	    void loop();
 
 	private:
-		PrintEx serial; //Wrap the Serial object in a PrintEx interface.
-		PressureProvider pressureProvider;
+		PrintEx _serial; //Wrap the Serial object in a PrintEx interface.
+		PressureProvider _pressureProvider;
+		RainProvider _rainProvider;
+		TemperatureHumidityProvider _temperatureHumidityProvider;
 };
 
 #endif
