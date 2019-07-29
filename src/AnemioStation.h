@@ -9,23 +9,38 @@
 #include "WProgram.h"
 #endif
 
-#include <PrintEx.h>
 #include <Wire.h>
 #include "PressureProvider.h"
 #include "RainProvider.h"
 #include "TemperatureHumidityProvider.h"
+#include "Constants.h"
+#include "Pair.h"
+#include "SampleSet.h"
+#include <SoftReset.h>
+#include <LowPower.h>
+#include <SerialDebug.h>
 
 class AnemioStation {
     public:
         AnemioStation();
         void setup();
 	    void loop();
+		
+		// Sets up devices and reports number that are offline (i.e. couldn't be setup).
+		int setupProviders(int numberOfRetries = 3);
+
+		// Checks health of devices and reports number that are offline.
+		int healthCheck();
 
 	private:
-		PrintEx _serial; //Wrap the Serial object in a PrintEx interface.
+		SampleSet _sampleSet; // Stores and serializes the sampling infromation from all sensors.
+
 		PressureProvider _pressureProvider;
 		RainProvider _rainProvider;
 		TemperatureHumidityProvider _temperatureHumidityProvider;
+
+		bool _online[Devices::TOTAL];
+		unsigned long _lastCheck[Devices::TOTAL];
 };
 
 #endif

@@ -12,6 +12,7 @@
 #include <BMx280MI.h>
 #include "Constants.h"
 #include "IDataProvider.h"
+#include <SerialDebug.h>
 
 class PressureProvider : public IDataProvider {
     public:
