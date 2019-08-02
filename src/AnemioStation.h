@@ -13,12 +13,14 @@
 #include "PressureProvider.h"
 #include "RainProvider.h"
 #include "TemperatureHumidityProvider.h"
+#include "AmbientLightProvider.h"
 #include "Constants.h"
 #include "Pair.h"
 #include "SampleSet.h"
 #include <SoftReset.h>
 #include <LowPower.h>
 #include <SerialDebug.h>
+#include <RingBufHelpers.h>
 
 class AnemioStation {
     public:
@@ -38,6 +40,7 @@ class AnemioStation {
 		PressureProvider _pressureProvider;
 		RainProvider _rainProvider;
 		TemperatureHumidityProvider _temperatureHumidityProvider;
+		AmbientLightProvider _ambientLightProvider;
 
 		bool _online[Devices::TOTAL];
 		unsigned long _lastCheck[Devices::TOTAL];

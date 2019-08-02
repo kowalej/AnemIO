@@ -14,8 +14,8 @@ class TemperatureHumidityProvider : public IDataProvider
 	public:
 		TemperatureHumidityProvider();
 		bool setup();
-		float TemperatureHumidityProvider::getTemperature();
-		float TemperatureHumidityProvider::getHumidity();
+		float getTemperature();
+		float getHumidity();
 
 	private:
 		DHT _temperatureHumditySensor;

@@ -8,6 +8,8 @@ struct Pair {
 	M val_1;
 	N val_2;
 
+	Pair():val_1(NULL), val_2(NULL) {}
+
 	Pair(M v1, N v2)
 		:val_1(v1), val_2(v2) {}
 

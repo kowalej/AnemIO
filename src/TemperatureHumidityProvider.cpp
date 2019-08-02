@@ -28,7 +28,7 @@ float TemperatureHumidityProvider::getTemperature() {
 	if(isnan(t)) {
 		printW("Failed to read temperature from DHT-22 temperature / humidity sensor!");
 		_numConsecutiveFaultsTemperature += 1;
-		return;
+		return NAN;
 	}
 
 	// Good read, reset faults and return value;
@@ -46,7 +46,7 @@ float TemperatureHumidityProvider::getHumidity() {
 	if (isnan(h)) {
 		printW("Failed to read humidity from DHT-22 temperature / humidity sensor!");
 		_numConsecutiveFaultsHumidity += 1;
-		return;
+		return NAN;
 	}
 
 	// Good read, reset faults and return value;

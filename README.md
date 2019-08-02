@@ -13,32 +13,34 @@
 
 <div class="parts-table">
 
-| Part Name | Function / Description | Data Sheet | Purchase Sources |
-|-----------|------------------------|------------|------------------|
-| DHT-22 | Temperature / humidity sensing.<br>- 2.5mA max current use during conversion<br>- 0-100% humidity readings with 2-5% accuracy<br>- 40 to 80°C temperature readings ±0.5°C accuracy<br>- No more than 0.5 Hz sampling rate (once every 2 seconds) | https://www.sparkfun.com/datasheets/Sensors/Temperature/DHT22.pdf | Creatron: https://www.creatroninc.com/product/dht22-humidity-and-temperature-sensor/ ($13.00 CAD)<br><br>Adafruit: https://www.adafruit.com/product/385 ($9.95 USD)<br><br>Sparkfun: https://www.sparkfun.com/products/10167 ($9.95 USD)<br><br><br> |
+| Part Name | Function / Description | Data Sheet | Purchase Sources / Prices |
+|-----------|------------------------|------------|---------------------------|
+| DHT-22 | **Temperature / humidity sensing.**<br>- 2.5mA max current use during conversion<br>- 0-100% humidity readings with 2-5% accuracy<br>- 40 to 80°C temperature readings ±0.5°C accuracy<br>- No more than 0.5 Hz sampling rate (once every 2 seconds) | [DHT22 Datasheet (Sparkfun.com)](https://www.sparkfun.com/datasheets/Sensors/Temperature/DHT22.pdf) | [Creatron](https://www.creatroninc.com/product/dht22-humidity-and-temperature-sensor/) ($13.00 CAD)<br>[Adafruit](https://www.adafruit.com/product/385) ($9.95 USD)<br>[Sparkfun](https://www.sparkfun.com/products/10167) ($9.95 USD)|
+| BMP280 (BME280) | **Barometric pressure sensor.**<br>- ±1.0°C accuracy<br>- ±1 hPa accuracy<br>- I2C or SPI interface<br>- altitude, ±1 meter accuracy | [BST-BMP280-DS001 (bosch.com)](https://ae-bst.resource.bosch.com/media/_tech/media/datasheets/BST-BMP280-DS001.pdf) | [Creatron](https://www.creatroninc.com/product/bmp280-barometric-sensor-300-to-1100hpa/) ($7.90 CAD)<br>[Adafruit](https://www.adafruit.com/product/2651) ($9.95 USD)<br>[Sparkfun - BME280](https://www.sparkfun.com/products/13676) ($19.95 USD)|
 
 </div>
 
 <style>
 .parts-table table tr td:nth-child(1) {
-        vertical-align: top;
+        vertical-align: text-top;
         width: 25%;
         max-width: 100px;
 }
 .parts-table table tr td:nth-child(2) {
-        vertical-align: top;
+        vertical-align: text-top;
         width: 40%;
         max-width: 100px;
 }
 .parts-table table tr td:nth-child(3) {
-        vertical-align: top;
+        vertical-align: text-top;
         width: 15%;
         overflow: hidden;
         max-width: 100px;
 }
 .parts-table table tr td:nth-child(4) {
-        vertical-align: top;
+        vertical-align: text-top;
         width: 20%;
+        overflow: hidden;
         max-width: 100px;
 }
 </style>

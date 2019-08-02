@@ -22,7 +22,7 @@ class RainProvider : public IDataProvider {
 		float getRainValue();
 
 		// Gets heuristic rain state from input value(s).
-		const char* getRainState(float rainValue);
+		const String getRainState(float rainValue);
 };
 
 #endif
