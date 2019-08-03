@@ -14,6 +14,7 @@
 #include "RainProvider.h"
 #include "TemperatureHumidityProvider.h"
 #include "AmbientLightProvider.h"
+#include "WindSpeedProvider.h"
 #include "Constants.h"
 #include "Pair.h"
 #include "SampleSet.h"
@@ -41,6 +42,7 @@ class AnemioStation {
 		RainProvider _rainProvider;
 		TemperatureHumidityProvider _temperatureHumidityProvider;
 		AmbientLightProvider _ambientLightProvider;
+		WindSpeedProvider _windSpeedProvider;
 
 		bool _online[Devices::TOTAL];
 		unsigned long _lastCheck[Devices::TOTAL];

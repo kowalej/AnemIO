@@ -1,7 +1,7 @@
 // TemperatureHumidityProvider.h
 
-#ifndef TEMPERATURE_HUMIDITY_PROVIDER_h
-#define TEMPERATURE_HUMIDITY_PROVIDER_h
+#ifndef TEMPERATURE_HUMIDITY_PROVIDER_H
+#define TEMPERATURE_HUMIDITY_PROVIDER_H
 
 #include "IDataProvider.h"
 #include "Constants.h"

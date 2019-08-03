@@ -1,7 +1,7 @@
 // SampleSet.h
 
-#ifndef _SAMPLE_SET_h
-#define _SAMPLE_SET_h
+#ifndef SAMPLE_SET_h
+#define SAMPLE_SET_h
 
 #if defined(ARDUINO) && ARDUINO >= 100
 	#include "arduino.h"

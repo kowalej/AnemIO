@@ -59,6 +59,28 @@ int AnemioStation::setupProviders(int numberOfRetries) {
 		}
 		numberOffline += _online[Devices::TEMPERATURE_HUMIDITY] ? 0 : 1;
 
+		// Setup ambient light sensor.
+		if (!_online[Devices::AMBIENT_LIGHT]) {
+			if ((_online[Devices::AMBIENT_LIGHT] = _ambientLightProvider.setup())) {
+				printlnD("Ambient light sensing now online.");
+			}
+			else {
+				debugD("Problem bringing ambient light sensing online, %s.", retryMsg);
+			}
+		}
+		numberOffline += _online[Devices::AMBIENT_LIGHT] ? 0 : 1;
+
+		// Setup wind sensor.
+		if (!_online[Devices::WIND_SPEED]) {
+			if ((_online[Devices::WIND_SPEED] = _windSpeedProvider.setup())) {
+				printlnD("Wind speed sensing now online.");
+			}
+			else {
+				debugD("Problem bringing wind speed sensing online, %s.", retryMsg);
+			}
+		}
+		numberOffline += _online[Devices::WIND_SPEED] ? 0 : 1;
+
 		retries += 1;
 	} while (numberOffline > 0 && retries < numberOfRetries);
 
@@ -88,7 +110,12 @@ int AnemioStation::healthCheck() {
 		numberOffline += 1;
 	}
 
-	return numberOffline;
+	// Check wind speed is online.
+	if (!(_online[Devices::WIND_SPEED] = _windSpeedProvider.isOnline())) {
+		numberOffline += 1;
+	}
+
+	return numberOffline; // Should hopefully never resolve to more than 0.
 }
 
 void AnemioStation::loop() {
@@ -144,7 +171,7 @@ void AnemioStation::loop() {
 		float humidityValue = _temperatureHumidityProvider.getHumidity();
 		_sampleSet.humiditySamples.add(Pair<int, float>(millis(), humidityValue), true);
 
-		debugD("Temperature / Humidity Sensor Values");
+		debugD("Temperature / Humidity Sensor Values:");
 		debugD("  Temperature (Celcius) %s", String(tempValue).c_str());
 		debugD("  Humidity (%%) %s", String(humidityValue).c_str());
 
@@ -166,6 +193,29 @@ void AnemioStation::loop() {
 		_lastCheck[Devices::AMBIENT_LIGHT] = millis();
 
 		debugD("Ambient light check end: %lu\n", millis());
+	}
+
+	// Wind Speed / Temperature.
+	if (_online[Devices::WIND_SPEED] && (millis() - _lastCheck[Devices::WIND_SPEED] > UPDATE_RATE_MS(WIND_SPEED_UPDATE_RATE_HZ))) {
+		printlnD("----------------------");
+		debugD("Wind speed / temperature check start: %lu\n", millis());
+
+		float windSpeedRaw = _windSpeedProvider.getWindSpeedRaw();
+		_sampleSet.windSpeedSamples.add(Pair<int, float>(millis(), windSpeedRaw), true);
+
+		float windTemperature = _windSpeedProvider.getWindTemperature();
+		//_sampleSet.windSpeedTemperatureSamples.add(Pair<int, float>(millis(), windSpeedTemperature), true);
+
+		float windSpeedCorrected = _windSpeedProvider.getCorrectedWindSpeed(windSpeedRaw, windTemperature);
+
+		debugD("Wind Speed Sensor Values: %s");
+		debugD("  Wind Speed Raw (Knots) %s", String(windSpeedRaw).c_str());
+		debugD("  Wind Temperature (Celcius) %s", String(windTemperature).c_str());
+		debugD("  Wind Speed Corrected %s", String(windSpeedCorrected).c_str());
+
+		_lastCheck[Devices::WIND_SPEED] = millis();
+
+		debugD("Wind speed / temperature check end: %lu\n", millis());
 	}
 
 	// Restart the station...

@@ -1,7 +1,7 @@
 // Constants.h
 
-#ifndef CONSTANTS
-#define CONSTANTS
+#ifndef CONSTANTS_H
+#define CONSTANTS_H
 
 #include <stdint.h>
 
@@ -40,6 +40,9 @@ namespace {
 	// Wind speed sensor.
 	const uint8_t WIND_SPEED_UPDATE_RATE_HZ_NORMAL = 4; // Normal mode update rate of wind speed sensor.
 	uint8_t WIND_SPEED_UPDATE_RATE_HZ = WIND_SPEED_UPDATE_RATE_HZ_NORMAL;
+	const uint8_t WIND_SPEED_ANALOG_READ_SAMPLE_COUNT = 50;
+	const uint8_t WIND_SPEED_SENSOR_SPEED_INPUT_PIN = A3; // Number of times we should do an analog read from the wind speed sensor (we will average the samples).
+	const uint8_t WIND_SPEED_SENSOR_TEMPERATURE_INPUT_PIN = A4;
 
 	// Wind direction sensor.
 	const uint8_t WIND_DIRECTION_UPDATE_RATE_HZ_NORMAL = 4; // Normal mode update rate of wind direction sensor (rotary encoder).
