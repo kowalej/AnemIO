@@ -43,6 +43,7 @@ namespace {
 	const uint8_t WIND_SPEED_ANALOG_READ_SAMPLE_COUNT = 50;
 	const uint8_t WIND_SPEED_SENSOR_SPEED_INPUT_PIN = A3; // Number of times we should do an analog read from the wind speed sensor (we will average the samples).
 	const uint8_t WIND_SPEED_SENSOR_TEMPERATURE_INPUT_PIN = A4;
+	const float WIND_SPEED_SENSOR_ZERO_WIND_VOLTAGE = 1.340; // This may vary slightly from sensor to sensor.
 
 	// Wind direction sensor.
 	const uint8_t WIND_DIRECTION_UPDATE_RATE_HZ_NORMAL = 4; // Normal mode update rate of wind direction sensor (rotary encoder).

@@ -11,20 +11,21 @@
 
 #include "IDataProvider.h"
 #include "Constants.h"
+#include <SerialDebug.h>
 
 class WindSpeedProvider : public IDataProvider {
 	public:
 		WindSpeedProvider();
 		bool setup();
 
-		// Gets "raw" wind speed (no temperature correction).
+		// Gets "raw" wind speed (no temperature correction), in knots.
 		float getWindSpeedRaw();
 
-		// Gets wind sensor temperature.
+		// Gets wind sensor temperature, in °C.
 		float getWindTemperature();
 
-		// Gets a temperature corrected wind speed.
-		float getCorrectedWindSpeed(float speed, float temp);
+		// Gets a temperature corrected wind speed. Temperature in degrees °C.
+		float getCorrectedWindSpeed(float temperature);
 };
 
 #endif

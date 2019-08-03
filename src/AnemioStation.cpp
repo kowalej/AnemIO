@@ -122,78 +122,78 @@ void AnemioStation::loop() {
 	// Check if each device is online.
 	healthCheck();
 
-	// Pressure (Temperature) and Altitude.
-	if (_online[Devices::PRESSURE] && (millis() - _lastCheck[Devices::PRESSURE] > UPDATE_RATE_MS(PRESSURE_UPDATE_RATE_HZ))) {
-		printlnD("----------------------");
-		debugD("Pressure check start: %lu\n", millis());
+	//// Pressure (Temperature) and Altitude.
+	//if (_online[Devices::PRESSURE] && (millis() - _lastCheck[Devices::PRESSURE] > UPDATE_RATE_MS(PRESSURE_UPDATE_RATE_HZ))) {
+	//	printlnD("----------------------");
+	//	debugD("Pressure check start: %lu\n", millis());
 
-		float pressureValue = _pressureProvider.getPressure();
-		_sampleSet.pressureSamples.add(Pair<int, float>(millis(), pressureValue), true);
+	//	float pressureValue = _pressureProvider.getPressure();
+	//	_sampleSet.pressureSamples.add(Pair<int, float>(millis(), pressureValue), true);
 
-		float pressureTemperatureValue = _pressureProvider.getTemperature();
-		_sampleSet.pressureTemperatureSamples.add(Pair<int, float>(millis(), pressureTemperatureValue), false);
+	//	float pressureTemperatureValue = _pressureProvider.getTemperature();
+	//	_sampleSet.pressureTemperatureSamples.add(Pair<int, float>(millis(), pressureTemperatureValue), false);
 
-		float pressureAltitudeValue = _pressureProvider.getAltitude();
-		_sampleSet.pressureAltitudeSamples.add(Pair<int, float>(millis(), pressureAltitudeValue), false);
+	//	float pressureAltitudeValue = _pressureProvider.getAltitude();
+	//	_sampleSet.pressureAltitudeSamples.add(Pair<int, float>(millis(), pressureAltitudeValue), false);
 
-		printlnD("Pressure Sensor Values:");
-		debugD("  Pressure (Pascals) %s", String(pressureValue).c_str());
-		debugD("  Temperature (Celcius) %s", String(pressureTemperatureValue).c_str());
-		debugD("  Altitude Estimation (Meters) %s", String(pressureAltitudeValue).c_str());
+	//	printlnD("Pressure Sensor Values:");
+	//	debugD("  Pressure (Pascals) %s", String(pressureValue).c_str());
+	//	debugD("  Temperature (Celcius) %s", String(pressureTemperatureValue).c_str());
+	//	debugD("  Altitude Estimation (Meters) %s", String(pressureAltitudeValue).c_str());
 
-		_lastCheck[Devices::PRESSURE] = millis();
+	//	_lastCheck[Devices::PRESSURE] = millis();
 
-		debugD("Pressure check end: %lu", millis());
-	}
+	//	debugD("Pressure check end: %lu", millis());
+	//}
 
-	// Rain.
-	if (_online[Devices::RAIN] && (millis() - _lastCheck[Devices::RAIN] > UPDATE_RATE_MS(RAIN_UPDATE_RATE_HZ))) {
-		printlnD("----------------------");
-		debugD("Rain check start: %lu\n", millis());
+	//// Rain.
+	//if (_online[Devices::RAIN] && (millis() - _lastCheck[Devices::RAIN] > UPDATE_RATE_MS(RAIN_UPDATE_RATE_HZ))) {
+	//	printlnD("----------------------");
+	//	debugD("Rain check start: %lu\n", millis());
 
-		float rainValue = _rainProvider.getRainValue();
-		_sampleSet.rainSamples.add(Pair<int, float>(millis(), rainValue), true);
-		debugD("Rain Sensor Values: %s", String(rainValue).c_str());
+	//	float rainValue = _rainProvider.getRainValue();
+	//	_sampleSet.rainSamples.add(Pair<int, float>(millis(), rainValue), true);
+	//	debugD("Rain Sensor Values: %s", String(rainValue).c_str());
 
-		_lastCheck[Devices::RAIN] = millis();
+	//	_lastCheck[Devices::RAIN] = millis();
 
-		debugD("Rain check end: %lu\n", millis());
-	}
+	//	debugD("Rain check end: %lu\n", millis());
+	//}
 
-	// Temperature / Humidity.
-	if (_online[Devices::TEMPERATURE_HUMIDITY] && (millis() - _lastCheck[Devices::TEMPERATURE_HUMIDITY] > UPDATE_RATE_MS(TEMPERATURE_HUMIDITY_UPDATE_RATE_HZ))) {
-		printlnD("----------------------");
-		debugD("Temperature / humidity check start: %lu\n", millis());
+	//// Temperature / Humidity.
+	//if (_online[Devices::TEMPERATURE_HUMIDITY] && (millis() - _lastCheck[Devices::TEMPERATURE_HUMIDITY] > UPDATE_RATE_MS(TEMPERATURE_HUMIDITY_UPDATE_RATE_HZ))) {
+	//	printlnD("----------------------");
+	//	debugD("Temperature / humidity check start: %lu\n", millis());
 
-		float tempValue = _temperatureHumidityProvider.getTemperature();
-		_sampleSet.temperatureSamples.add(Pair<int, float>(millis(), tempValue), true);
+	//	float tempValue = _temperatureHumidityProvider.getTemperature();
+	//	_sampleSet.temperatureSamples.add(Pair<int, float>(millis(), tempValue), true);
 
-		float humidityValue = _temperatureHumidityProvider.getHumidity();
-		_sampleSet.humiditySamples.add(Pair<int, float>(millis(), humidityValue), true);
+	//	float humidityValue = _temperatureHumidityProvider.getHumidity();
+	//	_sampleSet.humiditySamples.add(Pair<int, float>(millis(), humidityValue), true);
 
-		debugD("Temperature / Humidity Sensor Values:");
-		debugD("  Temperature (Celcius) %s", String(tempValue).c_str());
-		debugD("  Humidity (%%) %s", String(humidityValue).c_str());
+	//	debugD("Temperature / Humidity Sensor Values:");
+	//	debugD("  Temperature (Celcius) %s", String(tempValue).c_str());
+	//	debugD("  Humidity (%%) %s", String(humidityValue).c_str());
 
-		_lastCheck[Devices::TEMPERATURE_HUMIDITY] = millis();
+	//	_lastCheck[Devices::TEMPERATURE_HUMIDITY] = millis();
 
-		debugD("Temperature / humidity check end: %lu\n", millis());
-	}
+	//	debugD("Temperature / humidity check end: %lu\n", millis());
+	//}
 
-	// Ambient Light.
-	if (_online[Devices::AMBIENT_LIGHT] && (millis() - _lastCheck[Devices::AMBIENT_LIGHT] > UPDATE_RATE_MS(AMBIENT_LIGHT_UPDATE_RATE_HZ))) {
-		printlnD("----------------------");
-		debugD("Ambient light check start: %lu\n", millis());
+	//// Ambient Light.
+	//if (_online[Devices::AMBIENT_LIGHT] && (millis() - _lastCheck[Devices::AMBIENT_LIGHT] > UPDATE_RATE_MS(AMBIENT_LIGHT_UPDATE_RATE_HZ))) {
+	//	printlnD("----------------------");
+	//	debugD("Ambient light check start: %lu\n", millis());
 
-		float ambientLightValue = _ambientLightProvider.getAmbientLightValue();
-		_sampleSet.ambientLightSamples.add(Pair<int, float>(millis(), ambientLightValue), true);
+	//	float ambientLightValue = _ambientLightProvider.getAmbientLightValue();
+	//	_sampleSet.ambientLightSamples.add(Pair<int, float>(millis(), ambientLightValue), true);
 
-		debugD("Ambient Light Sensor Values: %s", String(ambientLightValue).c_str());
+	//	debugD("Ambient Light Sensor Values: %s", String(ambientLightValue).c_str());
 
-		_lastCheck[Devices::AMBIENT_LIGHT] = millis();
+	//	_lastCheck[Devices::AMBIENT_LIGHT] = millis();
 
-		debugD("Ambient light check end: %lu\n", millis());
-	}
+	//	debugD("Ambient light check end: %lu\n", millis());
+	//}
 
 	// Wind Speed / Temperature.
 	if (_online[Devices::WIND_SPEED] && (millis() - _lastCheck[Devices::WIND_SPEED] > UPDATE_RATE_MS(WIND_SPEED_UPDATE_RATE_HZ))) {
@@ -206,7 +206,7 @@ void AnemioStation::loop() {
 		float windTemperature = _windSpeedProvider.getWindTemperature();
 		//_sampleSet.windSpeedTemperatureSamples.add(Pair<int, float>(millis(), windSpeedTemperature), true);
 
-		float windSpeedCorrected = _windSpeedProvider.getCorrectedWindSpeed(windSpeedRaw, windTemperature);
+		float windSpeedCorrected = _windSpeedProvider.getCorrectedWindSpeed(windTemperature);
 
 		debugD("Wind Speed Sensor Values: %s");
 		debugD("  Wind Speed Raw (Knots) %s", String(windSpeedRaw).c_str());
