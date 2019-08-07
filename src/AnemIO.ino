@@ -8,6 +8,7 @@
 //#define DEBUG_DISABLED true
 
 // Define the initial debug level here (uncomment to do it)
+#include <Adafruit_Sensor.h>
 #define DEBUG_INITIAL_LEVEL DEBUG_LEVEL_VERBOSE
 
 // Disable SerialDebug debugger ? No more commands and features as functions and globals

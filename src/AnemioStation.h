@@ -15,6 +15,7 @@
 #include "TemperatureHumidityProvider.h"
 #include "AmbientLightProvider.h"
 #include "WindSpeedProvider.h"
+#include "CompassAccelerometerProvider.h"
 #include "Constants.h"
 #include "Pair.h"
 #include "SampleSet.h"
@@ -43,6 +44,7 @@ class AnemioStation {
 		TemperatureHumidityProvider _temperatureHumidityProvider;
 		AmbientLightProvider _ambientLightProvider;
 		WindSpeedProvider _windSpeedProvider;
+		CompassAccelerometerProvider _compassAccelerometerProvider;
 
 		bool _online[Devices::TOTAL];
 		unsigned long _lastCheck[Devices::TOTAL];

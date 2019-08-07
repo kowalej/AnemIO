@@ -12,10 +12,10 @@ bool PressureProvider::setup() {
 	}
 
 	if (bmx280.isBME280()) {
-		printlnI("Sensor found: BME280");
+		printlnI("Sensor found: BME280.");
 	}
 	else {
-		printlnI("Sensor found: BMP280");
+		printlnI("Sensor found: BMP280.");
 	}
 
 	// Reset sensor to default parameters.
