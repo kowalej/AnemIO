@@ -13,6 +13,7 @@
 #include <SerialDebug.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_LSM303_U.h>
+#include "Coord.h"
 
 class CompassAccelerometerProvider : public IDataProvider {
 	public:
@@ -23,10 +24,10 @@ class CompassAccelerometerProvider : public IDataProvider {
 		int getHeading(float x, float y);
 
 		// Gets the X,Y,Z compass values.
-		float* getCompass();
+		coord getCompass();
 
 		// Gets the accelerometer X,Y,Z values.
-		float* getAccelerometer();
+		coord getAccelerometer();
 
 	private:
 		/// Assign a unique ID to this sensor at the same time.

@@ -13,6 +13,7 @@
 #include "Pair.h"
 #include <RingBufHelpers.h>
 #include <RingBufCPP.h>
+#include "Coord.h"
 
 class SampleSet {
 	public:
@@ -35,20 +36,15 @@ class SampleSet {
 		RingBufCPP<Pair<int, float>, GET_BUFFER_SIZE(AMBIENT_LIGHT_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> ambientLightSamples;
 		RingBufCPP<Pair<int, float>, GET_BUFFER_SIZE(AMBIENT_LIGHT_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> ambientLightStateSamples;
 
-		// Compass / Accelerometer
-		RingBufCPP<Pair<int, float>, GET_BUFFER_SIZE(COMPASS_ACCELEROMETER_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> compassSamplesx;
-		RingBufCPP<Pair<int, float>, GET_BUFFER_SIZE(COMPASS_ACCELEROMETER_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> accelerometerSamplesx;
+		// Compass / Accelerometer.
+		RingBufCPP<Pair<int, coord>, GET_BUFFER_SIZE(COMPASS_ACCELEROMETER_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> compassXYZ;
+		RingBufCPP<Pair<int, coord>, GET_BUFFER_SIZE(COMPASS_ACCELEROMETER_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> accelerometerXYZ;
 
-		RingBufCPP<Pair<int, float>, GET_BUFFER_SIZE(COMPASS_ACCELEROMETER_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> compassSamplesy;
-		RingBufCPP<Pair<int, float>, GET_BUFFER_SIZE(COMPASS_ACCELEROMETER_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> accelerometerSamplesy;
-
-		RingBufCPP<Pair<int, float>, GET_BUFFER_SIZE(COMPASS_ACCELEROMETER_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> compassSamplesZ;
-		RingBufCPP<Pair<int, float>, GET_BUFFER_SIZE(COMPASS_ACCELEROMETER_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> accelerometerSamplesz;
-
-		// Wind Speed
+		// Wind Speed.
 		RingBufCPP<Pair<int, float>, GET_BUFFER_SIZE(WIND_SPEED_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> windSpeedSamples;
+		RingBufCPP<Pair<int, float>, GET_BUFFER_SIZE(WIND_SPEED_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> windAmbientTemperatureSamples;
 
-		// Wind Direction
+		// Wind Direction.
 		RingBufCPP<Pair<int, float>, GET_BUFFER_SIZE(WIND_DIRECTION_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> windDirectionSamples;
 };
 

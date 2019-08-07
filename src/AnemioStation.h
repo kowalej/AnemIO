@@ -23,6 +23,7 @@
 #include <LowPower.h>
 #include <SerialDebug.h>
 #include <RingBufHelpers.h>
+#include "Coord.h"
 
 class AnemioStation {
     public:

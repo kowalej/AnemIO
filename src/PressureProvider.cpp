@@ -6,16 +6,16 @@ bool PressureProvider::setup() {
 	// Check the interface, and read the sensor ID (to differentiate between BMP280 and BME280).
 	if (!bmx280.begin())
 	{
-		printlnE("Setup failed, cannot find valid BMP or BME 280 device. Check wiring and your BMx280 Interface / I2C Address.");
+		debugE("Setup failed, cannot find valid BMP or BME 280 device. Check wiring and your BMx280 Interface / I2C Address.");
 		_isOnline = false;
 		return _isOnline;
 	}
 
 	if (bmx280.isBME280()) {
-		printlnI("Sensor found: BME280.");
+		debugI("Sensor found: BME280.");
 	}
 	else {
-		printlnI("Sensor found: BMP280.");
+		debugI("Sensor found: BMP280.");
 	}
 
 	// Reset sensor to default parameters.
