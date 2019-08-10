@@ -2,25 +2,24 @@
 
 // SerialDebug Library
 
-// Disable all debug ? Good to release builds (production)
-// as nothing of SerialDebug is compiled, zero overhead :-)
+// Disable all debug ? Good for release builds (production)
+// as nothing from SerialDebug is compiled, zero overhead :-)
 // For it just uncomment the DEBUG_DISABLED
-//#define DEBUG_DISABLED true
+// #define DEBUG_DISABLED true
 
 // Define the initial debug level here (uncomment to do it)
-#include <Adafruit_Sensor.h>
 #define DEBUG_INITIAL_LEVEL DEBUG_LEVEL_VERBOSE
 
 // Disable SerialDebug debugger ? No more commands and features as functions and globals
-// Uncomment this to disable it 
+// Uncomment this to disable it
 #define DEBUG_DISABLE_DEBUGGER false
 
-// Disable auto function name (good if your debug yet contains it)
+// Disable auto function naming (good if your debug message already contains it)
 //#define DEBUG_AUTO_FUNC_DISABLED true
 
-// Force debug messages to can use flash ) ?
-// Disable native Serial.printf (if have)
-// Good for low memory, due use flash, but more slow and not use macros
+// Force debug messages to use flash?
+// Disable native Serial.printf (if using)
+// Good for low memory, due to flash use, but is slowwer and doesn't use macros
 //#define DEBUG_USE_FLASH_F true
 
 #if defined(ARDUINO_AVR_ADK)
@@ -73,10 +72,9 @@ void loop()
 	// 3. Send over radio.
 	station.loop();
 
-	if (DEBUG_DISABLE_DEBUGGER == true) {
-		LowPower.powerSave(period_t::SLEEP_15MS, ADC_OFF, BOD_ON, TIMER2_ON);
-	}
-	else {
-		delay(15);
-	}
+#ifndef DEBUG_DISABLED
+	delay(15);
+#else
+	LowPower.powerSave(period_t::SLEEP_15MS, ADC_ON, BOD_ON, TIMER2_ON);
+#endif
 }

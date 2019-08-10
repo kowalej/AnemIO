@@ -31,7 +31,7 @@ float TemperatureHumidityProvider::getTemperature() {
 		return NAN;
 	}
 
-	// Good read, reset faults and return value;
+	// Good read, reset faults and return value.
 	_numConsecutiveFaultsTemperature = 0;
 	return t;
 }
@@ -49,7 +49,7 @@ float TemperatureHumidityProvider::getHumidity() {
 		return NAN;
 	}
 
-	// Good read, reset faults and return value;
+	// Good read, reset faults and return value.
 	_numConsecutiveFaultsHumidity = 0;
 	return h;
 }

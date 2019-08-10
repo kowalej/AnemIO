@@ -1,20 +1,24 @@
 #include "AnemioStation.h"
 
-AnemioStation::AnemioStation() {}
-
-void AnemioStation::setup() {
+AnemioStation::AnemioStation() {
 	for (int i = 0; i < Devices::TOTAL; i++) {
 		_online[i] = false;
 		_lastCheck[i] = 0;
 	}
+	_radioLastTransmit = 0;
+	_screenLastUpdate = 0;
+	_screenOn = true;//  TODO REMOVE.
+}
 
+void AnemioStation::setup() {
 	// Startup i2c interface.
 	Wire.begin();
 
-	// TODO: check setup completes and return info to radio.
-	
 	// Setup the providers and report status.
 	int offline = setupProviders(3);
+
+	// TODO: check setup completes with zero devices offline, and return info to radio.
+
 	debugA("Setup complete with %d device(s) offline.\n\n", offline);
 }
 
@@ -92,6 +96,17 @@ int AnemioStation::setupProviders(int numberOfRetries) {
 		}
 		numberOffline += _online[Devices::COMPASS_ACCELEROMETER] ? 0 : 1;
 
+		// Setup water temperature.
+		if (!_online[Devices::WATER_TEMPERATURE]) {
+			if ((_online[Devices::WATER_TEMPERATURE] = _waterTemperatureProvider.setup())) {
+				debugA("Water temperature sensing now online.");
+			}
+			else {
+				debugA("Problem bringing water temperature sensing online, %s.", retryMsg.c_str());
+			}
+		}
+		numberOffline += _online[Devices::WATER_TEMPERATURE] ? 0 : 1;
+
 		retries += 1;
 	} while (numberOffline > 0 && retries < numberOfRetries);
 
@@ -131,6 +146,11 @@ int AnemioStation::healthCheck() {
 		numberOffline += 1;
 	}
 
+	// Check water temperature is online.
+	if (!(_online[Devices::WATER_TEMPERATURE] = _waterTemperatureProvider.isOnline())) {
+		numberOffline += 1;
+	}
+
 	return numberOffline; // Should hopefully never resolve to more than 0.
 }
 
@@ -138,8 +158,47 @@ void AnemioStation::loop() {
 	// Check if each device is online.
 	healthCheck();
 
-	// Pressure (Temperature) and Altitude.
-	if (_online[Devices::PRESSURE] && (millis() - _lastCheck[Devices::PRESSURE] > UPDATE_RATE_MS(PRESSURE_UPDATE_RATE_HZ))) {
+	// Ambient Light.
+	if (_online[Devices::AMBIENT_LIGHT] && (TIME_DELTA(_lastCheck[Devices::AMBIENT_LIGHT]) >= UPDATE_RATE_MS(AMBIENT_LIGHT_UPDATE_RATE_HZ))) {
+		debugD("----------------------");
+		debugD("Ambient light check start: %lu\n", millis());
+
+		float ambientLightValue = _ambientLightProvider.getAmbientLightValue();
+		_sampleSet.ambientLightSamples.add(Pair<int, float>(millis(), ambientLightValue), false);
+
+		debugD("Ambient Light Sensor Values: %s", String(ambientLightValue).c_str());
+
+		_lastCheck[Devices::AMBIENT_LIGHT] = millis();
+
+		debugD("Ambient light check end: %lu\n", millis());
+	}
+
+	// Compass / Accelerometer.
+	if (_online[Devices::COMPASS_ACCELEROMETER] && (TIME_DELTA(_lastCheck[Devices::COMPASS_ACCELEROMETER]) >= UPDATE_RATE_MS(COMPASS_ACCELEROMETER_UPDATE_RATE_HZ))) {
+		debugD("----------------------");
+		debugD("Compass accelerometer check start: %lu\n", millis());
+
+		coord compassXYZ = _compassAccelerometerProvider.getCompass();
+		_sampleSet.compassXYZ.add(Pair<int, coord>(millis(), compassXYZ), false);
+
+		int compassHeading = _compassAccelerometerProvider.getHeading(compassXYZ.x, compassXYZ.y);
+		_sampleSet.compassHeading.add(Pair<int, int>(millis(), compassHeading), false);
+
+		coord accelerometerXYZ = _compassAccelerometerProvider.getAccelerometer();
+		_sampleSet.accelerometerXYZ.add(Pair<int, coord>(millis(), accelerometerXYZ), false);
+
+		debugD("Compass / Accelerometer Sensor Values:");
+		debugD("  Compass (X,Y,Z) %s, %s, %s", String(compassXYZ.x).c_str(), String(compassXYZ.y).c_str(), String(compassXYZ.z).c_str());
+		debugD("  Compass Heading %s", String(compassHeading).c_str());
+		debugD("  Accelerometer (X,Y,Z) %s %s %s", String(accelerometerXYZ.x).c_str(), String(accelerometerXYZ.y).c_str(), String(accelerometerXYZ.z).c_str());
+
+		_lastCheck[Devices::COMPASS_ACCELEROMETER] = millis();
+
+		debugD("Compass accelerometer check end: %lu\n", millis());
+	}
+
+	// Pressure (+ Backup Temperature and Altitude).
+	if (_online[Devices::PRESSURE] && (TIME_DELTA(_lastCheck[Devices::PRESSURE]) >= UPDATE_RATE_MS(PRESSURE_UPDATE_RATE_HZ))) {
 		debugD("----------------------");
 		debugD("Pressure check start: %lu\n", millis());
 
@@ -163,12 +222,13 @@ void AnemioStation::loop() {
 	}
 
 	// Rain.
-	if (_online[Devices::RAIN] && (millis() - _lastCheck[Devices::RAIN] > UPDATE_RATE_MS(RAIN_UPDATE_RATE_HZ))) {
+	if (_online[Devices::RAIN] && (TIME_DELTA(_lastCheck[Devices::RAIN]) >= UPDATE_RATE_MS(RAIN_UPDATE_RATE_HZ))) {
 		debugD("----------------------");
 		debugD("Rain check start: %lu\n", millis());
 
 		float rainValue = _rainProvider.getRainValue();
 		_sampleSet.rainSamples.add(Pair<int, float>(millis(), rainValue), false);
+
 		debugD("Rain Sensor Values: %s", String(rainValue).c_str());
 
 		_lastCheck[Devices::RAIN] = millis();
@@ -177,7 +237,7 @@ void AnemioStation::loop() {
 	}
 
 	// Temperature / Humidity.
-	if (_online[Devices::TEMPERATURE_HUMIDITY] && (millis() - _lastCheck[Devices::TEMPERATURE_HUMIDITY] > UPDATE_RATE_MS(TEMPERATURE_HUMIDITY_UPDATE_RATE_HZ))) {
+	if (_online[Devices::TEMPERATURE_HUMIDITY] && (TIME_DELTA(_lastCheck[Devices::TEMPERATURE_HUMIDITY]) >= UPDATE_RATE_MS(TEMPERATURE_HUMIDITY_UPDATE_RATE_HZ))) {
 		debugD("----------------------");
 		debugD("Temperature / humidity check start: %lu\n", millis());
 
@@ -196,66 +256,82 @@ void AnemioStation::loop() {
 		debugD("Temperature / humidity check end: %lu\n", millis());
 	}
 
-	// Ambient Light.
-	if (_online[Devices::AMBIENT_LIGHT] && (millis() - _lastCheck[Devices::AMBIENT_LIGHT] > UPDATE_RATE_MS(AMBIENT_LIGHT_UPDATE_RATE_HZ))) {
+	// Water Temperature.
+	if (_online[Devices::WATER_TEMPERATURE] && (TIME_DELTA(_lastCheck[Devices::WATER_TEMPERATURE]) >= UPDATE_RATE_MS(WATER_TEMP_UPDATE_RATE_HZ))) {
 		debugD("----------------------");
-		debugD("Ambient light check start: %lu\n", millis());
+		debugD("Water temperature check start: %lu\n", millis());
 
-		float ambientLightValue = _ambientLightProvider.getAmbientLightValue();
-		_sampleSet.ambientLightSamples.add(Pair<int, float>(millis(), ambientLightValue), false);
+		float waterTemperature = _waterTemperatureProvider.getWaterTemperature();
+		_sampleSet.waterTemperatureSamples.add(Pair<int, float>(millis(), waterTemperature), false);
 
-		debugD("Ambient Light Sensor Values: %s", String(ambientLightValue).c_str());
+		debugD("Water Temperature Sensor Values: %s", String(waterTemperature).c_str());
 
-		_lastCheck[Devices::AMBIENT_LIGHT] = millis();
+		_lastCheck[Devices::WATER_TEMPERATURE] = millis();
 
-		debugD("Ambient light check end: %lu\n", millis());
+		debugD("Water temperature check end: %lu\n", millis());
 	}
 
 	// Wind Speed / Temperature.
-	if (_online[Devices::WIND_SPEED] && (millis() - _lastCheck[Devices::WIND_SPEED] > UPDATE_RATE_MS(WIND_SPEED_UPDATE_RATE_HZ))) {
+	if (_online[Devices::WIND_SPEED] && (TIME_DELTA(_lastCheck[Devices::WIND_SPEED]) >= UPDATE_RATE_MS(WIND_SPEED_UPDATE_RATE_HZ))) {
 		debugD("----------------------");
 		debugD("Wind speed / temperature check start: %lu\n", millis());
 
 		float windSpeedRaw = _windSpeedProvider.getWindSpeedRaw();
 
 		// Wind ambient temperature.
-		float windTemperature = _windSpeedProvider.getWindTemperature();
-		_sampleSet.windAmbientTemperatureSamples.add(Pair<int, float>(millis(), windTemperature), false);
+		float windSensorTemperature = _windSpeedProvider.getWindSensorTemperature();
 
-		// Temperature corrected wind speed. We will send this with the temperature (we can always reverse the math).
-		float windSpeedCorrected = _windSpeedProvider.getCorrectedWindSpeed(windTemperature);
-		_sampleSet.windSpeedSamples.add(Pair<int, float>(millis(), windSpeedRaw), false);
+		// Temperature corrected wind speed. We will send this with the temperature.
+		// We can always reverse the math at the ground station if we don't like the corrected values.
+		float windSpeedCorrected = _windSpeedProvider.getCorrectedWindSpeed(windSensorTemperature);
+		_sampleSet.windSpeedSamples.add(Pair<int, windspeedpoint>(millis(), windspeedpoint(windSpeedCorrected, windSensorTemperature)), false);
 
 		debugD("Wind Speed Sensor Values:");
 		debugD("  Wind Speed Raw (Knots) %s", String(windSpeedRaw).c_str());
-		debugD("  Wind Temperature (Celcius) %s", String(windTemperature).c_str());
-		debugD("  Wind Speed Corrected %s", String(windSpeedCorrected).c_str());
+		debugD("  Wind Sensor Temperature (Celcius) %s", String(windSensorTemperature).c_str());
+		debugD("  Wind Speed Temperature Corrected %s", String(windSpeedCorrected).c_str());
 
 		_lastCheck[Devices::WIND_SPEED] = millis();
 
 		debugD("Wind speed / temperature check end: %lu\n", millis());
 	}
 
-	// Compass / Accelerometer.
-	if (_online[Devices::COMPASS_ACCELEROMETER] && (millis() - _lastCheck[Devices::COMPASS_ACCELEROMETER] > UPDATE_RATE_MS(COMPASS_ACCELEROMETER_UPDATE_RATE_HZ))) {
-		debugD("----------------------");
-		debugD("Compass accelerometer check start: %lu\n", millis());
+	//// Wind Direction.
+	//if (_online[Devices::WIND_DIRECTION] && (TIME_DELTA(_lastCheck[Devices::WIND_DIRECTION]) >= UPDATE_RATE_MS(WIND_DIRECTION_UPDATE_RATE_HZ))) {
+	//	debugD("----------------------");
+	//	debugD("Wind direction check start: %lu\n", millis());
 
-		coord compassXYZ = _compassAccelerometerProvider.getCompass();
-		_sampleSet.compassXYZ.add(Pair<int, coord>(millis(), compassXYZ), false);
 
-		int compassHeading = _compassAccelerometerProvider.getHeading(compassXYZ.x, compassXYZ.y);
-		coord accelerometerXYZ = _compassAccelerometerProvider.getAccelerometer();
-		_sampleSet.accelerometerXYZ.add(Pair<int, coord>(millis(), accelerometerXYZ), false);
+	//	debugD("Wind Direction Sensor Values:");
 
-		debugD("Compass / Accelerometer Sensor Values:");
-		debugD("  Compass (X,Y,Z) %s, %s, %s", String(compassXYZ.x).c_str(), String(compassXYZ.y).c_str(), String(compassXYZ.z).c_str());
-		debugD("  Compass Heading %s", String(compassHeading).c_str());
-		debugD("  Accelerometer (X,Y,Z) %s %s %s", String(accelerometerXYZ.x).c_str(), String(accelerometerXYZ.y).c_str(), String(accelerometerXYZ.z).c_str());
+	//	_lastCheck[Devices::WIND_DIRECTION] = millis();
 
-		_lastCheck[Devices::COMPASS_ACCELEROMETER] = millis();
+	//	debugD("Wind direction check end: %lu\n", millis());
+	//}
 
-		debugD("Compass accelerometer check end: %lu\n", millis());
+
+	// Local Screen Report.
+	if (_screenOn && TIME_DELTA(_screenLastUpdate) >= UPDATE_RATE_MS(SCREEN_UPDATE_RATE_HZ)) {
+		int numRainSamples = _sampleSet.rainSamples.numElements();
+		float rainSamples[GET_BUFFER_SIZE(RAIN_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)];
+		for (int i = 0; i < _sampleSet.rainSamples.numElements(); i++) {
+			rainSamples[i] = _sampleSet.rainSamples.peek(i)->second();
+		}
+		String rainState = _rainProvider.getRainState(rainSamples);
+		debugD("Rain state: %s", rainState);
+
+		_screenLastUpdate = millis();
+	}
+
+	// Transmit Data to "Ground" Station.
+	if (TIME_DELTA(_radioLastTransmit) >= MAX_SEND_INTERVAL_MS) {
+		debugD("Radio transmit start: %lu\n", millis());
+
+		// TODO radio transmit all buffered data.
+
+		_radioLastTransmit = millis();
+
+		debugD("Radio transmit end: %lu\n", millis());
 	}
 
 	// Restart the station...

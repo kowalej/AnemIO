@@ -23,7 +23,7 @@ float WindSpeedProvider::getWindSpeedRaw()
 	return pow((((float)sampledAvg - 264.0) / 85.6814), 3.36814) * 0.8689758250; // The last multiplication converts from MPH to knots.
 }
 
-float WindSpeedProvider::getWindTemperature()
+float WindSpeedProvider::getWindSensorTemperature()
 {
 	float total = 0;
 	for (int i = 0; i < WIND_SPEED_ANALOG_READ_SAMPLE_COUNT; i++) {
@@ -39,12 +39,15 @@ float WindSpeedProvider::getWindTemperature()
 	return (voltage - 0.400) / 0.0195;
 }
 
-float WindSpeedProvider::getCorrectedWindSpeed(float temperature) {
+float WindSpeedProvider::getCorrectedWindSpeed(float temperature) 
+{
 	float total = 0;
 	for (int i = 0; i < WIND_SPEED_ANALOG_READ_SAMPLE_COUNT; i++) {
-		total += analogRead(WIND_SPEED_SENSOR_SPEED_INPUT_PIN);
+		total += analogRead(WIND_SPEED_SENSOR_TEMPERATURE_INPUT_PIN);
 	}
 	float sampledAvg = total / WIND_SPEED_ANALOG_READ_SAMPLE_COUNT;
+
+	// Get our voltage value back from the ADC value.
 	float voltage = sampledAvg * (5.0 / 1024.0);
 
 	// See https://moderndevice.com/news/calibrating-rev-p-wind-sensor-new-regression/#more-19365.

@@ -18,8 +18,7 @@ float RainProvider::getRainValue()
 	return total / RAIN_ANALOG_READ_SAMPLE_COUNT;
 }
 
-const String RainProvider::getRainState(float rainValue)
+const String RainProvider::getRainState(float* rainValue)
 {
-	if (rainValue > 0) return "fuckyou";
-	return "fuck you fo sho";
+	return "fuckoff";
 }

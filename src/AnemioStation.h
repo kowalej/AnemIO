@@ -16,7 +16,9 @@
 #include "AmbientLightProvider.h"
 #include "WindSpeedProvider.h"
 #include "CompassAccelerometerProvider.h"
+#include "WaterTemperatureProvider.h"
 #include "Constants.h"
+#include "Utils.h"
 #include "Pair.h"
 #include "SampleSet.h"
 #include <SoftReset.h>
@@ -38,7 +40,7 @@ class AnemioStation {
 		int healthCheck();
 
 	private:
-		SampleSet _sampleSet; // Stores and serializes the sampling infromation from all sensors.
+		SampleSet _sampleSet; // Stores the sampling information from all sensors.
 
 		PressureProvider _pressureProvider;
 		RainProvider _rainProvider;
@@ -46,9 +48,13 @@ class AnemioStation {
 		AmbientLightProvider _ambientLightProvider;
 		WindSpeedProvider _windSpeedProvider;
 		CompassAccelerometerProvider _compassAccelerometerProvider;
+		WaterTemperatureProvider _waterTemperatureProvider;
 
 		bool _online[Devices::TOTAL];
 		unsigned long _lastCheck[Devices::TOTAL];
+		unsigned long _radioLastTransmit;
+		bool _screenOn;
+		unsigned long _screenLastUpdate;
 };
 
 #endif

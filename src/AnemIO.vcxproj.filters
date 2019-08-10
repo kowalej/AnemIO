@@ -60,6 +60,18 @@
     <ClInclude Include="Coord.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="WindDirectionProvider.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="WaterTemperatureProvider.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="WindSpeedPoint.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AnemioStation.cpp">
@@ -84,6 +96,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CompassAccelerometerProvider.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="WindDirectionProvider.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="WaterTemperatureProvider.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

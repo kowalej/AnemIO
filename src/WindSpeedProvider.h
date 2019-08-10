@@ -22,7 +22,7 @@ class WindSpeedProvider : public IDataProvider {
 		float getWindSpeedRaw();
 
 		// Gets wind sensor temperature, in °C.
-		float getWindTemperature();
+		float getWindSensorTemperature();
 
 		// Gets a temperature corrected wind speed. Temperature in degrees °C.
 		float getCorrectedWindSpeed(float temperature);
