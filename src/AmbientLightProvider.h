@@ -11,6 +11,7 @@
 
 #include "IDataProvider.h"
 #include "Constants.h"
+#include "SampleSet.h"
 
 class AmbientLightProvider : public IDataProvider {
 	public:
@@ -23,7 +24,10 @@ class AmbientLightProvider : public IDataProvider {
 		float getAmbientLightValue();
 
 		// Gets heuristic ambient light state from input value(s).
-		const String getAmbientLightState(const float &lightValues);
+		const String getAmbientLightState(SampleSet &samples);
+
+	private:
+		float getLux(float value);
 };
 
 

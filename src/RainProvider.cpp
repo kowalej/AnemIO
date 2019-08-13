@@ -18,7 +18,23 @@ float RainProvider::getRainValue()
 	return total / RAIN_ANALOG_READ_SAMPLE_COUNT;
 }
 
-const String RainProvider::getRainState(float* rainValue)
+const String RainProvider::getRainState(SampleSet& samples)
 {
-	return "fuckoff";
+	int sampleCount = samples.rainSamples.numElements();
+	float average = 0;
+	float variance = 0;
+	// Calculate the average.
+	for (int i = 0; i < sampleCount; i++) {
+		average += samples.rainSamples.peek(i)->second();
+	}
+	average = average / sampleCount;
+
+	// Calculate the variance.
+	for (int i = 0; i < sampleCount; i++) {
+		variance += sq(samples.rainSamples.peek(i)->second() - average);
+	}
+	variance = variance / sampleCount;
+
+	if (variance > 0) return "fuckyou";
+	return "fuck you fo sho";
 }

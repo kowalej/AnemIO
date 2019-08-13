@@ -4,11 +4,18 @@ WaterTemperatureProvider::WaterTemperatureProvider() {}
 
 bool WaterTemperatureProvider::setup() {
 	pinMode(WATER_TEMP_SENSOR_INPUT_PIN, INPUT);
+
+	// Note we will only power the thermistor when reading the temperature to avoid generating heat and wasting power.
+	pinMode(WATER_TEMP_SENSOR_TRIGGER_PIN, OUTPUT);
+	digitalWrite(WATER_TEMP_SENSOR_TRIGGER_PIN, LOW);
 	_isOnline = true;
 	return _isOnline;
 }
 
 float WaterTemperatureProvider::getWaterTemperature() {
+	// Power up the thermistor.
+	digitalWrite(WATER_TEMP_SENSOR_TRIGGER_PIN, HIGH);
+
 	float average = 0;
 	for (int i = 0; i < WATER_TEMP_ANALOG_READ_SAMPLE_COUNT; i++) {
 		average += analogRead(WATER_TEMP_SENSOR_INPUT_PIN);
@@ -26,6 +33,8 @@ float WaterTemperatureProvider::getWaterTemperature() {
 	steinhart = 1.0f / steinhart;												// Invert
 	steinhart -= 273.15f;														// Convert to Celcius.
 
+	// Power down.
+	digitalWrite(WATER_TEMP_SENSOR_TRIGGER_PIN, LOW);
 	return steinhart;
 }
 

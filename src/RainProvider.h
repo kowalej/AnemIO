@@ -11,6 +11,7 @@
 
 #include "IDataProvider.h"
 #include "Constants.h"
+#include "SampleSet.h"
 
 class RainProvider : public IDataProvider {
 	public:
@@ -22,7 +23,7 @@ class RainProvider : public IDataProvider {
 		float getRainValue();
 
 		// Gets heuristic rain state from input value(s).
-		const String getRainState(float* rainValue);
+		const String getRainState(SampleSet& samples);
 };
 
 #endif

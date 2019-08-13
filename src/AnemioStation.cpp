@@ -312,14 +312,11 @@ void AnemioStation::loop() {
 
 	// Local Screen Report.
 	if (_screenOn && TIME_DELTA(_screenLastUpdate) >= UPDATE_RATE_MS(SCREEN_UPDATE_RATE_HZ)) {
-		int numRainSamples = _sampleSet.rainSamples.numElements();
-		float rainSamples[GET_BUFFER_SIZE(RAIN_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)];
-		for (int i = 0; i < _sampleSet.rainSamples.numElements(); i++) {
-			rainSamples[i] = _sampleSet.rainSamples.peek(i)->second();
-		}
-		String rainState = _rainProvider.getRainState(rainSamples);
-		debugD("Rain state: %s", rainState);
+		String rainState = _rainProvider.getRainState(_sampleSet);
+		debugD("Rain state: %s", rainState.c_str());
 
+		String ambientLightState = _ambientLightProvider.getAmbientLightState(_sampleSet);
+		debugD("Ambient light state: %s", ambientLightState.c_str());
 		_screenLastUpdate = millis();
 	}
 

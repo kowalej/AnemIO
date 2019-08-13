@@ -20,7 +20,7 @@ float WindSpeedProvider::getWindSpeedRaw()
 
 	// From Modern Device:
 	// Wind formula derived from a wind tunnel data, annemometer and some fancy Excel regressions.
-	return pow((((float)sampledAvg - 264.0) / 85.6814), 3.36814) * 0.8689758250; // The last multiplication converts from MPH to knots.
+	return pow((((float)sampledAvg - 264.0f) / 85.6814f), 3.36814f) * 0.8689758250f; // The last multiplication converts from MPH to knots.
 }
 
 float WindSpeedProvider::getWindSensorTemperature()
@@ -35,15 +35,15 @@ float WindSpeedProvider::getWindSensorTemperature()
 	// Convert to volts then use formula from datatsheet
 	// Vout = ( TempC * .0195 ) + .400
 	// tempC = (Vout - V0c) / TC   see the MCP9701 datasheet for V0c and TC
-	float voltage = sampledAvg * (5.0 / 1024.0);
-	return (voltage - 0.400) / 0.0195;
+	float voltage = sampledAvg * (5.0f / 1024.0f);
+	return (voltage - 0.400f) / 0.0195f;
 }
 
 float WindSpeedProvider::getCorrectedWindSpeed(float temperature) 
 {
 	float total = 0;
 	for (int i = 0; i < WIND_SPEED_ANALOG_READ_SAMPLE_COUNT; i++) {
-		total += analogRead(WIND_SPEED_SENSOR_TEMPERATURE_INPUT_PIN);
+		total += analogRead(WIND_SPEED_SENSOR_SPEED_INPUT_PIN);
 	}
 	float sampledAvg = total / WIND_SPEED_ANALOG_READ_SAMPLE_COUNT;
 

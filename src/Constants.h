@@ -59,6 +59,7 @@ namespace {
 	float WATER_TEMP_UPDATE_RATE_HZ = WATER_TEMP_UPDATE_RATE_HZ_NORMAL;
 	const uint8_t WATER_TEMP_ANALOG_READ_SAMPLE_COUNT = 50; // Number of times we should do an analog read from the water temp sensor (we will average the samples).
 	const uint8_t WATER_TEMP_SENSOR_INPUT_PIN = A5;
+	const uint8_t WATER_TEMP_SENSOR_TRIGGER_PIN = 24; // Output pin to power the thermistor.
 	const uint16_t WATER_TEMP_EXTERNAL_RESISTOR_OHMS = 10000; // The ohms for the resitor we bridged with the analog input.
 	const uint16_t WATER_TEMP_THERMISTOR_NOMINAL_OHMS = 10000; // The nominal resistance at the nominal temperature of the thermistor (temperature probe).
 	const uint16_t WATER_TEMP_THERMISTOR_NOMINAL_TEMPERATURE = 25; // The nominal temperature for the probe.
