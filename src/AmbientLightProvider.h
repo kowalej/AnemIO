@@ -12,6 +12,7 @@
 #include "IDataProvider.h"
 #include "Constants.h"
 #include "SampleSet.h"
+#include "SerialDebug.h"
 
 class AmbientLightProvider : public IDataProvider {
 	public:

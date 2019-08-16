@@ -20,6 +20,9 @@ void AnemioStation::setup() {
 	// TODO: check setup completes with zero devices offline, and return info to radio.
 
 	debugA("Setup complete with %d device(s) offline.\n\n", offline);
+
+	/*lcd.begin(16, 2);
+	lcd.print("Anemio Station Online");*/
 }
 
 int AnemioStation::setupProviders(int numberOfRetries) {
@@ -29,6 +32,28 @@ int AnemioStation::setupProviders(int numberOfRetries) {
 	do {
 		numberOffline = 0;
 		String retryMsg = retries < numberOfRetries - 1 ? "will retry in a moment" : "will not retry";
+
+		// Setup ambient light sensor.
+		if (!_online[Devices::AMBIENT_LIGHT]) {
+			if ((_online[Devices::AMBIENT_LIGHT] = _ambientLightProvider.setup())) {
+				debugA("Ambient light sensing now online.");
+			}
+			else {
+				debugA("Problem bringing ambient light sensing online, %s.", retryMsg.c_str());
+			}
+		}
+		numberOffline += _online[Devices::AMBIENT_LIGHT] ? 0 : 1;
+
+		// Setup compass / accelerometer.
+		if (!_online[Devices::COMPASS_ACCELEROMETER]) {
+			if ((_online[Devices::COMPASS_ACCELEROMETER] = _compassAccelerometerProvider.setup())) {
+				debugA("Compass / accelerometer sensing now online.");
+			}
+			else {
+				debugA("Problem bringing compass / accelerometer sensing online, %s.", retryMsg.c_str());
+			}
+		}
+		numberOffline += _online[Devices::COMPASS_ACCELEROMETER] ? 0 : 1;
 
 		// Setup pressure sensor.
 		if (!_online[Devices::PRESSURE]) {
@@ -63,39 +88,6 @@ int AnemioStation::setupProviders(int numberOfRetries) {
 		}
 		numberOffline += _online[Devices::TEMPERATURE_HUMIDITY] ? 0 : 1;
 
-		// Setup ambient light sensor.
-		if (!_online[Devices::AMBIENT_LIGHT]) {
-			if ((_online[Devices::AMBIENT_LIGHT] = _ambientLightProvider.setup())) {
-				debugA("Ambient light sensing now online.");
-			}
-			else {
-				debugA("Problem bringing ambient light sensing online, %s.", retryMsg.c_str());
-			}
-		}
-		numberOffline += _online[Devices::AMBIENT_LIGHT] ? 0 : 1;
-
-		// Setup wind sensor.
-		if (!_online[Devices::WIND_SPEED]) {
-			if ((_online[Devices::WIND_SPEED] = _windSpeedProvider.setup())) {
-				debugA("Wind speed sensing now online.");
-			}
-			else {
-				debugA("Problem bringing wind speed sensing online, %s.", retryMsg.c_str());
-			}
-		}
-		numberOffline += _online[Devices::WIND_SPEED] ? 0 : 1;
-
-		// Setup compass / accelerometer.
-		if (!_online[Devices::COMPASS_ACCELEROMETER]) {
-			if ((_online[Devices::COMPASS_ACCELEROMETER] = _compassAccelerometerProvider.setup())) {
-				debugA("Compass / accelerometer sensing now online.");
-			}
-			else {
-				debugA("Problem bringing compass / accelerometer sensing online, %s.", retryMsg.c_str());
-			}
-		}
-		numberOffline += _online[Devices::COMPASS_ACCELEROMETER] ? 0 : 1;
-
 		// Setup water temperature.
 		if (!_online[Devices::WATER_TEMPERATURE]) {
 			if ((_online[Devices::WATER_TEMPERATURE] = _waterTemperatureProvider.setup())) {
@@ -107,6 +99,28 @@ int AnemioStation::setupProviders(int numberOfRetries) {
 		}
 		numberOffline += _online[Devices::WATER_TEMPERATURE] ? 0 : 1;
 
+		// Setup wind direction sensor.
+		if (!_online[Devices::WIND_DIRECTION]) {
+			if ((_online[Devices::WIND_DIRECTION] = _windDirectionProvider.setup())) {
+				debugA("Wind direction sensing now online.");
+			}
+			else {
+				debugA("Problem bringing wind direction sensing online, %s.", retryMsg.c_str());
+			}
+		}
+		numberOffline += _online[Devices::WIND_DIRECTION] ? 0 : 1;
+
+		// Setup wind speed sensor.
+		if (!_online[Devices::WIND_SPEED]) {
+			if ((_online[Devices::WIND_SPEED] = _windSpeedProvider.setup())) {
+				debugA("Wind speed sensing now online.");
+			}
+			else {
+				debugA("Problem bringing wind speed sensing online, %s.", retryMsg.c_str());
+			}
+		}
+		numberOffline += _online[Devices::WIND_SPEED] ? 0 : 1;
+
 		retries += 1;
 	} while (numberOffline > 0 && retries < numberOfRetries);
 
@@ -115,6 +129,16 @@ int AnemioStation::setupProviders(int numberOfRetries) {
 
 int AnemioStation::healthCheck() {
 	int numberOffline;
+
+	// Check ambient light is online.
+	if (!(_online[Devices::AMBIENT_LIGHT] = _ambientLightProvider.isOnline())) {
+		numberOffline += 1;
+	}
+
+	// Check compass / accelerometer is online.
+	if (!(_online[Devices::COMPASS_ACCELEROMETER] = _compassAccelerometerProvider.isOnline())) {
+		numberOffline += 1;
+	}
 
 	// Check pressure is online.
 	if (!(_online[Devices::PRESSURE] = _pressureProvider.isOnline())) {
@@ -131,23 +155,18 @@ int AnemioStation::healthCheck() {
 		numberOffline += 1;
 	}
 
-	// Check ambient light is online.
-	if (!(_online[Devices::AMBIENT_LIGHT] = _ambientLightProvider.isOnline())) {
+	// Check water temperature is online.
+	if (!(_online[Devices::WATER_TEMPERATURE] = _waterTemperatureProvider.isOnline())) {
+		numberOffline += 1;
+	}
+
+	// Check wind direction is online.
+	if (!(_online[Devices::WIND_DIRECTION] = _windDirectionProvider.isOnline())) {
 		numberOffline += 1;
 	}
 
 	// Check wind speed is online.
 	if (!(_online[Devices::WIND_SPEED] = _windSpeedProvider.isOnline())) {
-		numberOffline += 1;
-	}
-
-	// Check compass / accelerometer is online.
-	if (!(_online[Devices::COMPASS_ACCELEROMETER] = _compassAccelerometerProvider.isOnline())) {
-		numberOffline += 1;
-	}
-
-	// Check water temperature is online.
-	if (!(_online[Devices::WATER_TEMPERATURE] = _waterTemperatureProvider.isOnline())) {
 		numberOffline += 1;
 	}
 
@@ -271,7 +290,24 @@ void AnemioStation::loop() {
 		debugD("Water temperature check end: %lu\n", millis());
 	}
 
-	// Wind Speed / Temperature.
+	// Wind Direction.
+	if (_online[Devices::WIND_DIRECTION] && (TIME_DELTA(_lastCheck[Devices::WIND_DIRECTION]) >= UPDATE_RATE_MS(WIND_DIRECTION_UPDATE_RATE_HZ))) {
+		debugD("----------------------");
+		debugD("Wind direction check start: %lu\n", millis());
+
+		int windHeadingRaw = _windDirectionProvider.getHeading();
+		_sampleSet.windDirectionSamples.add(Pair<int, float>(millis(), windHeadingRaw), false);
+
+		debugD("Wind Direction Sensor Values:");
+		debugD("  Wind Heading Raw %d", windHeadingRaw);
+		debugD("  Wind Heading Corrected %d", windHeadingRaw);
+
+		_lastCheck[Devices::WIND_DIRECTION] = millis();
+
+		debugD("Wind direction check end: %lu\n", millis());
+	}
+
+	// Wind Speed.
 	if (_online[Devices::WIND_SPEED] && (TIME_DELTA(_lastCheck[Devices::WIND_SPEED]) >= UPDATE_RATE_MS(WIND_SPEED_UPDATE_RATE_HZ))) {
 		debugD("----------------------");
 		debugD("Wind speed / temperature check start: %lu\n", millis());
@@ -296,20 +332,6 @@ void AnemioStation::loop() {
 		debugD("Wind speed / temperature check end: %lu\n", millis());
 	}
 
-	//// Wind Direction.
-	//if (_online[Devices::WIND_DIRECTION] && (TIME_DELTA(_lastCheck[Devices::WIND_DIRECTION]) >= UPDATE_RATE_MS(WIND_DIRECTION_UPDATE_RATE_HZ))) {
-	//	debugD("----------------------");
-	//	debugD("Wind direction check start: %lu\n", millis());
-
-
-	//	debugD("Wind Direction Sensor Values:");
-
-	//	_lastCheck[Devices::WIND_DIRECTION] = millis();
-
-	//	debugD("Wind direction check end: %lu\n", millis());
-	//}
-
-
 	// Local Screen Report.
 	if (_screenOn && TIME_DELTA(_screenLastUpdate) >= UPDATE_RATE_MS(SCREEN_UPDATE_RATE_HZ)) {
 		String rainState = _rainProvider.getRainState(_sampleSet);
@@ -320,16 +342,16 @@ void AnemioStation::loop() {
 		_screenLastUpdate = millis();
 	}
 
-	// Transmit Data to "Ground" Station.
-	if (TIME_DELTA(_radioLastTransmit) >= MAX_SEND_INTERVAL_MS) {
-		debugD("Radio transmit start: %lu\n", millis());
+	//// Transmit Data to "Ground" Station.
+	//if (TIME_DELTA(_radioLastTransmit) >= MAX_SEND_INTERVAL_MS) {
+	//	debugD("Radio transmit start: %lu\n", millis());
 
-		// TODO radio transmit all buffered data.
+	//	// TODO radio transmit all buffered data.
 
-		_radioLastTransmit = millis();
+	//	_radioLastTransmit = millis();
 
-		debugD("Radio transmit end: %lu\n", millis());
-	}
+	//	debugD("Radio transmit end: %lu\n", millis());
+	//}
 
 	// Restart the station...
 	///soft_restart();

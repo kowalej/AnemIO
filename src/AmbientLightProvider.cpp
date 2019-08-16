@@ -1,5 +1,4 @@
 #include "AmbientLightProvider.h"
-#include "SerialDebug.h"
 
 AmbientLightProvider::AmbientLightProvider() { }
 
@@ -20,28 +19,27 @@ float AmbientLightProvider::getAmbientLightValue()
 }
 
 float AmbientLightProvider::getLux(float value) {
-	float voltage = value * (5.0f / 1024.0f);
+	float voltage = value * (5.0f / 1023.0f);
 
 	// Get current.
-	voltage = voltage / 100000.0f * 1000000; // 100K resistor, then multiply to get amps to uA.
+	float current = voltage / (float)AMBIENT_LIGHT_SENSOR_RESISTANCE_OHM * 1000000.0f; // 100K resistor, then multiply to get from amps to uA.
 
 	// Get lux.
-	voltage = pow(10, (voltage / 10)); // Logarithmic relation according to datasheet: https://www.mouser.ca/datasheet/2/365/GA1A1S201WP_Spec-184717.pdf.
-
-	return voltage;
+	return pow(10, (current / 10)); // Logarithmic relation according to datasheet: https://www.mouser.ca/datasheet/2/365/GA1A1S201WP_Spec-184717.pdf.
 }
 
 const String AmbientLightProvider::getAmbientLightState(SampleSet &samples)
 {
+	// Calculate the average.
 	int sampleCount = samples.ambientLightSamples.numElements();
 	float average = 0;
-	// Calculate the average.
 	for (int i = 0; i < sampleCount; i++) {
 		average += samples.ambientLightSamples.peek(i)->second();
 	}
 	average = average / sampleCount;
 	debugA("Ambi average: %s", String(average).c_str());
 
+	// Get lux and use lookup below to determine overall state.
 	float lux = getLux(average);
 
 	debugA("Lux: %s", String(lux).c_str());
@@ -49,28 +47,28 @@ const String AmbientLightProvider::getAmbientLightState(SampleSet &samples)
 	if (lux > 25000) {
 		return "Very Sunny";
 	}
-	if (lux > 10000) {
+	else if (lux > 10000) {
 		return "Sunny";
 	}
-	if (lux > 5000) {
+	else if (lux > 5000) {
 		return "Party Sunny";
 	}
-	if (lux >= 1000 && lux < 5000) {
+	else if (lux >= 1000 && lux < 5000) {
 		return "Party Cloudy";
 	}
-	if (lux < 1000 && lux > 200) {
-		"Cloudy";
+	else if (lux < 1000 && lux > 200) {
+		return "Cloudy";
 	}
-	if (lux <= 200 && lux > 50) {
-		"Very Cloud";
+	else if (lux <= 200 && lux > 50) {
+		return "Very Cloud";
 	}
-	if (lux <= 50 && lux > 10) {
-		"Dusk";
+	else if (lux <= 50 && lux > 10) {
+		return "Dusk";
 	}
-	if (lux <= 10 && lux > 5) {
-		"Twilight";
+	else if (lux <= 10 && lux > 5) {
+		return "Twilight";
 	}
-	if (lux <= 5) {
-		"Night";
+	else if (lux <= 5) {
+		return "Night";
 	}
 }

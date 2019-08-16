@@ -11,7 +11,7 @@ bool TemperatureHumidityProvider::setup()
 	return _isOnline;
 }
 
-void TemperatureHumidityProvider::checkfaults() {
+void TemperatureHumidityProvider::checkFaults() {
 	if (_numConsecutiveFaultsTemperature > TEMPERATURE_HUMIDITY_FAULT_MAX
 		|| _numConsecutiveFaultsHumidity > TEMPERATURE_HUMIDITY_FAULT_MAX) {
 		_isOnline = false;
@@ -19,7 +19,7 @@ void TemperatureHumidityProvider::checkfaults() {
 }
 
 float TemperatureHumidityProvider::getTemperature() {
-	checkfaults();
+	checkFaults();
 
 	// Read temperature as Celsius (the default).
 	float t = _temperatureHumditySensor.readTemperature();
@@ -37,7 +37,7 @@ float TemperatureHumidityProvider::getTemperature() {
 }
 
 float TemperatureHumidityProvider::getHumidity() {
-	checkfaults();
+	checkFaults();
 
 	// Read humidity as %.
 	float h = _temperatureHumditySensor.readHumidity();

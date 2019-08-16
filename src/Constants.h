@@ -37,6 +37,7 @@ namespace {
 	uint8_t AMBIENT_LIGHT_UPDATE_RATE_HZ = AMBIENT_LIGHT_UPDATE_RATE_HZ_NORMAL;
 	const uint8_t AMBIENT_LIGHT_ANALOG_READ_SAMPLE_COUNT = 50; // Number of times we should do an analog read from the ambient light sensor (we will average the samples).
 	const uint8_t AMBIENT_LIGHT_SENSOR_INPUT_PIN = A2;
+	const uint32_t AMBIENT_LIGHT_SENSOR_RESISTANCE_OHM = 100000; // This is the value of the internal resistor in the sensor.
 
 	// Compass / accelerometer sensor.
 	const uint8_t COMPASS_ACCELEROMETER_UPDATE_RATE_HZ_NORMAL = 8; // Normal mode update rate of compass / accelerometer sensor.
@@ -51,8 +52,12 @@ namespace {
 	const float WIND_SPEED_SENSOR_ZERO_WIND_VOLTAGE = 1.340; // This may vary slightly from sensor to sensor.
 
 	// Wind direction sensor.
-	const uint8_t WIND_DIRECTION_UPDATE_RATE_HZ_NORMAL = 4; // Normal mode update rate of wind direction sensor (rotary encoder).
-	uint8_t WIND_DIRECTION_UPDATE_RATE_HZ = WIND_DIRECTION_UPDATE_RATE_HZ_NORMAL;
+	const uint8_t WIND_DIRECTION_UPDATE_RATE_HZ_NORMAL = 1; // Normal mode update rate of wind direction sensor (rotary encoder).
+	const uint8_t WIND_DIRECTION_UPDATE_RATE_HZ = WIND_DIRECTION_UPDATE_RATE_HZ_NORMAL;
+	const uint8_t WIND_DIRECTION_FAULT_MAX = 25; // Consecutive read faults, before taking offline.
+	const uint8_t WIND_DIRECTION_SENSOR_CLK_PIN = 7; // Use a PWM "clock" pin.
+	const uint8_t WIND_DIRECTION_SENSOR_CS_PIN = 32; // Chip select (digital pin, out).
+	const uint8_t WIND_DIRECTION_SENSOR_DO_PIN = 33; // Data pin (in).
 
 	// Water temperature sensor.
 	constexpr float WATER_TEMP_UPDATE_RATE_HZ_NORMAL = 0.25f; // Normal mode update rate of light sensor.

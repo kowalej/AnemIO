@@ -35,7 +35,7 @@ float WindSpeedProvider::getWindSensorTemperature()
 	// Convert to volts then use formula from datatsheet
 	// Vout = ( TempC * .0195 ) + .400
 	// tempC = (Vout - V0c) / TC   see the MCP9701 datasheet for V0c and TC
-	float voltage = sampledAvg * (5.0f / 1024.0f);
+	float voltage = sampledAvg * (5.0f / 1023.0f);
 	return (voltage - 0.400f) / 0.0195f;
 }
 
@@ -48,7 +48,7 @@ float WindSpeedProvider::getCorrectedWindSpeed(float temperature)
 	float sampledAvg = total / WIND_SPEED_ANALOG_READ_SAMPLE_COUNT;
 
 	// Get our voltage value back from the ADC value.
-	float voltage = sampledAvg * (5.0 / 1024.0);
+	float voltage = sampledAvg * (5.0 / 1023.0);
 
 	// See https://moderndevice.com/news/calibrating-rev-p-wind-sensor-new-regression/#more-19365.
 	float windSpeed = pow((((voltage - WIND_SPEED_SENSOR_ZERO_WIND_VOLTAGE) / (3.038517 * pow(temperature, 0.115157))) / 0.087288), 3.009364);

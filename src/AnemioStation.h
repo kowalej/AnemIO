@@ -10,13 +10,14 @@
 #endif
 
 #include <Wire.h>
+#include "AmbientLightProvider.h"
+#include "CompassAccelerometerProvider.h"
 #include "PressureProvider.h"
 #include "RainProvider.h"
 #include "TemperatureHumidityProvider.h"
-#include "AmbientLightProvider.h"
-#include "WindSpeedProvider.h"
-#include "CompassAccelerometerProvider.h"
 #include "WaterTemperatureProvider.h"
+#include "WindDirectionProvider.h"
+#include "WindSpeedProvider.h"
 #include "Constants.h"
 #include "Utils.h"
 #include "Pair.h"
@@ -26,6 +27,7 @@
 #include <SerialDebug.h>
 #include <RingBufHelpers.h>
 #include "Coord.h"
+//#include "LiquidCrystal.h"
 
 class AnemioStation {
     public:
@@ -42,13 +44,16 @@ class AnemioStation {
 	private:
 		SampleSet _sampleSet; // Stores the sampling information from all sensors.
 
+		AmbientLightProvider _ambientLightProvider;
+		CompassAccelerometerProvider _compassAccelerometerProvider;
 		PressureProvider _pressureProvider;
 		RainProvider _rainProvider;
 		TemperatureHumidityProvider _temperatureHumidityProvider;
-		AmbientLightProvider _ambientLightProvider;
-		WindSpeedProvider _windSpeedProvider;
-		CompassAccelerometerProvider _compassAccelerometerProvider;
 		WaterTemperatureProvider _waterTemperatureProvider;
+		WindDirectionProvider _windDirectionProvider;
+		WindSpeedProvider _windSpeedProvider;
+
+		//LiquidCrystal lcd = LiquidCrystal(38, 39, 40, 41, 42, 43);
 
 		bool _online[Devices::TOTAL];
 		unsigned long _lastCheck[Devices::TOTAL];

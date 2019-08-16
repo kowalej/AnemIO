@@ -21,7 +21,7 @@ class TemperatureHumidityProvider : public IDataProvider
 		DHT _temperatureHumditySensor;
 		int _numConsecutiveFaultsTemperature = 0;
 		int _numConsecutiveFaultsHumidity = 0;
-		void checkfaults();
+		void checkFaults();
 };
 
 #endif
