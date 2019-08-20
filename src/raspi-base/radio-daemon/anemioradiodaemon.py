@@ -5,9 +5,9 @@ from RFM69.RFM69registers import RF69_915MHZ
 import datetime
 import time
 
-NODE=2
-NET=1
-KEY='1234567891011121'
+NODE=8
+NET=100
+#KEY='1234567891011121'
 TIMEOUT=3
 TOSLEEP=0.1
 
@@ -28,8 +28,9 @@ radio.setHighPower(True)
 print('Checking temperature')
 print(radio.readTemperature(0))
 
-print('setting encryption')
-radio.encrypt(KEY)
+# No encryption.
+#print('setting encryption')
+#radio.encrypt(KEY)
 
 sequence=0
 print('starting loop...')
