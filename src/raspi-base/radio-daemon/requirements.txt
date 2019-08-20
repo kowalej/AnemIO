@@ -1,1 +1,2 @@
-spidev=3.4
+spidev==3.4
+RPi.GPIO==0.7.0

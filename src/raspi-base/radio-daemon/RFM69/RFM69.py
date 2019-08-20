@@ -5,8 +5,12 @@ import spidev
 import RPi.GPIO as GPIO
 import time
 
+SENDERID = 7
+TARGETID = 7
+RSSI = -75
+
 class RFM69(object):
-    def __init__(self, freqBand, nodeID, networkID, isRFM69HW = False, intPin = 18, rstPin = 29, spiBus = 0, spiDevice = 0):
+    def __init__(self, freqBand, nodeID, networkID, isRFM69HW = False, intPin = 24, rstPin = 5, spiBus = 0, spiDevice = 0):
 
         self.freqBand = freqBand
         self.address = nodeID
@@ -21,12 +25,12 @@ class RFM69(object):
         self.promiscuousMode = False
         self.DATASENT = False
         self.DATALEN = 0
-        self.SENDERID = 0
-        self.TARGETID = 0
+        self.SENDERID = SENDERID
+        self.TARGETID = TARGETID
         self.PAYLOADLEN = 0
         self.ACK_REQUESTED = 0
         self.ACK_RECEIVED = 0
-        self.RSSI = 0
+        self.RSSI = RSSI
         self.DATA = []
         self.sendSleepTime = 0.05
 
@@ -240,7 +244,7 @@ class RFM69(object):
             ack = 0x80
         elif requestACK:
             ack = 0x40
-        if isinstance(buff, basestring):
+        if isinstance(buff, str):
             self.spi.xfer2([REG_FIFO | 0x80, len(buff) + 3, toAddress, self.address, ack] + [int(ord(i)) for i in list(buff)])
         else:
             self.spi.xfer2([REG_FIFO | 0x80, len(buff) + 3, toAddress, self.address, ack] + buff)
@@ -281,12 +285,12 @@ class RFM69(object):
         while self.intLock:
             time.sleep(.1)
         self.DATALEN = 0
-        self.SENDERID = 0
-        self.TARGETID = 0
+        self.SENDERID = SENDERID
+        self.TARGETID = TARGETID
         self.PAYLOADLEN = 0
         self.ACK_REQUESTED = 0
         self.ACK_RECEIVED = 0
-        self.RSSI = 0
+        self.RSSI = RSSI
         if (self.readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PAYLOADREADY):
             # avoid RX deadlocks
             self.writeReg(REG_PACKETCONFIG2, (self.readReg(REG_PACKETCONFIG2) & 0xFB) | RF_PACKET2_RXRESTART)
@@ -310,7 +314,7 @@ class RFM69(object):
         return False
 
     def readRSSI(self, forceTrigger = False):
-        rssi = 0
+        rssi = RSSI
         if forceTrigger:
             self.writeReg(REG_RSSICONFIG, RF_RSSI_START)
             while self.readReg(REG_RSSICONFIG) & RF_RSSI_DONE == 0x00:
