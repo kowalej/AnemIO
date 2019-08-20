@@ -5,6 +5,8 @@ import spidev
 import RPi.GPIO as GPIO
 import time
 
+SENDERID = 7
+
 class RFM69(object):
     def __init__(self, freqBand, nodeID, networkID, isRFM69HW = False, intPin = 18, rstPin = 29, spiBus = 0, spiDevice = 0):
 
@@ -21,8 +23,8 @@ class RFM69(object):
         self.promiscuousMode = False
         self.DATASENT = False
         self.DATALEN = 0
-        self.SENDERID = 0
-        self.TARGETID = 0
+        self.SENDERID = SENDERID
+        self.TARGETID = SENDERID
         self.PAYLOADLEN = 0
         self.ACK_REQUESTED = 0
         self.ACK_RECEIVED = 0
