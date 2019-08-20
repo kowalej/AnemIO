@@ -1,6 +1,7 @@
 #!/usr/bin/env python2
 
 from RFM69 import RFM69
+from RFM69.RFM69registers import RF69_915MHZ
 import datetime
 import time
 
