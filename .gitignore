@@ -258,6 +258,7 @@ paket-files/
 # Python Tools for Visual Studio (PTVS)
 __pycache__/
 *.pyc
+venv
 
 !BlueMuse/AppPackages/*/Dependencies/x64
 !BlueMuse/AppPackages/*/Dependencies/x86
