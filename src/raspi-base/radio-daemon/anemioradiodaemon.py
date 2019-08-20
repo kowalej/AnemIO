@@ -54,7 +54,7 @@ while True:
             break
 
     print('end recv...')
-    print(' ### %s from %s RSSI:%s '.format((''.join([chr(letter) for letter in radio.DATA]), radio.SENDERID, radio.RSSI)))
+    print(' ### %s from %s RSSI:%s ' % (''.join([chr(letter) for letter in radio.DATA]), radio.SENDERID, radio.RSSI))
 
     if radio.ACKRequested():
         radio.sendACK()
