@@ -7,9 +7,10 @@ import time
 
 SENDERID = 7
 TARGETID = 7
+RSSI = -75
 
 class RFM69(object):
-    def __init__(self, freqBand, nodeID, networkID, isRFM69HW = False, intPin = 18, rstPin = 29, spiBus = 0, spiDevice = 0):
+    def __init__(self, freqBand, nodeID, networkID, isRFM69HW = False, intPin = 24, rstPin = 5, spiBus = 0, spiDevice = 0):
 
         self.freqBand = freqBand
         self.address = nodeID
@@ -29,7 +30,7 @@ class RFM69(object):
         self.PAYLOADLEN = 0
         self.ACK_REQUESTED = 0
         self.ACK_RECEIVED = 0
-        self.RSSI = 0
+        self.RSSI = RSSI
         self.DATA = []
         self.sendSleepTime = 0.05
 
@@ -289,7 +290,7 @@ class RFM69(object):
         self.PAYLOADLEN = 0
         self.ACK_REQUESTED = 0
         self.ACK_RECEIVED = 0
-        self.RSSI = 0
+        self.RSSI = RSSI
         if (self.readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PAYLOADREADY):
             # avoid RX deadlocks
             self.writeReg(REG_PACKETCONFIG2, (self.readReg(REG_PACKETCONFIG2) & 0xFB) | RF_PACKET2_RXRESTART)
@@ -313,7 +314,7 @@ class RFM69(object):
         return False
 
     def readRSSI(self, forceTrigger = False):
-        rssi = 0
+        rssi = RSSI
         if forceTrigger:
             self.writeReg(REG_RSSICONFIG, RF_RSSI_START)
             while self.readReg(REG_RSSICONFIG) & RF_RSSI_DONE == 0x00:
