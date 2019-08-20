@@ -36,7 +36,7 @@ print('starting loop...')
 while True:
 
 
-    msg = 'I\'m radio %d: %d'.format(NODE, sequence)
+    msg = 'I\'m radio %d: %d' % (NODE, sequence)
     sequence = sequence + 1
 
     print('tx to radio 1: ' + msg)
