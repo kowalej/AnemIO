@@ -31,7 +31,6 @@ int WindDirectionProvider::getHeading() {
 		_numConsecutiveFaults = 0;
 	}
 
-	debugA("%d", enc.Zaxis());
 	return value;
 }
 

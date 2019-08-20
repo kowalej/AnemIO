@@ -1,7 +1,7 @@
 // SampleSet.h
 
-#ifndef SAMPLE_SET_h
-#define SAMPLE_SET_h
+#ifndef SAMPLE_SET_H
+#define SAMPLE_SET_H
 
 #include "Constants.h"
 #include "Pair.h"

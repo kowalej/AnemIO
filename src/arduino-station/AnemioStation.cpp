@@ -6,23 +6,32 @@ AnemioStation::AnemioStation() {
 		_lastCheck[i] = 0;
 	}
 	_radioLastTransmit = 0;
-	_screenLastUpdate = 0;
-	_screenOn = true;//  TODO REMOVE.
 }
 
 void AnemioStation::setup() {
+	// Setup radio - if we cannot setup succesfully, we will retry a few times, and if still not setup we will restart the Arduino.
+	bool radioSetup = false;
+	for (int i = 0; i < 3; i++) {
+		radioSetup = _radioTransceiver.setup();
+		if (radioSetup) {
+			break;
+		}
+	}
+	if (!radioSetup) {
+		soft_restart();
+	}
+
 	// Startup i2c interface.
 	Wire.begin();
 
 	// Setup the providers and report status.
 	int offline = setupProviders(3);
+	if (offline > 0) {
 
+	}
 	// TODO: check setup completes with zero devices offline, and return info to radio.
 
 	debugA("Setup complete with %d device(s) offline.\n\n", offline);
-
-	/*lcd.begin(16, 2);
-	lcd.print("Anemio Station Online");*/
 }
 
 int AnemioStation::setupProviders(int numberOfRetries) {
@@ -332,26 +341,26 @@ void AnemioStation::loop() {
 		debugD("Wind speed / temperature check end: %lu\n", millis());
 	}
 
-	// Local Screen Report.
-	if (_screenOn && TIME_DELTA(_screenLastUpdate) >= UPDATE_RATE_MS(SCREEN_UPDATE_RATE_HZ)) {
+	// Aggregates.
+	/*if (TIME_DELTA(_screenLastUpdate) >= UPDATE_RATE_MS(SCREEN_UPDATE_RATE_HZ)) {
 		String rainState = _rainProvider.getRainState(_sampleSet);
 		debugD("Rain state: %s", rainState.c_str());
 
 		String ambientLightState = _ambientLightProvider.getAmbientLightState(_sampleSet);
 		debugD("Ambient light state: %s", ambientLightState.c_str());
 		_screenLastUpdate = millis();
+	}*/
+
+	// Transmit data to "ground" station.
+	if (TIME_DELTA(_radioLastTransmit) >= 4000) {
+		debugD("Radio transmit start: %lu\n", millis());
+
+		// todo radio transmit all buffered data.
+		_radioTransceiver.sendMessage("hello");
+		_radioLastTransmit = millis();
+
+		debugD("Radio transmit end: %lu\n", millis());
 	}
-
-	//// Transmit Data to "Ground" Station.
-	//if (TIME_DELTA(_radioLastTransmit) >= MAX_SEND_INTERVAL_MS) {
-	//	debugD("Radio transmit start: %lu\n", millis());
-
-	//	// TODO radio transmit all buffered data.
-
-	//	_radioLastTransmit = millis();
-
-	//	debugD("Radio transmit end: %lu\n", millis());
-	//}
 
 	// Restart the station...
 	///soft_restart();

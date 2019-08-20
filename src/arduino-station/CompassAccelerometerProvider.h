@@ -1,7 +1,7 @@
 // CompassAccelerometer.h
 
-#ifndef COMPASS_ACCELEROMETER_h
-#define COMPASS_ACCELEROMETER_h
+#ifndef COMPASS_ACCELEROMETER_H
+#define COMPASS_ACCELEROMETER_H
 
 #if defined(ARDUINO) && ARDUINO >= 100
 	#include "arduino.h"

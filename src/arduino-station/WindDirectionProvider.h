@@ -1,7 +1,7 @@
 // WindDirectionProvider.h
 
-#ifndef WIND_DIRECTION_PROVIDER_h
-#define WIND_DIRECTION_PROVIDER_h
+#ifndef WIND_DIRECTION_PROVIDER_H
+#define WIND_DIRECTION_PROVIDER_H
 
 #if defined(ARDUINO) && ARDUINO >= 100
 	#include "arduino.h"

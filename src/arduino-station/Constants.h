@@ -9,6 +9,8 @@
 #include "WProgram.h"
 #endif
 
+#include <RFM69.h>
+
 #define GET_BUFFER_SIZE(sensorRateHz, maxSendMs) (size_t(maxSendMs/1000 * sensorRateHz)) 
 
 namespace {
@@ -69,6 +71,21 @@ namespace {
 	const uint16_t WATER_TEMP_THERMISTOR_NOMINAL_OHMS = 10000; // The nominal resistance at the nominal temperature of the thermistor (temperature probe).
 	const uint16_t WATER_TEMP_THERMISTOR_NOMINAL_TEMPERATURE = 25; // The nominal temperature for the probe.
 	const uint16_t WATER_TEMP_THERMISTOR_BETA_COEFFICIENT = 3950; // This is the beta coefficient used for the Steinhart calculation.
+	
+	// Radio settings.
+	const uint8_t RADIO_CS_SLAVE_SELECT_PIN = 48;
+	const uint8_t RADIO_INTERRUPT_PIN = 2;
+	const uint8_t RADIO_RESET_PIN = 49; // Manually reset the radio...
+
+	const uint8_t RADIO_STATION_NODE_ID = 7;
+	const uint8_t RADIO_BASE_NODE_ID = 8;
+	const uint8_t RADIO_NETWORK_ID = 100;
+	const uint8_t RADIO_RETRY_NUM = 3;
+	const uint8_t RADIO_RETRY_WAIT_MS = 40;
+
+	const uint8_t RADIO_FREQUENCY = RF69_915MHZ;
+
+	const int8_t RADIO_ATC_RSSI = -75;
 
 	enum Devices {
 		AMBIENT_LIGHT,

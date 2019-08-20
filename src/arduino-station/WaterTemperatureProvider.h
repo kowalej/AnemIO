@@ -1,7 +1,7 @@
 // WaterTemperatureProvider.h
 
-#ifndef WATER_TEMPERATURE_PROVIDER_h
-#define WATER_TEMPERATURE_PROVIDER_h
+#ifndef WATER_TEMPERATURE_PROVIDER_H
+#define WATER_TEMPERATURE_PROVIDER_H
 
 #if defined(ARDUINO) && ARDUINO >= 100
 	#include "arduino.h"

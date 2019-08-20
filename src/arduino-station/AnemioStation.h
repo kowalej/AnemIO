@@ -23,11 +23,10 @@
 #include "Pair.h"
 #include "SampleSet.h"
 #include <SoftReset.h>
-#include <LowPower.h>
 #include <SerialDebug.h>
 #include <RingBufHelpers.h>
 #include "Coord.h"
-//#include "LiquidCrystal.h"
+#include "RadioTransceiver.h"
 
 class AnemioStation {
     public:
@@ -53,13 +52,11 @@ class AnemioStation {
 		WindDirectionProvider _windDirectionProvider;
 		WindSpeedProvider _windSpeedProvider;
 
-		//LiquidCrystal lcd = LiquidCrystal(38, 39, 40, 41, 42, 43);
+		RadioTransceiver _radioTransceiver;
 
 		bool _online[Devices::TOTAL];
 		unsigned long _lastCheck[Devices::TOTAL];
 		unsigned long _radioLastTransmit;
-		bool _screenOn;
-		unsigned long _screenLastUpdate;
 };
 
 #endif
