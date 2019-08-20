@@ -37,10 +37,10 @@ print('starting loop...')
 while True:
 
 
-    msg = 'I\'m radio %d: %d' % (NODE, sequence)
+    msg = f'I\'m radio {NODE}: {sequence}'
     sequence = sequence + 1
 
-    print('tx to radio 1: ' + msg)
+    print(f'tx to radio {radio.SENDERID}: {msg}')
     if radio.sendWithRetry(1, msg, 3, 20):
         print('ack recieved')
 
