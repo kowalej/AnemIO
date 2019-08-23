@@ -8,10 +8,10 @@ import time
 NODE=8
 NET=100
 #KEY='1234567891011121'
-TIMEOUT=3
+TIMEOUT=60
 TOSLEEP=0.1
 
-radio = RFM69.RFM69(RF69_915MHZ, NODE, NET, isRFM69HW=True)
+radio = RFM69.RFM69(RF69_915MHZ, NODE, NET, isRFM69HW=False)
 print('class initialized')
 
 print('reading all registers')
@@ -35,35 +35,39 @@ print(radio.readTemperature(0))
 sequence=0
 print('starting loop...')
 try:
-    while True:
-        msg = f'I\'m radio {NODE}: {sequence}'
-        sequence = sequence + 1
+	while True:
+		msg = f'I\'m radio {NODE}: {sequence}'
+		sequence = sequence + 1
 
-        print(f'tx to radio {radio.SENDERID}: {msg}')
-        if radio.sendWithRetry(1, msg, 3, 20):
-            print('ack recieved')
+		print(f'tx to radio {radio.SENDERID}: {msg}')
+		if radio.sendWithRetry(1, msg, 3, 20):
+			print('ack recieved')
 
-        print('starting recv...')
-        radio.receiveBegin()
-        timedOut=0
-        while not radio.receiveDone():
-            timedOut+=TOSLEEP
-            time.sleep(TOSLEEP)
-            if timedOut > TIMEOUT:
-                print('timed out waiting for recv')
-                break
+		print('starting recv...')
+		radio.receiveBegin()
+		timedOut=0
+		while not radio.receiveDone():
+			timedOut+=TOSLEEP
+			time.sleep(TOSLEEP)
+			if timedOut > TIMEOUT:
+				print('timed out waiting for recv')
+				break
 
-        print('end recv...')
-        print(' ### %s from %s RSSI:%s ' % (''.join([chr(letter) for letter in radio.DATA]), radio.SENDERID, radio.RSSI))
+		print('end recv...')
+		print(' ### %s from %s RSSI:%s ' % (''.join([chr(letter) for letter in radio.DATA]), radio.SENDERID, radio.RSSI))
 
-        if radio.ACKRequested():
-            radio.sendACK()
-        else:
-            print('ack not requested...')
+		if radio.ACKRequested():
+			radio.sendACK()
+		else:
+			print('ack not requested...')
 
 except KeyboardInterrupt: # If CTRL+C is pressed, exit cleanly:
    print("Keyboard interrupt")
 
+except Exception:
+	print("some error")
+
 finally:
-   print('shutting down') 
-   radio.shutdown()
+	print('shutting down')
+	GPIO.cleanup()
+	radio.shutdown()

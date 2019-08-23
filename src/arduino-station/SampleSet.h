@@ -15,34 +15,35 @@ class SampleSet {
 		SampleSet();
 		
 		// Ambient Light.
-		RingBufCPP<Pair<int, float>, GET_BUFFER_SIZE(AMBIENT_LIGHT_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> ambientLightSamples;
+		RingBufCPP<Pair<long, float>, GET_BUFFER_SIZE(AMBIENT_LIGHT_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> ambientLightSamples;
+		Pair<long, String> ambientLightStateSample; // Ambient light state (aggregate each send).
 
 		// Compass / Accelerometer.
-		RingBufCPP<Pair<int, coord>, GET_BUFFER_SIZE(COMPASS_ACCELEROMETER_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> compassXYZ;
-		RingBufCPP<Pair<int, coord>, GET_BUFFER_SIZE(COMPASS_ACCELEROMETER_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> accelerometerXYZ;
-		RingBufCPP<Pair<int, int>, GET_BUFFER_SIZE(COMPASS_ACCELEROMETER_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> compassHeading;
+		RingBufCPP<Pair<long, coord>, GET_BUFFER_SIZE(COMPASS_ACCELEROMETER_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> compassXYZSamples;
+		RingBufCPP<Pair<long, coord>, GET_BUFFER_SIZE(COMPASS_ACCELEROMETER_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> accelerometerXYZSamples;
+		RingBufCPP<Pair<long, int>, GET_BUFFER_SIZE(COMPASS_ACCELEROMETER_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> compassHeadingSamples;
 
 		// Pressure (Temperature) and Altitude.
-		RingBufCPP<Pair<int, float>, GET_BUFFER_SIZE(PRESSURE_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> pressureSamples;
-		RingBufCPP<Pair<int, float>, GET_BUFFER_SIZE(PRESSURE_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> pressureTemperatureSamples;
-		RingBufCPP<Pair<int, float>, GET_BUFFER_SIZE(PRESSURE_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> pressureAltitudeSamples;
+		RingBufCPP<Pair<long, float>, GET_BUFFER_SIZE(PRESSURE_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> pressureSamples;
+		RingBufCPP<Pair<long, float>, GET_BUFFER_SIZE(PRESSURE_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> pressureTemperatureSamples;
+		RingBufCPP<Pair<long, float>, GET_BUFFER_SIZE(PRESSURE_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> pressureAltitudeSamples;
 
 		// Rain.
-		RingBufCPP<Pair<int, float>, GET_BUFFER_SIZE(RAIN_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> rainSamples;
+		RingBufCPP<Pair<long, float>, GET_BUFFER_SIZE(RAIN_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> rainSamples;
+		Pair<long, String> rainStateSample; // Rain state (aggregate each send).
 
 		// Temperature / Humidity.
-		RingBufCPP<Pair<int, float>, GET_BUFFER_SIZE(TEMPERATURE_HUMIDITY_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> temperatureSamples;
-		RingBufCPP<Pair<int, float>, GET_BUFFER_SIZE(TEMPERATURE_HUMIDITY_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> humiditySamples;
+		RingBufCPP<Pair<long, float>, GET_BUFFER_SIZE(TEMPERATURE_HUMIDITY_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> temperatureSamples;
+		RingBufCPP<Pair<long, float>, GET_BUFFER_SIZE(TEMPERATURE_HUMIDITY_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> humiditySamples;
 
 		// Water Temperature.
-		RingBufCPP<Pair<int, float>, GET_BUFFER_SIZE(WATER_TEMP_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> waterTemperatureSamples;
+		RingBufCPP<Pair<long, float>, GET_BUFFER_SIZE(WATER_TEMP_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> waterTemperatureSamples;
 
 		// Wind Direction.
-		RingBufCPP<Pair<int, float>, GET_BUFFER_SIZE(WIND_DIRECTION_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> windDirectionSamples;
+		RingBufCPP<Pair<long, int>, GET_BUFFER_SIZE(WIND_DIRECTION_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> windDirectionSamples;
 
 		// Wind Speed.
-		RingBufCPP<Pair<int, windspeedpoint>, GET_BUFFER_SIZE(WIND_SPEED_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> windSpeedSamples;
-		RingBufCPP<Pair<int, float>, GET_BUFFER_SIZE(WIND_SPEED_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> windAmbientTemperatureSamples;
+		RingBufCPP<Pair<long, windspeedpoint>, GET_BUFFER_SIZE(WIND_SPEED_UPDATE_RATE_HZ_NORMAL, MAX_SEND_INTERVAL_MS)> windSpeedSamples;
 };
 
 #endif

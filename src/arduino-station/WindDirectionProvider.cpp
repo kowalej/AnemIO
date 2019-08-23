@@ -31,7 +31,8 @@ int WindDirectionProvider::getHeading() {
 		_numConsecutiveFaults = 0;
 	}
 
-	return value;
+	// Convert to 360 heading.
+	return (1024.0f / value) * 360;
 }
 
 

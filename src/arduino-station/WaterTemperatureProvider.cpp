@@ -23,10 +23,10 @@ float WaterTemperatureProvider::getWaterTemperature() {
 	average = average / WATER_TEMP_ANALOG_READ_SAMPLE_COUNT;
 
 	// Info regarding calculations below is available here: https://learn.adafruit.com/thermistor/using-a-thermistor.
-	average = WATER_TEMP_EXTERNAL_RESISTOR_OHMS * average / (1023 - average);
+	float resistance = WATER_TEMP_EXTERNAL_RESISTOR_OHMS / (1023 / average - 1);
 
 	float steinhart;
-	steinhart = average / WATER_TEMP_THERMISTOR_NOMINAL_OHMS;					// (R/Ro)
+	steinhart = resistance / WATER_TEMP_THERMISTOR_NOMINAL_OHMS;				// (R/Ro)
 	steinhart = log(steinhart);													// ln(R/Ro)
 	steinhart /= WATER_TEMP_THERMISTOR_BETA_COEFFICIENT;						// 1/B * ln(R/Ro)
 	steinhart += 1.0f / (WATER_TEMP_THERMISTOR_NOMINAL_TEMPERATURE + 273.15f);	// + (1/To)

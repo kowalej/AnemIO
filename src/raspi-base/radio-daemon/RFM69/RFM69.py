@@ -10,8 +10,8 @@ TARGETID = 7
 RSSI = -75
 
 class RFM69(object):
-    def __init__(self, freqBand, nodeID, networkID, isRFM69HW = False, intPin = 24, rstPin = 5, spiBus = 0, spiDevice = 0):
-
+    def __init__(self, freqBand, nodeID, networkID, isRFM69HW = False, intPin = 18, rstPin = 29, spiBus = 0, spiDevice = 0):
+		
         self.freqBand = freqBand
         self.address = nodeID
         self.networkID = networkID

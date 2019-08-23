@@ -18,7 +18,7 @@ class WaterTemperatureProvider : public IDataProvider {
 
 		bool setup();
 
-		// Gets water temperature in Celcius.
+		// Gets water temperature in celcius.
 		float getWaterTemperature();
 };
 

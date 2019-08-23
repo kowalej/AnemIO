@@ -23,7 +23,43 @@ bool RadioTransceiver::setup()
 	//attachInterrupt(digitalPinToInterrupt(RADIO_INTERRUPT_PIN), LOW, mode);
 }
 
+void RadioTransceiver::sleep() {
+	_radio.sleep();
+}
+
+void RadioTransceiver::wake() {
+	_radio.receiveDone();
+}
+
 bool RadioTransceiver::sendMessage(const char* message)
 {
-	return _radio.sendWithRetry(RADIO_BASE_NODE_ID, message, strlen(message), RADIO_RETRY_NUM, RADIO_RETRY_WAIT_MS);
+	wake();
+	bool send = _radio.sendWithRetry(RADIO_BASE_NODE_ID, message, strlen(message), RADIO_RETRY_NUM, RADIO_RETRY_WAIT_MS);
+	sleep();
+	return send;
+}
+
+bool RadioTransceiver::sendSample(long timestamp, String serializedValue) {
+	String message = "T: " + String(timestamp) + "V: " + serializedValue;
+	_radio.sendWithRetry(RADIO_BASE_NODE_ID, message.c_str(), strlen(message.c_str()), RADIO_RETRY_WAIT_MS);
+}
+
+bool RadioTransceiver::sendSamples(SampleSet &sampleSet)
+{
+	wake();
+	bool send = false;
+	
+	send = sendMessage(("Transmission started: time = " + millis()));
+
+	send &= sendMessage("Ambient Light");
+	for (int i = 0; i < sampleSet.ambientLightSamples.numElements(); i++) {
+		Pair<long, float> sample;
+		sampleSet.ambientLightSamples.pull(&sample);
+		send &= sendSample(sample.first(), String(sample.second()));
+	}
+
+	send &= sendMessage(("Transmission complete: time = " + millis()));
+
+	sleep();
+	return send;
 }

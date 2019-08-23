@@ -14,7 +14,9 @@ class TemperatureHumidityProvider : public IDataProvider
 	public:
 		TemperatureHumidityProvider();
 		bool setup();
+		// Get temperature in celcius.
 		float getTemperature();
+		// Get humidity as %.
 		float getHumidity();
 
 	private:

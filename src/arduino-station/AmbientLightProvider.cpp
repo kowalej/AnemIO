@@ -19,7 +19,7 @@ float AmbientLightProvider::getAmbientLightValue()
 }
 
 float AmbientLightProvider::getLux(float value) {
-	float voltage = value * (5.0f / 1023.0f);
+	float voltage = value * (5.0f / 1024.0f);
 
 	// Get current.
 	float current = voltage / (float)AMBIENT_LIGHT_SENSOR_RESISTANCE_OHM * 1000000.0f; // 100K resistor, then multiply to get from amps to uA.
@@ -51,10 +51,10 @@ const String AmbientLightProvider::getAmbientLightState(SampleSet &samples)
 		return "Sunny";
 	}
 	else if (lux > 5000) {
-		return "Party Sunny";
+		return "Partly Sunny";
 	}
 	else if (lux >= 1000 && lux < 5000) {
-		return "Party Cloudy";
+		return "Partly Cloudy";
 	}
 	else if (lux < 1000 && lux > 200) {
 		return "Cloudy";
