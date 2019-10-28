@@ -11,7 +11,7 @@ bool CompassAccelerometerProvider::setup() {
 	}
 	else {
 		debugI("Sensor found: LSM303 magnetometer.");
-		_isOnline &= true;
+		_isOnline = _isOnline && true;
 	}
 
 	if (!accel.begin())
@@ -21,7 +21,7 @@ bool CompassAccelerometerProvider::setup() {
 	}
 	else {
 		debugI("Sensor found: LSM303 accelerometer.");
-		_isOnline &= true;
+		_isOnline = _isOnline && true;
 	}
 	return _isOnline;
 }

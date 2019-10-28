@@ -22,8 +22,11 @@
 class RadioTransceiver {
 	public:
 		bool setup();
+		bool sendMessageWithAutoWake(const char* message);
 		bool sendMessage(const char* message);
 		bool sendSamples(SampleSet& sampleSet);
+		void sleep();
+		void wake();
 
 	private:
 	#ifdef RADIO_ENABLE_ATC
@@ -32,8 +35,6 @@ class RadioTransceiver {
 		RFM69 _radio = RFM69(RADIO_CS_SLAVE_SELECT_PIN, RADIO_INTERRUPT_PIN);
 	#endif
 		bool sendSample(const long timestamp, const String serializedValue);
-		void sleep();
-		void wake();
 };
 
 #endif
