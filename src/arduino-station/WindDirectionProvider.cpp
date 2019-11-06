@@ -32,7 +32,13 @@ int WindDirectionProvider::getHeading() {
 	}
 
 	// Convert to 360 heading.
-	return (1024.0f / value) * 360;
+	float val = (1024.0f / value) * 360; // Normalize the reading.
+	return (val + 180 % 360); // "Flip" the direction - since the wind will blow from the opposite of the position.
+}
+
+int WindDirectionProvider::getCorrectedHeading(int windHeading, int compassHeading)
+{
+	return ((windHeading + compassHeading) % 360); // Get the "absolute" direction based on platform position.
 }
 
 

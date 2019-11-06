@@ -1,7 +1,6 @@
 #include "RadioTransceiver.h"
 
-bool RadioTransceiver::setup()
-{
+bool RadioTransceiver::setup() {
 	// Reset the radio.
 	pinMode(RADIO_RESET_PIN, OUTPUT);
 	digitalWrite(RADIO_RESET_PIN, LOW);
@@ -11,16 +10,21 @@ bool RadioTransceiver::setup()
 	digitalWrite(RADIO_RESET_PIN, LOW);
 	delay(5);
 
+	// Set interrupt pin mode.
+	pinMode(RADIO_INTERRUPT_PIN, INPUT);
+
 	// Setup the radio.
 	bool radioInit = _radio.initialize(RADIO_FREQUENCY, RADIO_STATION_NODE_ID, RADIO_NETWORK_ID);
+	_radio.setHighPower(); // Set to high power since we are using RFM69HCW.
+	_radio.rcCalibration(); // Perform this calibration to optimize for temperature variability.
 	debugA("Radio initialized? %s", radioInit ? "true" : "false");
-	_radio.setHighPower(); // Call set high power since we are using RFM69HCW.
 	#ifdef RADIO_ENABLE_ATC
 	_radio.enableAutoPower(RADIO_ATC_RSSI);
 	#endif
-	return radioInit;
 
 	//attachInterrupt(digitalPinToInterrupt(RADIO_INTERRUPT_PIN), LOW, mode);
+	sleep();
+	return radioInit;
 }
 
 void RadioTransceiver::sleep() {
@@ -31,34 +35,33 @@ void RadioTransceiver::wake() {
 	_radio.receiveDone(); // This function will wake the device.
 }
 
-bool RadioTransceiver::sendMessageWithAutoWake(const char* message)
-{
+bool RadioTransceiver::sendMessageWithAutoWake(int command, const char* message) {
 	wake();
-	bool sent = _radio.sendWithRetry(RADIO_BASE_NODE_ID, message, strlen(message), RADIO_RETRY_NUM, RADIO_RETRY_WAIT_MS);
+	bool sent = sendMessage(command, message);
 	sleep();
 	return sent;
 }
 
-bool RadioTransceiver::sendMessage(const char* message)
-{
-	bool sent = _radio.sendWithRetry(RADIO_BASE_NODE_ID, message, strlen(message), RADIO_RETRY_NUM, RADIO_RETRY_WAIT_MS);
+bool RadioTransceiver::sendMessage(int command, const char* message) {
+	char formatBuff[61];
+	sprintf(formatBuff, "%d: %s", command, message);
+	bool sent = _radio.sendWithRetry(RADIO_BASE_NODE_ID, formatBuff, strlen(formatBuff), RADIO_RETRY_NUM, RADIO_RETRY_WAIT_MS);
 	return sent;
 }
 
-bool RadioTransceiver::sendSample(long timestamp, String serializedValue) {
-	String message = "T: " + String(timestamp) + "V: " + serializedValue;
-	const char* messageC = message.c_str();
-	bool wasSent = _radio.sendWithRetry(RADIO_BASE_NODE_ID, messageC, strlen(messageC), RADIO_RETRY_NUM, RADIO_RETRY_WAIT_MS);
-	return wasSent;
+bool RadioTransceiver::sendSample(long timestamp, const char* serializedValue) {
+	char formatBuff[61];
+	sprintf(formatBuff, "%d: T: %l V: %s", RadioCommands::SAMPLE_WRITE, timestamp, serializedValue);
+	bool sent = _radio.sendWithRetry(RADIO_BASE_NODE_ID, formatBuff, strlen(formatBuff), RADIO_RETRY_NUM, RADIO_RETRY_WAIT_MS);
+	return sent;
 }
 
-bool RadioTransceiver::sendSamples(SampleSet &sampleSet)
-{
-	bool send = false;
-	char formatBuff[50];
+bool RadioTransceiver::sendSamples(SampleSet& sampleSet) {
+	bool sent = false;
 
-	sprintf(formatBuff, "Transmission started: time = %lu", millis());
-	send = sendMessage(formatBuff);
+	char formatBuff[20];
+	sprintf(formatBuff, "T: %lu", millis());
+	sent = sendMessage(RadioCommands::SAMPLES_START, formatBuff);
 
 	// Ambient light.
 	//send = send && sendMessage("Ambient light started: time = " + millis());
@@ -194,6 +197,6 @@ bool RadioTransceiver::sendSamples(SampleSet &sampleSet)
 	//send = send && sendMessage("Wind speed finished: time = " + millis());
 
 	//send = send && sendMessage("Transmission finished: time = " + millis());
-	return send;
+	return sent;
 }
 

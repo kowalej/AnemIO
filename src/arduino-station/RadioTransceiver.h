@@ -12,18 +12,17 @@
 #include "Constants.h"
 #include <RFM69.h>
 #include <RFM69_ATC.h>
-#include <RFM69_OTA.h>
 #include <SPI.h>
 #include "SerialDebug.h"
 #include "SampleSet.h"
 
-#define RADIO_ENABLE_ATC
+// #define RADIO_ENABLE_ATC
 
 class RadioTransceiver {
 	public:
 		bool setup();
-		bool sendMessageWithAutoWake(const char* message);
-		bool sendMessage(const char* message);
+		bool sendMessageWithAutoWake(int command, const char* message);
+		bool sendMessage(int command, const char* message);
 		bool sendSamples(SampleSet& sampleSet);
 		void sleep();
 		void wake();
@@ -34,7 +33,7 @@ class RadioTransceiver {
 	#else
 		RFM69 _radio = RFM69(RADIO_CS_SLAVE_SELECT_PIN, RADIO_INTERRUPT_PIN);
 	#endif
-		bool sendSample(const long timestamp, const String serializedValue);
+		bool sendSample(const long timestamp, const char* serializedValue);
 };
 
 #endif

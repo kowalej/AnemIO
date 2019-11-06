@@ -22,7 +22,7 @@ class WindDirectionProvider : public IDataProvider {
 		// Get heading based on magnet position. This is relative to the station, not factoring in compass heading.
 		int getHeading();
 		// This gets the heading corrected for the station's compass heading.
-		int getCorrectedHeading(int compassHeading);
+		int getCorrectedHeading(int windHeading, int compassHeading);
 	
 	private:
 		AS5040 enc;

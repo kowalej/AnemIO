@@ -10,6 +10,7 @@
 #endif
 
 #include <BMx280MI.h>
+#include <BMx280I2C.h>
 #include "Constants.h"
 #include "IDataProvider.h"
 #include <SerialDebug.h>

@@ -31,6 +31,14 @@ TOSLEEP = 7 # Sleep time will be 7 seconds (try get packets every 7 seconds).
 print('Connecting to database...')
 dbConn = sqlite3.connect('anemio.db')
 
+async def receiver(radio):
+	while True:    
+		for packet in radio.get_packets():
+			print("Packet received", packet)
+			print(''.join([chr(letter) for letter in packet.data]))
+			# await call_API("http://httpbin.org/post", packet)
+		await asyncio.sleep(TOSLEEP)
+
 try:
 	loop = asyncio.get_event_loop()
 	with Radio(FREQ_915MHZ, NODE, NET, isHighPower = True) as radio:
@@ -41,14 +49,6 @@ try:
 
 		loop.create_task(receiver(radio))
 		loop.run_forever()
-			
-async def receiver(radio):
-	while True:    
-		print("Receiver")
-		for packet in radio.get_packets():
-			print("Packet received", packet.to_dict())
-			# await call_API("http://httpbin.org/post", packet)
-		await asyncio.sleep(TOSLEEP)
 
 except KeyboardInterrupt: # If CTRL+C is pressed, exit cleanly:
 	print('Keyboard interrupt.')

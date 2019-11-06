@@ -27,15 +27,59 @@ void AnemioStation::setup() {
 	// Start using radio for a bit (wake up).
 	_radioTransceiver.wake();
 
+	_radioTransceiver.sendMessage(RadioCommands::SETUP_START, "Setup starting.");
+
 	// Setup the providers (using 3 retries) and report status.
 	int numOffline = setupProviders(3);
 
-	debugA("Setup complete with %d device(s) offline.\n\n", numOffline);
-	String radioMsg = "Setup complete with " + String(numOffline) + " device(s) offline.";
-	_radioTransceiver.sendMessage(radioMsg.c_str());
+	debugA("Setup completed with %d device(s) offline.\n\n", numOffline);
+	String radioMsg = "Setup completed with " + String(numOffline) + " device(s) offline.";
+	_radioTransceiver.sendMessage(RadioCommands::SETUP_FINISH, radioMsg.c_str());
 
 	// Done with radio for now (sleep).
 	_radioTransceiver.sleep();
+}
+
+bool AnemioStation::checkDeviceOnline_(Devices device) {
+	switch (device) {
+		case Devices::AMBIENT_LIGHT:
+			return _ambientLightProvider.isOnline();
+		case Devices::COMPASS_ACCELEROMETER:
+			return _compassAccelerometerProvider.isOnline();
+		case Devices::PRESSURE:
+			return _pressureProvider.isOnline();
+		case Devices::RAIN:
+			return _rainProvider.isOnline();
+		case Devices::TEMPERATURE_HUMIDITY:
+			return _temperatureHumidityProvider.isOnline();
+		case Devices::WATER_TEMPERATURE:
+			return _waterTemperatureProvider.isOnline();
+		case Devices::WIND_DIRECTION:
+			return _windDirectionProvider.isOnline();
+		case Devices::WIND_SPEED:
+			return _windSpeedProvider.isOnline();
+	}
+}
+
+bool AnemioStation::setupDevice_(Devices device) {
+	switch (device) {
+		case Devices::AMBIENT_LIGHT:
+			return _ambientLightProvider.setup();
+		case Devices::COMPASS_ACCELEROMETER:
+			return _compassAccelerometerProvider.setup();
+		case Devices::PRESSURE:
+			return _pressureProvider.setup();
+		case Devices::RAIN:
+			return _rainProvider.setup();
+		case Devices::TEMPERATURE_HUMIDITY:
+			return _temperatureHumidityProvider.setup();
+		case Devices::WATER_TEMPERATURE:
+			return _waterTemperatureProvider.setup();
+		case Devices::WIND_DIRECTION:
+			return _windDirectionProvider.setup();
+		case Devices::WIND_SPEED:
+			return _windSpeedProvider.setup();
+	}
 }
 
 int AnemioStation::setupProviders(int numberOfRetries) {
@@ -46,185 +90,45 @@ int AnemioStation::setupProviders(int numberOfRetries) {
 		numberOffline = 0;
 		bool retry = retries < numberOfRetries - 1;
 		String retryMsg = retry ? "will retry in a moment" : "will not retry";
-
-		// Setup ambient light sensor.
-		if (!_online[Devices::AMBIENT_LIGHT]) {
-			if ((_online[Devices::AMBIENT_LIGHT] = _ambientLightProvider.setup())) {
-				debugA("Ambient light sensing now online.");
-				_radioTransceiver.sendMessage("Ambient light sensing now online.");
-			}
-			else {
-				debugA("Problem bringing ambient light sensing online, %s.", retryMsg.c_str());
-				if (!retry) {
-					_radioTransceiver.sendMessage("ERROR: Problem bringing ambient light sensing online.");
+		for (int i = 0; i < Devices::TOTAL; i++) {
+			if (!_online[i]) {
+				bool setup = setupDevice_(static_cast<Devices>(i));
+				char formatBuff[50];
+				_online[i] = setup;
+				if (setup) {
+					debugA("%s setup was successful.", DeviceNames[i]);
+					sprintf(formatBuff, "%s setup was successful.", DeviceNames[i]);
+					_radioTransceiver.sendMessageWithAutoWake(RadioCommands::REPORT_SETUP_STATE, formatBuff);
 				}
+				else {
+					debugA("%s setup was unsuccessful.", DeviceNames[i], retryMsg);
+					if (!retry) {
+						sprintf(formatBuff, "%s setup was unsuccessfully.", DeviceNames[i]);
+						_radioTransceiver.sendMessageWithAutoWake(RadioCommands::REPORT_SETUP_STATE, formatBuff);
+					}
+				}
+				numberOffline += setup ? 0 : 1;
 			}
 		}
-		numberOffline += _online[Devices::AMBIENT_LIGHT] ? 0 : 1;
-
-		// Setup compass / accelerometer.
-		if (!_online[Devices::COMPASS_ACCELEROMETER]) {
-			if ((_online[Devices::COMPASS_ACCELEROMETER] = _compassAccelerometerProvider.setup())) {
-				debugA("Compass / accelerometer sensing now online.");
-				_radioTransceiver.sendMessage("Compass / accelerometer sensing now online.");
-			}
-			else {
-				debugA("Problem bringing compass / accelerometer sensing online, %s.", retryMsg.c_str());
-				if (!retry) {
-					_radioTransceiver.sendMessage("ERROR: Problem bringing compass / accelerometer sensing online.");
-				}
-			}
-		}
-		numberOffline += _online[Devices::COMPASS_ACCELEROMETER] ? 0 : 1;
-
-		// Setup pressure sensor.
-		if (!_online[Devices::PRESSURE]) {
-			if ((_online[Devices::PRESSURE] = _pressureProvider.setup())) {
-				debugA("Pressure sensing now online.");
-				_radioTransceiver.sendMessage("Pressure sensing now online.");
-			}
-			else {
-				debugA("Problem bringing pressure sensing online, %s.", retryMsg.c_str());
-				if (!retry) {
-					_radioTransceiver.sendMessage("ERROR: Problem bringing pressure sensing online.");
-				}
-			}
-		}
-		numberOffline += _online[Devices::PRESSURE] ? 0 : 1;
-
-		// Setup rain sensor.
-		if (!_online[Devices::RAIN]) {
-			if ((_online[Devices::RAIN] = _rainProvider.setup())) {
-				debugA("Rain sensing now online.");
-				_radioTransceiver.sendMessage("Rain sensing now online");
-			}
-			else {
-				debugA("Problem bringing rain sensing online, %s.", retryMsg.c_str());
-				if (!retry) {
-					_radioTransceiver.sendMessage("ERROR: Problem bringing rain sensing online.");
-				}
-			}
-		}
-		numberOffline += _online[Devices::RAIN] ? 0 : 1;
-
-		// Setup temperature / humidity sensor.
-		if (!_online[Devices::TEMPERATURE_HUMIDITY]) {
-			if ((_online[Devices::TEMPERATURE_HUMIDITY] = _temperatureHumidityProvider.setup())) {
-				debugA("Temperature / humidity sensing now online.");
-				_radioTransceiver.sendMessage("Temperature / humidity sensing now online.");
-			}
-			else {
-				debugA("Problem bringing temperature / humidity sensing online, %s.", retryMsg.c_str());
-				if (!retry) {
-					_radioTransceiver.sendMessage("ERROR: Problem bringing temperature / humidity sensing online.");
-				}
-			}
-		}
-		numberOffline += _online[Devices::TEMPERATURE_HUMIDITY] ? 0 : 1;
-
-		// Setup water temperature.
-		if (!_online[Devices::WATER_TEMPERATURE]) {
-			if ((_online[Devices::WATER_TEMPERATURE] = _waterTemperatureProvider.setup())) {
-				debugA("Water temperature sensing now online.");
-				_radioTransceiver.sendMessage("Water temperature sensing now online.");
-			}
-			else {
-				debugA("Problem bringing water temperature sensing online, %s.", retryMsg.c_str());
-				if (!retry) {
-					_radioTransceiver.sendMessage("ERROR: Problem bringing water temperature sensing online.");
-				}
-			}
-		}
-		numberOffline += _online[Devices::WATER_TEMPERATURE] ? 0 : 1;
-
-		// Setup wind direction sensor.
-		if (!_online[Devices::WIND_DIRECTION]) {
-			if ((_online[Devices::WIND_DIRECTION] = _windDirectionProvider.setup())) {
-				debugA("Wind direction sensing now online.");
-				_radioTransceiver.sendMessage("Wind direction sensing now online.");
-			}
-			else {
-				debugA("Problem bringing wind direction sensing online, %s.", retryMsg.c_str());
-				if (!retry) {
-					_radioTransceiver.sendMessage("ERROR: Problem bringing wind direction sensing online.");
-				}
-			}
-		}
-		numberOffline += _online[Devices::WIND_DIRECTION] ? 0 : 1;
-
-		// Setup wind speed sensor.
-		if (!_online[Devices::WIND_SPEED]) {
-			if ((_online[Devices::WIND_SPEED] = _windSpeedProvider.setup())) {
-				debugA("Wind speed sensing now online.");
-				_radioTransceiver.sendMessage("Wind speed sensing now online.");
-			}
-			else {
-				debugA("Problem bringing wind speed sensing online, %s.", retryMsg.c_str());
-				if (!retry) {
-					_radioTransceiver.sendMessage("ERROR: Problem bringing wind speed sensing online.");
-				}
-			}
-		}
-		numberOffline += _online[Devices::WIND_SPEED] ? 0 : 1;
-
+		
 		retries += 1;
 	} while (numberOffline > 0 && retries < numberOfRetries);
 
 	return numberOffline;
 }
 
-int AnemioStation::healthCheck() {
-	int numberOffline;
-
-	// Check ambient light is online.
-	if (!(_online[Devices::AMBIENT_LIGHT] = _ambientLightProvider.isOnline())) {
-		_radioTransceiver.sendMessageWithAutoWake("ERROR: Ambient light sensing unexpectedly has gone offline.");
-		numberOffline += 1;
+void AnemioStation::healthCheck() {
+	char formatBuff[50];
+	for (int i = 0; i < Devices::TOTAL; i++) {
+		bool isOnline = checkDeviceOnline_(static_cast<Devices>(i));
+		// If state changed...
+		if (_online[i] != isOnline) {
+			_online[i] = isOnline;
+			debugA("%s sensing unexpectedly %s.", DeviceNames[i], isOnline ? "came online" : "went offline");
+			sprintf(formatBuff, "%s sensing unexpectedly %s", DeviceNames[i], isOnline ? "came online" : "went offline");
+			_radioTransceiver.sendMessageWithAutoWake(RadioCommands::REPORT_ONLINE_STATE, formatBuff);
+		}
 	}
-
-	// Check compass / accelerometer is online.
-	if (!(_online[Devices::COMPASS_ACCELEROMETER] = _compassAccelerometerProvider.isOnline())) {
-		_radioTransceiver.sendMessageWithAutoWake("ERROR: Compass / accelerometer sensing unexpectedly has gone offline.");
-		numberOffline += 1;
-	}
-
-	// Check pressure is online.
-	if (!(_online[Devices::PRESSURE] = _pressureProvider.isOnline())) {
-		_radioTransceiver.sendMessageWithAutoWake("ERROR: Pressure sensing unexpectedly has gone offline.");
-		numberOffline += 1;
-	}
-
-	// Check rain is online.
-	if (!(_online[Devices::RAIN] = _rainProvider.isOnline())) {
-		_radioTransceiver.sendMessageWithAutoWake("ERROR: Rain sensing unexpectedly has gone offline.");
-		numberOffline += 1;
-	}
-
-	// Check temperature / humidity is online.
-	if (!(_online[Devices::TEMPERATURE_HUMIDITY] = _temperatureHumidityProvider.isOnline())) {
-		_radioTransceiver.sendMessageWithAutoWake("ERROR: Temperature sensing unexpectedly has gone offline.");
-		numberOffline += 1;
-	}
-
-	// Check water temperature is online.
-	if (!(_online[Devices::WATER_TEMPERATURE] = _waterTemperatureProvider.isOnline())) {
-		_radioTransceiver.sendMessageWithAutoWake("ERROR: Water temperature sensing unexpectedly has gone offline.");
-		numberOffline += 1;
-	}
-
-	// Check wind direction is online.
-	if (!(_online[Devices::WIND_DIRECTION] = _windDirectionProvider.isOnline())) {
-		_radioTransceiver.sendMessageWithAutoWake("ERROR: Wind direction sensing unexpectedly has gone offline.");
-		numberOffline += 1;
-	}
-
-	// Check wind speed is online.
-	if (!(_online[Devices::WIND_SPEED] = _windSpeedProvider.isOnline())) {
-		_radioTransceiver.sendMessageWithAutoWake("ERROR: Wind speed sensing unexpectedly has gone offline.");
-		numberOffline += 1;
-	}
-
-	return numberOffline; // Should hopefully never resolve to more than 0.
 }
 
 void AnemioStation::loop() {
@@ -350,11 +254,20 @@ void AnemioStation::loop() {
 		debugD("Wind direction check start: %lu\n", millis());
 
 		int windHeadingRaw = _windDirectionProvider.getHeading();
-		_sampleSet.windDirectionSamples.add(Pair<long, int>(millis(), windHeadingRaw), false);
-
+		int windHeadingCorrected = NAN;
+		
+		// Get the compass corrected wind direction (if possible).
+		if (_compassAccelerometerProvider.isOnline()) {
+			coord compassHeading = _compassAccelerometerProvider.getCompass();
+			 windHeadingCorrected = _windDirectionProvider.getCorrectedHeading(
+				windHeadingRaw,
+				_compassAccelerometerProvider.getHeading(compassHeading.x, compassHeading.y)
+			);
+		}
+		_sampleSet.windDirectionSamples.add(Pair<long, int>(millis(), windHeadingCorrected), false);
 		debugD("Wind Direction Sensor Values:");
 		debugD("  Wind Heading Raw %d", windHeadingRaw);
-		debugD("  Wind Heading Corrected %d", windHeadingRaw);
+		debugD("  Wind Heading Corrected %d", windHeadingCorrected);
 
 		_lastCheck[Devices::WIND_DIRECTION] = millis();
 
@@ -402,7 +315,7 @@ void AnemioStation::loop() {
 		bool sent = _radioTransceiver.sendSamples(_sampleSet);
 		_radioTransceiver.sleep();
 
-		debugD("Radio message was sent? %s", sent ? "Yes." : "No.");
+		debugD("Radio message was sent? %s", sent == true ? "Yes." : "No.");
 		_radioLastTransmit = millis();
 
 		debugD("Radio transmit end: %lu\n", millis());

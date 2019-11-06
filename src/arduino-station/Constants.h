@@ -68,15 +68,14 @@ namespace {
 	const uint8_t RADIO_INTERRUPT_PIN = 2;
 	const uint8_t RADIO_RESET_PIN = 49; // Manually reset the radio...
 
-	const uint8_t RADIO_STATION_NODE_ID = 7;
-	const uint8_t RADIO_BASE_NODE_ID = 8;
+	const uint8_t RADIO_STATION_NODE_ID = 88;
+	const uint8_t RADIO_BASE_NODE_ID = 87;
 	const uint8_t RADIO_NETWORK_ID = 223;
-	const uint8_t RADIO_RETRY_NUM = 3;
+	const uint8_t RADIO_RETRY_NUM = 6;
 	const uint8_t RADIO_RETRY_WAIT_MS = 40;
-
 	const uint8_t RADIO_FREQUENCY = RF69_915MHZ;
-
-	const int8_t RADIO_ATC_RSSI = -105;
+	const int16_t RADIO_ATC_RSSI = -100;
+	// const char* RADIO_ENCRYPT_KEY = "J53Y25U5D8CE79NO"; # uncomment if we want to use encryption.
 
 	enum Devices {
 		AMBIENT_LIGHT,
@@ -88,6 +87,27 @@ namespace {
 		WIND_DIRECTION,
 		WIND_SPEED,
 		TOTAL
+	};
+
+	const char* DeviceNames[] = {
+		"AMBIENT_LIGHT",
+		"COMPASS_ACCELEROMETER",
+		"PRESSURE",
+		"RAIN",
+		"TEMPERATURE_HUMIDITY",
+		"WATER_TEMPERATURE",
+		"WIND_DIRECTION",
+		"WIND_SPEED"
+	};
+
+	enum RadioCommands {
+		SETUP_START = 2,
+		SETUP_FINISH = 4,
+		REPORT_ONLINE_STATE = 8,
+		REPORT_SETUP_STATE = 16,
+		SAMPLES_START = 32,
+		SAMPLE_WRITE = 64,
+		SAMPLES_FINISH = 128
 	};
 }
 

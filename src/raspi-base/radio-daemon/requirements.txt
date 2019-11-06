@@ -1,2 +1,6 @@
 spidev==3.4
 RPi.GPIO==0.7.0
+rpi-rfm69==0.2.1b0
+aiohttp
+cchardet
+aiodns

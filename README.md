@@ -51,7 +51,7 @@
 
 </div>
 
-*Note that alternative SD cards, batteries, and solar panel(s) may be used. SD cards should be at least 4GB if you want to have some data storage capabilities for the Raspberry Pi. A large capacity battery may also be used, if available. The solar panels used on my setup were chosen because they were a good price, but panel(s) with greater power output would probably be recommended. 
+*Note that alternative SD cards, batteries, and solar panel(s) may be used. SD cards should be at least 4GB if you want to have some data storage capabilities for the Raspberry Pi. A large capacity battery may also be used, if available. The solar panels used on my setup were chosen because they were a good price, but panel(s) with greater power output would be recommended. 
 
 <style>
 .parts-table table tr td:nth-child(1) {

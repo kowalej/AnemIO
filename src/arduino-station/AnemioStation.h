@@ -38,7 +38,7 @@ class AnemioStation {
 		int setupProviders(int numberOfRetries = 3);
 
 		// Checks health of devices and reports number that are offline.
-		int healthCheck();
+		void healthCheck();
 
 	private:
 		SampleSet _sampleSet; // Stores the sampling information from all sensors.
@@ -57,6 +57,9 @@ class AnemioStation {
 		bool _online[Devices::TOTAL];
 		unsigned long _lastCheck[Devices::TOTAL];
 		unsigned long _radioLastTransmit;
+
+		bool setupDevice_(Devices device);
+		bool checkDeviceOnline_(Devices device);
 };
 
 #endif
