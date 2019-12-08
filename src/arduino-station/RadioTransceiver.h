@@ -17,23 +17,25 @@
 #include "SampleSet.h"
 
 // #define RADIO_ENABLE_ATC
+#define RADIO_ENCRYPT
 
 class RadioTransceiver {
 	public:
 		bool setup();
-		bool sendMessageWithAutoWake(int command, const char* message);
-		bool sendMessage(int command, const char* message);
-		bool sendSamples(SampleSet& sampleSet);
+		bool sendMessageWithAutoWake(int command, const char* message, uint8_t retries = RADIO_RETRY_NUM);
+		bool sendMessage(int command, const char* message, uint8_t retries = RADIO_RETRY_NUM);
+		Pair<int, int> sendSamples(SampleSet& sampleSet);
 		void sleep();
 		void wake();
 
 	private:
 	#ifdef RADIO_ENABLE_ATC
-		RFM69_ATC _radio = RFM69_ATC(RADIO_CS_SLAVE_SELECT_PIN, RADIO_INTERRUPT_PIN, false);
+		RFM69_ATC _radio = RFM69_ATC(RADIO_CS_SLAVE_SELECT_PIN, RADIO_INTERRUPT_PIN, true);
 	#else
-		RFM69 _radio = RFM69(RADIO_CS_SLAVE_SELECT_PIN, RADIO_INTERRUPT_PIN);
+		RFM69 _radio = RFM69(RADIO_CS_SLAVE_SELECT_PIN, RADIO_INTERRUPT_PIN, true);
 	#endif
-		bool sendSample(const long timestamp, const char* serializedValue);
+		bool sendSample(unsigned long timestamp, const char* serializedValue, unsigned long baseTimestamp);
+		void RadioTransceiver::sendSampleCompact(unsigned long timestamp, const char* serializedValue, unsigned long baseTimestamp, char* sampleBuff, int &numSent, int &numSuccess, bool flush = false);
 };
 
 #endif

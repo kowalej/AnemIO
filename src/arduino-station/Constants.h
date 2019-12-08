@@ -64,29 +64,30 @@ namespace {
 	const uint16_t WATER_TEMP_THERMISTOR_BETA_COEFFICIENT = 3950; // This is the beta coefficient used for the Steinhart calculation.
 	
 	// Radio settings.
-	const uint8_t RADIO_CS_SLAVE_SELECT_PIN = 48;
+	const uint8_t RADIO_CS_SLAVE_SELECT_PIN = 53; // Chip select CS (aka SS - slave select).
 	const uint8_t RADIO_INTERRUPT_PIN = 2;
 	const uint8_t RADIO_RESET_PIN = 49; // Manually reset the radio...
 
-	const uint8_t RADIO_STATION_NODE_ID = 88;
-	const uint8_t RADIO_BASE_NODE_ID = 87;
+	const uint16_t RADIO_STATION_NODE_ID = 97; // This is our attached radio ID.
+	const uint8_t RADIO_BASE_NODE_ID = 87; // This is the receiving radio ID.
 	const uint8_t RADIO_NETWORK_ID = 223;
-	const uint8_t RADIO_RETRY_NUM = 6;
+	const uint8_t RADIO_RETRY_NUM = 4;
 	const uint8_t RADIO_RETRY_WAIT_MS = 40;
 	const uint8_t RADIO_FREQUENCY = RF69_915MHZ;
-	const int16_t RADIO_ATC_RSSI = -100;
-	// const char* RADIO_ENCRYPT_KEY = "J53Y25U5D8CE79NO"; # uncomment if we want to use encryption.
+	const int16_t RADIO_ATC_RSSI = -90;
+	const char* RADIO_ENCRYPT_KEY = "J53Y25U5D8CE79NO";
+	const int RADIO_MAX_MESSAGE_LENGTH = 61;
 
 	enum Devices {
-		AMBIENT_LIGHT,
-		COMPASS_ACCELEROMETER,
-		PRESSURE,
-		RAIN,
-		TEMPERATURE_HUMIDITY,
-		WATER_TEMPERATURE,
-		WIND_DIRECTION,
-		WIND_SPEED,
-		TOTAL
+		AMBIENT_LIGHT = 0,
+		COMPASS_ACCELEROMETER = 1,
+		PRESSURE = 2,
+		RAIN = 3,
+		TEMPERATURE_HUMIDITY = 4,
+		WATER_TEMPERATURE = 5,
+		WIND_DIRECTION = 6,
+		WIND_SPEED = 7,
+		TOTAL = 8
 	};
 
 	const char* DeviceNames[] = {
@@ -100,14 +101,32 @@ namespace {
 		"WIND_SPEED"
 	};
 
+	namespace Sensors {
+		enum Sensors {
+			AMBIENT_LIGHT = 0,
+			COMPASS = 1,
+			ACCELEROMETER = 2,
+			PRESSURE = 3,
+			RAIN = 4,
+			TEMPERATURE = 5,
+			HUMIDITY = 6,
+			WATER_TEMPERATURE = 7,
+			WIND_DIRECTION = 8,
+			WIND_SPEED = 9,
+			TOTAL = 10
+		};
+	}
+
 	enum RadioCommands {
-		SETUP_START = 2,
-		SETUP_FINISH = 4,
-		REPORT_ONLINE_STATE = 8,
-		REPORT_SETUP_STATE = 16,
-		SAMPLES_START = 32,
-		SAMPLE_WRITE = 64,
-		SAMPLES_FINISH = 128
+		SETUP_START = 1,
+		SETUP_FINISH = 2,
+		REPORT_ONLINE_STATE = 3,
+		REPORT_SETUP_STATE = 4,
+		SAMPLES_START = 5,
+		SAMPLE_DEVICE_GROUP_START = 6,
+		SAMPLE_WRITE = 7,
+		SAMPLE_DEVICE_GROUP_END = 8,
+		SAMPLES_FINISH = 9
 	};
 }
 

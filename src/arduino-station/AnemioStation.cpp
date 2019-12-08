@@ -98,13 +98,13 @@ int AnemioStation::setupProviders(int numberOfRetries) {
 				if (setup) {
 					debugA("%s setup was successful.", DeviceNames[i]);
 					sprintf(formatBuff, "%s setup was successful.", DeviceNames[i]);
-					_radioTransceiver.sendMessageWithAutoWake(RadioCommands::REPORT_SETUP_STATE, formatBuff);
+					_radioTransceiver.sendMessage(RadioCommands::REPORT_SETUP_STATE, formatBuff);
 				}
 				else {
 					debugA("%s setup was unsuccessful.", DeviceNames[i], retryMsg);
 					if (!retry) {
 						sprintf(formatBuff, "%s setup was unsuccessfully.", DeviceNames[i]);
-						_radioTransceiver.sendMessageWithAutoWake(RadioCommands::REPORT_SETUP_STATE, formatBuff);
+						_radioTransceiver.sendMessage(RadioCommands::REPORT_SETUP_STATE, formatBuff);
 					}
 				}
 				numberOffline += setup ? 0 : 1;
@@ -141,7 +141,7 @@ void AnemioStation::loop() {
 		debugD("Ambient light check start: %lu\n", millis());
 
 		float ambientLightValue = _ambientLightProvider.getAmbientLightValue();
-		_sampleSet.ambientLightSamples.add(Pair<long, float>(millis(), ambientLightValue), false);
+		_sampleSet.ambientLightSamples.add(Pair<unsigned long, float>(millis(), ambientLightValue), false);
 
 		debugD("Ambient Light Sensor Values: %s", String(ambientLightValue).c_str());
 
@@ -156,13 +156,13 @@ void AnemioStation::loop() {
 		debugD("Compass accelerometer check start: %lu\n", millis());
 
 		coord compassXYZ = _compassAccelerometerProvider.getCompass();
-		_sampleSet.compassXYZSamples.add(Pair<long, coord>(millis(), compassXYZ), false);
+		_sampleSet.compassXYZSamples.add(Pair<unsigned long, coord>(millis(), compassXYZ), false);
 
 		int compassHeading = _compassAccelerometerProvider.getHeading(compassXYZ.x, compassXYZ.y);
-		_sampleSet.compassHeadingSamples.add(Pair<long, int>(millis(), compassHeading), false);
+		_sampleSet.compassHeadingSamples.add(Pair<unsigned long, int>(millis(), compassHeading), false);
 
 		coord accelerometerXYZ = _compassAccelerometerProvider.getAccelerometer();
-		_sampleSet.accelerometerXYZSamples.add(Pair<long, coord>(millis(), accelerometerXYZ), false);
+		_sampleSet.accelerometerXYZSamples.add(Pair<unsigned long, coord>(millis(), accelerometerXYZ), false);
 
 		debugD("Compass / Accelerometer Sensor Values:");
 		debugD("  Compass (X,Y,Z) %s, %s, %s", String(compassXYZ.x).c_str(), String(compassXYZ.y).c_str(), String(compassXYZ.z).c_str());
@@ -180,13 +180,13 @@ void AnemioStation::loop() {
 		debugD("Pressure check start: %lu\n", millis());
 
 		float pressureValue = _pressureProvider.getPressure();
-		_sampleSet.pressureSamples.add(Pair<long, float>(millis(), pressureValue), false);
+		_sampleSet.pressureSamples.add(Pair<unsigned long, float>(millis(), pressureValue), false);
 
 		float pressureTemperatureValue = _pressureProvider.getTemperature();
-		_sampleSet.pressureTemperatureSamples.add(Pair<long, float>(millis(), pressureTemperatureValue), false);
+		_sampleSet.pressureTemperatureSamples.add(Pair<unsigned long, float>(millis(), pressureTemperatureValue), false);
 
 		float pressureAltitudeValue = _pressureProvider.getAltitude();
-		_sampleSet.pressureAltitudeSamples.add(Pair<long, float>(millis(), pressureAltitudeValue), false);
+		_sampleSet.pressureAltitudeSamples.add(Pair<unsigned long, float>(millis(), pressureAltitudeValue), false);
 
 		debugD("Pressure Sensor Values:");
 		debugD("  Pressure (Pascals) %s", String(pressureValue).c_str());
@@ -204,7 +204,7 @@ void AnemioStation::loop() {
 		debugD("Rain check start: %lu\n", millis());
 
 		float rainValue = _rainProvider.getRainValue();
-		_sampleSet.rainSamples.add(Pair<long, float>(millis(), rainValue), false);
+		_sampleSet.rainSamples.add(Pair<unsigned long, float>(millis(), rainValue), false);
 
 		debugD("Rain Sensor Values: %s", String(rainValue).c_str());
 
@@ -219,10 +219,10 @@ void AnemioStation::loop() {
 		debugD("Temperature / humidity check start: %lu\n", millis());
 
 		float temperatureValue = _temperatureHumidityProvider.getTemperature();
-		_sampleSet.temperatureSamples.add(Pair<long, float>(millis(), temperatureValue), false);
+		_sampleSet.temperatureSamples.add(Pair<unsigned long, float>(millis(), temperatureValue), false);
 
 		float humidityValue = _temperatureHumidityProvider.getHumidity();
-		_sampleSet.humiditySamples.add(Pair<long, float>(millis(), humidityValue), false);
+		_sampleSet.humiditySamples.add(Pair<unsigned long, float>(millis(), humidityValue), false);
 
 		debugD("Temperature / Humidity Sensor Values:");
 		debugD("  Temperature (Celcius) %s", String(temperatureValue).c_str());
@@ -239,7 +239,7 @@ void AnemioStation::loop() {
 		debugD("Water temperature check start: %lu\n", millis());
 
 		float waterTemperature = _waterTemperatureProvider.getWaterTemperature();
-		_sampleSet.waterTemperatureSamples.add(Pair<long, float>(millis(), waterTemperature), false);
+		_sampleSet.waterTemperatureSamples.add(Pair<unsigned long, float>(millis(), waterTemperature), false);
 
 		debugD("Water Temperature Sensor Values: %s", String(waterTemperature).c_str());
 
@@ -264,7 +264,7 @@ void AnemioStation::loop() {
 				_compassAccelerometerProvider.getHeading(compassHeading.x, compassHeading.y)
 			);
 		}
-		_sampleSet.windDirectionSamples.add(Pair<long, int>(millis(), windHeadingCorrected), false);
+		_sampleSet.windDirectionSamples.add(Pair<unsigned long, int>(millis(), windHeadingCorrected), false);
 		debugD("Wind Direction Sensor Values:");
 		debugD("  Wind Heading Raw %d", windHeadingRaw);
 		debugD("  Wind Heading Corrected %d", windHeadingCorrected);
@@ -287,7 +287,7 @@ void AnemioStation::loop() {
 		// Temperature corrected wind speed. We will send this with the temperature.
 		// We can always reverse the math at the ground station if we don't like the corrected values.
 		float windSpeedCorrected = _windSpeedProvider.getCorrectedWindSpeed(windSensorTemperature);
-		_sampleSet.windSpeedSamples.add(Pair<long, windspeedpoint>(millis(), windspeedpoint(windSpeedCorrected, windSensorTemperature)), false);
+		_sampleSet.windSpeedSamples.add(Pair<unsigned long, windspeedpoint>(millis(), windspeedpoint(windSpeedCorrected, windSensorTemperature)), false);
 
 		debugD("Wind Speed Sensor Values:");
 		debugD("  Wind Speed Raw (Knots) %s", String(windSpeedRaw).c_str());
@@ -301,23 +301,22 @@ void AnemioStation::loop() {
 
 	// Transmit data to "ground" station.
 	if (TIME_DELTA(_radioLastTransmit) >= RADIO_SEND_INTERVAL_MS) {
+
+		// Aggregation for rain state.
 		String rainState = _rainProvider.getRainState(_sampleSet);
 		debugD("Rain state: %s", rainState.c_str());
-		_sampleSet.rainStateSample = Pair<long, String>(millis(), rainState);
+		_sampleSet.rainStateSample = Pair<unsigned long, String>(millis(), rainState);
 
+		// Aggregation for ambient light state.
 		String ambientLightState = _ambientLightProvider.getAmbientLightState(_sampleSet);
 		debugD("Ambient light state: %s", ambientLightState.c_str());
-		_sampleSet.ambientLightStateSample = Pair<long, String>(millis(), ambientLightState);
+		_sampleSet.ambientLightStateSample = Pair<unsigned long, String>(millis(), ambientLightState);
 
+		// Send data over radio.
 		debugD("Radio transmit start: %lu\n", millis());
-
-		_radioTransceiver.wake();
-		bool sent = _radioTransceiver.sendSamples(_sampleSet);
-		_radioTransceiver.sleep();
-
-		debugD("Radio message was sent? %s", sent == true ? "Yes." : "No.");
+		Pair<int,int> sentResults = _radioTransceiver.sendSamples(_sampleSet);
+		debugD("Radio sent %d/%d messages. Percent success: %f.", sentResults.first(), sentResults.second(), (static_cast<double>(sentResults.first()) / static_cast<double>(sentResults.second())) );
 		_radioLastTransmit = millis();
-
-		debugD("Radio transmit end: %lu\n", millis());
+		debugD("Radio transmit end: %lu\n", _radioLastTransmit);
 	}
 }

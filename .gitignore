@@ -263,5 +263,4 @@ venv
 #ignore vs code prefs
 .vscode
 
-!BlueMuse/AppPackages/*/Dependencies/x64
-!BlueMuse/AppPackages/*/Dependencies/x86
+RFM69/

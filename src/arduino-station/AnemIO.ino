@@ -8,12 +8,11 @@
 // #define DEBUG_DISABLED true
 
 // Define the initial debug level here (uncomment to do it)
-#include "RadioTransceiver.h"
 #define DEBUG_INITIAL_LEVEL DEBUG_LEVEL_VERBOSE
 
 // Disable SerialDebug debugger ? No more commands and features as functions and globals
 // Uncomment this to disable it
-#define DEBUG_DISABLE_DEBUGGER false
+#define DEBUG_DISABLE_DEBUGGER true
 
 // Disable auto function naming (good if your debug message already contains it)
 //#define DEBUG_AUTO_FUNC_DISABLED true
@@ -28,7 +27,7 @@
 #elif defined(ARDUINO_AVR_MEGA)
 #define SERIAL_SPEED 250000
 #elif defined(ARDUINO_AVR_MEGA2560)
-#define SERIAL_SPEED 250000
+#define SERIAL_SPEED 115200
 #elif defined(ARDUINO_SAM_DUE)
 #define SERIAL_SPEED 250000
 #elif defined(ARDUINO_SAMD_ZERO)
@@ -46,6 +45,8 @@
 #pragma endregion
 
 #include "AnemioStation.h"
+
+// #include "ArduinoLowPower.h"
 
 AnemioStation station;
 
@@ -76,6 +77,7 @@ void loop()
 #ifndef DEBUG_DISABLED
 	delay(15);
 #else
-	LowPower.powerSave(period_t::SLEEP_15MS, ADC_ON, BOD_ON, TIMER2_ON);
+	delay(15);
+	//LowPower.sleep(15);
 #endif
 }
