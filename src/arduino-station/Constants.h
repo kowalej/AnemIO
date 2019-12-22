@@ -14,23 +14,23 @@
 #define GET_BUFFER_SIZE(sensorRateHz, maxSendMs) (size_t(maxSendMs/1000 * sensorRateHz)) 
 
 namespace {
-	const uint16_t RADIO_SEND_INTERVAL_MS = 6000; // Maximum time between transmitting consecutive sample sets over the radio.
+	const uint16_t RADIO_SEND_INTERVAL_MS = 3000; // Maximum time between transmitting consecutive sample sets over the radio.
 
 	// Ambient light sensor.
-	const uint8_t AMBIENT_LIGHT_UPDATE_RATE_HZ = 2; // Update rate of light sensor.
+	const uint8_t AMBIENT_LIGHT_UPDATE_RATE_HZ = 1; // Update rate of light sensor.
 	const uint8_t AMBIENT_LIGHT_ANALOG_READ_SAMPLE_COUNT = 50; // Number of times we should do an analog read from the ambient light sensor (we will average the samples).
 	const uint8_t AMBIENT_LIGHT_SENSOR_INPUT_PIN = A2;
 	const uint32_t AMBIENT_LIGHT_SENSOR_RESISTANCE_OHM = 100000; // This is the value of the internal resistor in the sensor.
 
 	// Compass / accelerometer sensor.
-	const uint8_t COMPASS_ACCELEROMETER_UPDATE_RATE_HZ = 4; // Update rate of compass / accelerometer sensor.
+	const uint8_t COMPASS_ACCELEROMETER_UPDATE_RATE_HZ = 2; // Update rate of compass / accelerometer sensor.
 
 	// Pressure / temperature sensor.
-	const uint8_t PRESSURE_UPDATE_RATE_HZ = 2; // Update rate of pressure sensor.
+	const uint8_t PRESSURE_UPDATE_RATE_HZ = 1; // Update rate of pressure sensor.
 	const uint8_t BMP280_IC2_ADDRESS = 0x76; // Should be set to 0x77 if pushing 5v to SDO.
 
 	// Rain sensor.
-	const uint8_t RAIN_UPDATE_RATE_HZ = 4; // Update rate of rain sensor.
+	const uint8_t RAIN_UPDATE_RATE_HZ = 2; // Update rate of rain sensor.
 	const uint8_t RAIN_ANALOG_READ_SAMPLE_COUNT = 50; // Number of times we should do an analog read from the rain sensor (we will average the samples).
 	const uint8_t RAIN_SENSOR_INPUT_PIN = A1; // Analog input pin for the rain sensor.
 
@@ -47,7 +47,7 @@ namespace {
 	const uint8_t WIND_DIRECTION_SENSOR_DO_PIN = 33; // Data pin (in).
 
 	// Wind speed sensor.
-	const uint8_t WIND_SPEED_UPDATE_RATE_HZ = 2; // Update rate of wind speed sensor.
+	const uint8_t WIND_SPEED_UPDATE_RATE_HZ = 1; // Update rate of wind speed sensor.
 	const uint8_t WIND_SPEED_ANALOG_READ_SAMPLE_COUNT = 50; // Number of times we should do an analog read from the wind speed sensor (we will average the samples).
 	const uint8_t WIND_SPEED_SENSOR_SPEED_INPUT_PIN = A3;
 	const uint8_t WIND_SPEED_SENSOR_TEMPERATURE_INPUT_PIN = A4;
@@ -125,8 +125,7 @@ namespace {
 		SAMPLES_START = 5,
 		SAMPLE_DEVICE_GROUP_START = 6,
 		SAMPLE_WRITE = 7,
-		SAMPLE_DEVICE_GROUP_END = 8,
-		SAMPLES_FINISH = 9
+		SAMPLES_FINISH = 8
 	};
 }
 
