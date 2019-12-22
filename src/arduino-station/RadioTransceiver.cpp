@@ -63,7 +63,8 @@ inline unsigned long getRelativeTimestamp(unsigned long timestamp, unsigned long
 // Sends a single sample.
 bool RadioTransceiver::sendSample(unsigned long timestamp, const char* serializedValue, unsigned long baseTimestamp) {
 	char formatBuff[RADIO_MAX_MESSAGE_LENGTH];
-	sprintf(formatBuff, "[%d]%lu%s", RadioCommands::SAMPLE_WRITE, getRelativeTimestamp(timestamp, baseTimestamp), serializedValue);
+	// [<command>]<time>|<value>.
+	sprintf(formatBuff, "[%d]%lu|%s", RadioCommands::SAMPLE_WRITE, getRelativeTimestamp(timestamp, baseTimestamp), serializedValue);
 	bool sent = _radio.sendWithRetry(RADIO_BASE_NODE_ID, formatBuff, strlen(formatBuff), RADIO_RETRY_NUM, RADIO_RETRY_WAIT_MS);
 	return sent;
 }
@@ -71,21 +72,18 @@ bool RadioTransceiver::sendSample(unsigned long timestamp, const char* serialize
 //  Only sends a message when the radio buffer is full.
 void RadioTransceiver::sendSampleCompact(unsigned long timestamp, const char* serializedValue, unsigned long baseTimestamp, char* sampleBuff, int& numSent, int& numSuccess, bool flush) {
 	char buff[RADIO_MAX_MESSAGE_LENGTH];
-	int newSampleLength = sprintf(buff, "[%d]%lu%s", RadioCommands::SAMPLE_WRITE, getRelativeTimestamp(timestamp, baseTimestamp), serializedValue);
+	// [<command>]<time>|<value>;
+	int newSampleLength = sprintf(buff, "[%d]%lu|%s", RadioCommands::SAMPLE_WRITE, getRelativeTimestamp(timestamp, baseTimestamp), serializedValue);
 	int currentBuffLength = strlen(sampleBuff);
-	for (int i = currentBuffLength; i < currentBuffLength + newSampleLength; i++) {
-		sampleBuff[i] = buff[i - currentBuffLength];
-	}
-	int sampleLength = strlen(sampleBuff);
+	strncat(sampleBuff, buff, newSampleLength);
+	int sampleLength = currentBuffLength + newSampleLength;
 	if (sampleLength >= RADIO_MAX_MESSAGE_LENGTH) {
 		numSuccess += _radio.sendWithRetry(RADIO_BASE_NODE_ID, sampleBuff, RADIO_MAX_MESSAGE_LENGTH, RADIO_RETRY_NUM, RADIO_RETRY_WAIT_MS); numSent++;
 		int charsRemaining = sampleLength - RADIO_MAX_MESSAGE_LENGTH;
 		for (int i = 0; i < charsRemaining; i++) {
 			sampleBuff[i] = sampleBuff[RADIO_MAX_MESSAGE_LENGTH + i];
 		}
-		for (int i = charsRemaining; i < sampleLength; i++) {
-			sampleBuff[i] = null;
-		}
+		sampleBuff[charsRemaining] = null;
 	}
 
 	if (flush) {
@@ -101,7 +99,7 @@ void RadioTransceiver::sendSampleCompact(unsigned long timestamp, const char* se
 				}
 			}
 		}
-		sampleBuff[0] = '\0';
+		sampleBuff[0] = null;
 	}
 }
 
@@ -119,8 +117,8 @@ Pair<int,int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 	int messageCount = 0;
 	int sentMessages = 0;
 	unsigned long sampleBaseTimestamp;
-	char formatBuff[RADIO_MAX_MESSAGE_LENGTH]; // Should only be filled to 54 chars if using for sending samples.
-	char sampleBuff[RADIO_MAX_MESSAGE_LENGTH * 2];
+	char formatBuff[RADIO_MAX_MESSAGE_LENGTH] = { null }; // Should only be filled to 54 chars if using for sending samples.
+	char sampleBuff[RADIO_MAX_MESSAGE_LENGTH * 2] = { null };
 
 	// Wake up the radio before sending this series of messages.
 	wake();
