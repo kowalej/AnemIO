@@ -20,15 +20,15 @@ bool RadioTransceiver::setup() {
 	_radio.setPowerLevel((int)(0.85f * 31)); // 85% (of 31).
 
 	// Encryption.
-	#ifdef RADIO_ENCRYPT
+#ifdef RADIO_ENCRYPT
 	_radio.encrypt(RADIO_ENCRYPT_KEY);
-	#endif
+#endif
 
 	// Auto power can save battery, but the receiving station needs to enable ATC for this to setup correctly.
 	// Right now the Raspberry PI Python library does not have this functionality.
-	#ifdef RADIO_ENABLE_ATC
+#ifdef RADIO_ENABLE_ATC
 	_radio.enableAutoPower(RADIO_ATC_RSSI);
-	#endif
+#endif
 
 	sleep();
 	return radioInit;
@@ -51,7 +51,7 @@ bool RadioTransceiver::sendMessageWithAutoWake(int command, const char* message,
 
 bool RadioTransceiver::sendMessage(int command, const char* message, uint8_t retries) {
 	char formatBuff[RADIO_MAX_MESSAGE_LENGTH] = { '\0' };
-	sprintf(formatBuff, "[%d]%s", command, message);
+	snprintf(formatBuff, sizeof(formatBuff), "[%d]%s", command, message);
 	bool sent = _radio.sendWithRetry(RADIO_BASE_NODE_ID, formatBuff, strlen(formatBuff), retries, RADIO_RETRY_WAIT_MS);
 	return sent;
 }
@@ -64,287 +64,301 @@ inline unsigned long getRelativeTimestamp(unsigned long timestamp, unsigned long
 bool RadioTransceiver::sendSample(unsigned long timestamp, const char* serializedValue, unsigned long baseTimestamp) {
 	char formatBuff[RADIO_MAX_MESSAGE_LENGTH];
 	// [<command>]<time>|<value>.
-	sprintf(formatBuff, "[%d]%lu|%s", RadioCommands::SAMPLE_WRITE, getRelativeTimestamp(timestamp, baseTimestamp), serializedValue);
+	snprintf(formatBuff, sizeof(formatBuff), "[%d]%lu|%s", RadioCommands::SAMPLE_WRITE, getRelativeTimestamp(timestamp, baseTimestamp), serializedValue);
 	bool sent = _radio.sendWithRetry(RADIO_BASE_NODE_ID, formatBuff, strlen(formatBuff), RADIO_RETRY_NUM, RADIO_RETRY_WAIT_MS);
 	return sent;
 }
 
 // Only sends a message when the radio buffer is full.
-void RadioTransceiver::sendSampleCompact(unsigned long timestamp, const char* serializedValue, unsigned long baseTimestamp, char* sampleBuff, int& numSent, int& numSuccess, bool flush) {
-	char buff[RADIO_MAX_MESSAGE_LENGTH];
+void RadioTransceiver::sendMessageCompact(const char* message, char* messageBuff, int& numSent, int& numSuccess, bool flush) {
+	char formatBuff[RADIO_MAX_MESSAGE_LENGTH];
 	// [<command>]<time>|<value>;
-	int currentBuffLength = strlen(sampleBuff);
-	int newSampleLength = sprintf(buff, "[%d]%lu|%s", RadioCommands::SAMPLE_WRITE, getRelativeTimestamp(timestamp, baseTimestamp), serializedValue);
-	strncat(sampleBuff, buff, newSampleLength);
-	int sampleLength = currentBuffLength + newSampleLength;
-	if (sampleLength >= RADIO_MAX_MESSAGE_LENGTH) {
-		numSuccess += _radio.sendWithRetry(RADIO_BASE_NODE_ID, sampleBuff, RADIO_MAX_MESSAGE_LENGTH, RADIO_RETRY_NUM, RADIO_RETRY_WAIT_MS); numSent++;
-		int charsRemaining = sampleLength - RADIO_MAX_MESSAGE_LENGTH;
+	int currentBuffLength = strlen(messageBuff);
+	int newMessageLength = snprintf(formatBuff, sizeof(formatBuff), "%s", message);
+	strncat(messageBuff, formatBuff, newMessageLength);
+	int messagesLength = currentBuffLength + newMessageLength;
+	if (messagesLength >= RADIO_MAX_MESSAGE_LENGTH) {
+		numSuccess += _radio.sendWithRetry(RADIO_BASE_NODE_ID, messageBuff, RADIO_MAX_MESSAGE_LENGTH, RADIO_RETRY_NUM, RADIO_RETRY_WAIT_MS); numSent++;
+		int charsRemaining = messagesLength - RADIO_MAX_MESSAGE_LENGTH;
 		for (int i = 0; i < charsRemaining; i++) {
-			sampleBuff[i] = sampleBuff[RADIO_MAX_MESSAGE_LENGTH + i];
+			messageBuff[i] = messageBuff[RADIO_MAX_MESSAGE_LENGTH + i];
 		}
-		sampleBuff[charsRemaining] = null;
+		messageBuff[charsRemaining] = null;
 	}
 
 	if (flush) {
-		int sampleLength = strlen(sampleBuff);
-		if (sampleLength != 0) {
+		int messagesLength = strlen(messageBuff);
+		if (messagesLength != 0) {
 			int buffInd = 0;
 
-			for (int i = 0; i < sampleLength; i++) {
-				buff[buffInd] = sampleBuff[i];
+			for (int i = 0; i < messagesLength; i++) {
+				formatBuff[buffInd] = messageBuff[i];
 				buffInd++;
-				if (buffInd == RADIO_MAX_MESSAGE_LENGTH - 1 || i == sampleLength - 1) {
-					numSuccess += _radio.sendWithRetry(RADIO_BASE_NODE_ID, sampleBuff, strlen(buff), RADIO_RETRY_NUM, RADIO_RETRY_WAIT_MS); numSent++;
+				if (buffInd == RADIO_MAX_MESSAGE_LENGTH - 1 || i == messagesLength - 1) {
+					numSuccess += _radio.sendWithRetry(RADIO_BASE_NODE_ID, formatBuff, strlen(formatBuff), RADIO_RETRY_NUM, RADIO_RETRY_WAIT_MS); numSent++;
 					buffInd = 0;
-					for (int i = 0; i < sizeof(buff); i++) {
-						buff[i] = null;
+					for (int i = 0; i < sizeof(formatBuff); i++) {
+						formatBuff[i] = null;
 					}
 				}
 			}
 		}
-		sampleBuff[0] = null;
+		messageBuff[0] = null;
 	}
 }
 
-void groupPacketStartMessage(Sensors::Sensors sensor, const char* sampleCategory, const char* headerFormat, size_t numElements, unsigned long firstSampleTime, char* formatBuff) {
+void sampleMessage(unsigned long timestamp, const char* serializedValues, unsigned long baseTimestamp, char* formatBuff, bool last) {
+	sprintf(formatBuff, "%lu,%s%s", getRelativeTimestamp(timestamp, baseTimestamp), serializedValues, !last ? "|" : "");
+}
+
+void sampleGroupDividerMessage(Sensors::Sensors sensor, const char* sampleCategory, const char* headerFormat, size_t numElements, unsigned long firstSampleTime, char* formatBuff) {
 	// D: Device, C: Sample category, N: number of elements in upcoming series of samples, B: absolute value of first timestamp in upcoming set, T: current timestamp.
-	sprintf(formatBuff, "D:%dC:%sF:%sN:%uB:%luT:%lu", sensor, sampleCategory, headerFormat, numElements, firstSampleTime, millis());
+	sprintf(formatBuff, "[%d]D:%dC:%sF:%sN:%uB:%luT:%lu[7]", RadioCommands::SAMPLE_GROUP_DIVIDER, sensor, sampleCategory, headerFormat, numElements, firstSampleTime, millis());
 }
 
-void groupPacketEndMessage(Sensors::Sensors sensor, const char* sampleCategory, char* formatBuff) {
-	// D: Device, T: current timestamp.
-	sprintf(formatBuff, "D:%dC:%sT:%lu", sensor, sampleCategory, millis());
-}
-
-Pair<int,int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
+Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 	int messageCount = 0;
 	int sentMessages = 0;
 	unsigned long sampleBaseTimestamp;
-	char formatBuff[RADIO_MAX_MESSAGE_LENGTH] = { null }; // Should only be filled to 54 chars if using for sending samples.
-	char sampleBuff[RADIO_MAX_MESSAGE_LENGTH * 2] = { null };
+	char formatBuff[RADIO_MAX_MESSAGE_LENGTH] = { null };
+	char sampleBuff[RADIO_MAX_MESSAGE_LENGTH] = { null };
+	char messageBuff[RADIO_MAX_MESSAGE_LENGTH * 2] = { null };
 
 	// Wake up the radio before sending this series of messages.
 	wake();
-	
-	// Tell base station we are starting samples.
-	sprintf(formatBuff, "T:%lu", millis());
-	sentMessages += sendMessage(RadioCommands::SAMPLES_START, formatBuff); messageCount++;
 
-	#pragma region Ambient Light Values.
+	// Tell base station we are starting samples.
+	sprintf(formatBuff, "[%d]T:%lu", RadioCommands::SAMPLES_START, millis());
+	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages);
+
+#pragma region Ambient Light Values.
 	// Start ambient light samples.
 	sampleBaseTimestamp = sampleSet.ambientLightSamples.peek(0)->first();
-	groupPacketStartMessage(Sensors::AMBIENT_LIGHT, "VALUES", "T|V", sampleSet.ambientLightSamples.numElements(), sampleBaseTimestamp, formatBuff);
-	sentMessages += sendMessage(RadioCommands::SAMPLE_DEVICE_GROUP_START, formatBuff); messageCount++;
-	
+	sampleGroupDividerMessage(Sensors::AMBIENT_LIGHT, "VALUES", "T|V", sampleSet.ambientLightSamples.numElements(), sampleBaseTimestamp, formatBuff);
+	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages);
+
 	// Samples.
 	while (!sampleSet.ambientLightSamples.isEmpty()) {
 		Pair<unsigned long, float> sample;
 		sampleSet.ambientLightSamples.pull(&sample);
-		sendSampleCompact(sample.first(), String(sample.second(), 2).c_str(), sampleBaseTimestamp, sampleBuff, messageCount, sentMessages, sampleSet.ambientLightSamples.isEmpty());
+		sampleMessage(sample.first(), String(sample.second(), 2).c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.ambientLightSamples.isEmpty());
+		sendMessageCompact(sampleBuff, messageBuff, messageCount, sentMessages);
 	}
-	#pragma endregion
+#pragma endregion
 
-	#pragma region Ambient Light State
+#pragma region Ambient Light State
 	// Start ambient light state samples.
 	sampleBaseTimestamp = sampleSet.ambientLightStateSample.first();
-	groupPacketStartMessage(Sensors::AMBIENT_LIGHT, "STATE", "T|V", 1, sampleBaseTimestamp, formatBuff);
-	sentMessages += sendMessage(RadioCommands::SAMPLE_DEVICE_GROUP_START, formatBuff); messageCount++;
+	sampleGroupDividerMessage(Sensors::AMBIENT_LIGHT, "STATE", "T|V", 1, sampleBaseTimestamp, formatBuff);
+	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages);
 
 	// Samples.
-	sentMessages += sendSample(sampleSet.ambientLightStateSample.first(), sampleSet.ambientLightStateSample.second().c_str(), sampleBaseTimestamp); messageCount++;
-	#pragma endregion
-	
-	#pragma region Compass XYZ.
+	sampleMessage(sampleSet.ambientLightStateSample.first(), sampleSet.ambientLightStateSample.second().c_str(), sampleBaseTimestamp, sampleBuff, true);
+	sendMessageCompact(sampleBuff, messageBuff, messageCount, sentMessages);
+#pragma endregion
+
+#pragma region Compass XYZ.
 	///* Disabling compass XYZ, since data is sort of useless.
 	// Start compass XYZ samples.
 	sampleBaseTimestamp = sampleSet.compassXYZSamples.peek(0)->first();
-	groupPacketStartMessage(Sensors::COMPASS, "XYZ", "T|X|Y|Z", sampleSet.compassXYZSamples.numElements(), sampleBaseTimestamp, formatBuff);
-	sentMessages += sendMessage(RadioCommands::SAMPLE_DEVICE_GROUP_START, formatBuff); messageCount++;
+	sampleGroupDividerMessage(Sensors::COMPASS, "XYZ", "T|X|Y|Z", sampleSet.compassXYZSamples.numElements(), sampleBaseTimestamp, formatBuff);
+	sendMessageCompact(sampleBuff, messageBuff, messageCount, sentMessages);
 
 	// Samples.
 	while (!sampleSet.compassXYZSamples.isEmpty()) {
 		Pair<unsigned long, coord> sample;
 		sampleSet.compassXYZSamples.pull(&sample);
 		snprintf(formatBuff, sizeof(formatBuff), "%s|%s|%s", String(sample.second().x, 2).c_str(), String(sample.second().y, 2).c_str(), String(sample.second().z, 2).c_str());
-		sendSampleCompact(sample.first(), formatBuff, sampleBaseTimestamp, sampleBuff, messageCount, sentMessages, sampleSet.compassXYZSamples.isEmpty());
+		sampleMessage(sample.first(), formatBuff, sampleBaseTimestamp, sampleBuff, sampleSet.compassXYZSamples.isEmpty());
+		sendMessageCompact(sampleBuff, messageBuff, messageCount, sentMessages);
 	}
 	//*/
-	#pragma endregion
+#pragma endregion
 
-	#pragma region Compass Heading.
-	// Start compass heading samples.
+#pragma region Compass Heading.
+// Start compass heading samples.
 	sampleBaseTimestamp = sampleSet.compassHeadingSamples.peek(0)->first();
-	groupPacketStartMessage(Sensors::COMPASS, "HEADING", "T|V", sampleSet.compassHeadingSamples.numElements(), sampleBaseTimestamp, formatBuff);
-	sentMessages += sendMessage(RadioCommands::SAMPLE_DEVICE_GROUP_START, formatBuff); messageCount++;
+	sampleGroupDividerMessage(Sensors::COMPASS, "HEADING", "T|V", sampleSet.compassHeadingSamples.numElements(), sampleBaseTimestamp, formatBuff);
+	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages);
 
 	// Samples.
 	while (!sampleSet.compassHeadingSamples.isEmpty()) {
 		Pair<unsigned long, int> sample;
 		sampleSet.compassHeadingSamples.pull(&sample);
-		sendSampleCompact(sample.first(), String(sample.second()).c_str(), sampleBaseTimestamp, sampleBuff, messageCount, sentMessages, sampleSet.compassHeadingSamples.isEmpty());
+		sampleMessage(sample.first(), String(sample.second()).c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.compassHeadingSamples.isEmpty());
+		sendMessageCompact(sampleBuff, messageBuff, messageCount, sentMessages);
 	}
-	#pragma endregion
+#pragma endregion
 
-	#pragma region Accelerometer XYZ.
+#pragma region Accelerometer XYZ.
 	// Start accelerometer XYZ samples.
 	sampleBaseTimestamp = sampleSet.accelerometerXYZSamples.peek(0)->first();
-	groupPacketStartMessage(Sensors::ACCELEROMETER, "XYZ", "T|X|Y|Z", sampleSet.accelerometerXYZSamples.numElements(), sampleBaseTimestamp, formatBuff);
-	sentMessages += sendMessage(RadioCommands::SAMPLE_DEVICE_GROUP_START, formatBuff); messageCount++;
+	sampleGroupDividerMessage(Sensors::ACCELEROMETER, "XYZ", "T|X|Y|Z", sampleSet.accelerometerXYZSamples.numElements(), sampleBaseTimestamp, formatBuff);
+	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages);
 
 	// Samples.
 	while (!sampleSet.accelerometerXYZSamples.isEmpty()) {
 		Pair<unsigned long, coord> sample;
 		sampleSet.accelerometerXYZSamples.pull(&sample);
 		snprintf(formatBuff, sizeof(formatBuff), "%s|%s|%s", String(sample.second().x, 2).c_str(), String(sample.second().y, 2).c_str(), String(sample.second().z, 2).c_str());
-		sendSampleCompact(sample.first(), formatBuff, sampleBaseTimestamp, sampleBuff, messageCount, sentMessages, sampleSet.accelerometerXYZSamples.isEmpty());
+		sampleMessage(sample.first(), formatBuff, sampleBaseTimestamp, sampleBuff, sampleSet.accelerometerXYZSamples.isEmpty());
+		sendMessageCompact(sampleBuff, messageBuff, messageCount, sentMessages);
 	}
-	#pragma endregion
+#pragma endregion
 
-	#pragma region Pressure.
+#pragma region Pressure.
 	// Start pressure samples.
 	sampleBaseTimestamp = sampleSet.pressureSamples.peek(0)->first();
-	groupPacketStartMessage(Sensors::PRESSURE, "PRESSURE", "T|V", sampleSet.pressureSamples.numElements(), sampleBaseTimestamp, formatBuff);
-	sentMessages += sendMessage(RadioCommands::SAMPLE_DEVICE_GROUP_START, formatBuff); messageCount++;
+	sampleGroupDividerMessage(Sensors::PRESSURE, "PRESSURE", "T|V", sampleSet.pressureSamples.numElements(), sampleBaseTimestamp, formatBuff);
+	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages);
 
 	// Samples.
 	while (!sampleSet.pressureSamples.isEmpty()) {
 		Pair<unsigned long, float> sample;
 		sampleSet.pressureSamples.pull(&sample);
-		sendSampleCompact(sample.first(), String(sample.second(), 2).c_str(), sampleBaseTimestamp, sampleBuff, messageCount, sentMessages, sampleSet.pressureSamples.isEmpty());
+		sampleMessage(sample.first(), String(sample.second(), 2).c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.pressureSamples.isEmpty());
+		sendMessageCompact(sampleBuff, messageBuff, messageCount, sentMessages);
 	}
-	#pragma endregion
+#pragma endregion
 
-	#pragma region Pressure sensor temperature.
+#pragma region Pressure sensor temperature.
 	// Start pressure sensor temperature samples.
 	sampleBaseTimestamp = sampleSet.pressureTemperatureSamples.peek(0)->first();
-	groupPacketStartMessage(Sensors::PRESSURE, "TEMPERATURE", "T|V", sampleSet.pressureTemperatureSamples.numElements(), sampleBaseTimestamp, formatBuff);
-	sentMessages += sendMessage(RadioCommands::SAMPLE_DEVICE_GROUP_START, formatBuff); messageCount++;
+	sampleGroupDividerMessage(Sensors::PRESSURE, "TEMPERATURE", "T|V", sampleSet.pressureTemperatureSamples.numElements(), sampleBaseTimestamp, formatBuff);
+	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages);
 
 	// Samples.
 	while (!sampleSet.pressureTemperatureSamples.isEmpty()) {
 		Pair<unsigned long, float> sample;
 		sampleSet.pressureTemperatureSamples.pull(&sample);
-		sendSampleCompact(sample.first(), String(sample.second(), 2).c_str(), sampleBaseTimestamp, sampleBuff, messageCount, sentMessages, sampleSet.pressureTemperatureSamples.isEmpty());
+		sampleMessage(sample.first(), String(sample.second(), 2).c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.pressureTemperatureSamples.isEmpty());
+		sendMessageCompact(sampleBuff, messageBuff, messageCount, sentMessages);
 	}
-	#pragma endregion
+#pragma endregion
 
-	#pragma region Pressure altitude estimate.
+#pragma region Pressure altitude estimate.
 	// Start pressure altitude estimate samples.
 	sampleBaseTimestamp = sampleSet.pressureAltitudeSamples.peek(0)->first();
-	groupPacketStartMessage(Sensors::PRESSURE, "ALTITUDE", "T|V", sampleSet.pressureAltitudeSamples.numElements(), sampleBaseTimestamp, formatBuff);
-	sentMessages += sendMessage(RadioCommands::SAMPLE_DEVICE_GROUP_START, formatBuff); messageCount++;
+	sampleGroupDividerMessage(Sensors::PRESSURE, "ALTITUDE", "T|V", sampleSet.pressureAltitudeSamples.numElements(), sampleBaseTimestamp, formatBuff);
+	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages);
 
 	// Samples.
 	while (!sampleSet.pressureAltitudeSamples.isEmpty()) {
 		Pair<unsigned long, float> sample;
 		sampleSet.pressureAltitudeSamples.pull(&sample);
-		sendSampleCompact(sample.first(), String(sample.second(), 2).c_str(), sampleBaseTimestamp, sampleBuff, messageCount, sentMessages, sampleSet.pressureAltitudeSamples.isEmpty());
+		sampleMessage(sample.first(), String(sample.second(), 2).c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.pressureAltitudeSamples.isEmpty());
+		sendMessageCompact(sampleBuff, messageBuff, messageCount, sentMessages);
 	}
-	#pragma endregion
+#pragma endregion
 
-	#pragma region Rain.
+#pragma region Rain.
 	// Start rain samples.
 	sampleBaseTimestamp = sampleSet.rainSamples.peek(0)->first();
-	groupPacketStartMessage(Sensors::RAIN, "VALUES", "T|V", sampleSet.rainSamples.numElements(), sampleBaseTimestamp, formatBuff);
-	sentMessages += sendMessage(RadioCommands::SAMPLE_DEVICE_GROUP_START, formatBuff); messageCount++;
+	sampleGroupDividerMessage(Sensors::RAIN, "VALUES", "T|V", sampleSet.rainSamples.numElements(), sampleBaseTimestamp, formatBuff);
+	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages);
 
 	// Samples.
 	while (!sampleSet.rainSamples.isEmpty()) {
 		Pair<unsigned long, float> sample;
 		sampleSet.rainSamples.pull(&sample);
-		sendSampleCompact(sample.first(), String(sample.second(), 2).c_str(), sampleBaseTimestamp, sampleBuff, messageCount, sentMessages, sampleSet.rainSamples.isEmpty());
+		sampleMessage(sample.first(), String(sample.second(), 2).c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.rainSamples.isEmpty());
+		sendMessageCompact(sampleBuff, messageBuff, messageCount, sentMessages);
 	}
-	#pragma endregion
+#pragma endregion
 
-	#pragma region Rain state.
+#pragma region Rain state.
 	// Start rain state samples.
 	sampleBaseTimestamp = sampleSet.rainStateSample.first();
-	groupPacketStartMessage(Sensors::RAIN, "STATE", "T|V", 1, sampleBaseTimestamp, formatBuff);
-	sentMessages += sendMessage(RadioCommands::SAMPLE_DEVICE_GROUP_START, formatBuff); messageCount++;
+	sampleGroupDividerMessage(Sensors::RAIN, "STATE", "T|V", 1, sampleBaseTimestamp, formatBuff);
+	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages);
 
 	// Samples.
-	sentMessages += sendSample(sampleSet.rainStateSample.first(), sampleSet.rainStateSample.second().c_str(), sampleBaseTimestamp); messageCount++;
-	#pragma endregion
+	sampleMessage(sampleSet.rainStateSample.first(), sampleSet.rainStateSample.second().c_str(), sampleBaseTimestamp, sampleBuff, true);
+	sendMessageCompact(formatBuff, sampleBuff, messageCount, sentMessages);
+#pragma endregion
 
-	#pragma region Temperature.
+#pragma region Temperature.
 	// Start temperature samples.
 	sampleBaseTimestamp = sampleSet.temperatureSamples.peek(0)->first();
-	groupPacketStartMessage(Sensors::TEMPERATURE, "VALUES", "T|V", sampleSet.temperatureSamples.numElements(), sampleBaseTimestamp, formatBuff);
-	sentMessages += sendMessage(RadioCommands::SAMPLE_DEVICE_GROUP_START, formatBuff); messageCount++;
+	sampleGroupDividerMessage(Sensors::TEMPERATURE, "VALUES", "T|V", sampleSet.temperatureSamples.numElements(), sampleBaseTimestamp, formatBuff);
+	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages);
 
 	// Samples.
 	while (!sampleSet.temperatureSamples.isEmpty()) {
 		Pair<unsigned long, float> sample;
 		sampleSet.temperatureSamples.pull(&sample);
-		sendSampleCompact(sample.first(), String(sample.second(), 2).c_str(), sampleBaseTimestamp, sampleBuff, messageCount, sentMessages, sampleSet.temperatureSamples.isEmpty());
+		sampleMessage(sample.first(), String(sample.second(), 2).c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.temperatureSamples.isEmpty());
+		sendMessageCompact(sampleBuff, messageBuff, messageCount, sentMessages);
 	}
-	#pragma endregion
+#pragma endregion
 
-	#pragma region Humidity.
+#pragma region Humidity.
 	// Start humidity samples.
 	sampleBaseTimestamp = sampleSet.humiditySamples.peek(0)->first();
-	groupPacketStartMessage(Sensors::HUMIDITY, "VALUES", "T|V", sampleSet.humiditySamples.numElements(), sampleBaseTimestamp, formatBuff);
-	sentMessages += sendMessage(RadioCommands::SAMPLE_DEVICE_GROUP_START, formatBuff); messageCount++;
+	sampleGroupDividerMessage(Sensors::HUMIDITY, "VALUES", "T|V", sampleSet.humiditySamples.numElements(), sampleBaseTimestamp, formatBuff);
+	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages);
 
 	// Samples.
 	while (!sampleSet.humiditySamples.isEmpty()) {
 		Pair<unsigned long, float> sample;
 		sampleSet.humiditySamples.pull(&sample);
-		sendSampleCompact(sample.first(), String(sample.second(), 2).c_str(), sampleBaseTimestamp, sampleBuff, messageCount, sentMessages, sampleSet.humiditySamples.isEmpty());
+		sampleMessage(sample.first(), String(sample.second(), 2).c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.humiditySamples.isEmpty());
+		sendMessageCompact(sampleBuff, messageBuff, messageCount, sentMessages);
 	}
-	#pragma endregion
+#pragma endregion
 
-	#pragma region Water temperature.
+#pragma region Water temperature.
 	// Start waterTemperature samples.
 	sampleBaseTimestamp = sampleSet.waterTemperatureSamples.peek(0)->first();
-	groupPacketStartMessage(Sensors::WATER_TEMPERATURE, "VALUES", "T|V", sampleSet.waterTemperatureSamples.numElements(), sampleBaseTimestamp, formatBuff);
-	sentMessages += sendMessage(RadioCommands::SAMPLE_DEVICE_GROUP_START, formatBuff); messageCount++;
+	sampleGroupDividerMessage(Sensors::WATER_TEMPERATURE, "VALUES", "T|V", sampleSet.waterTemperatureSamples.numElements(), sampleBaseTimestamp, formatBuff);
+	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages);
 
 	// Samples.
 	while (!sampleSet.waterTemperatureSamples.isEmpty()) {
 		Pair<unsigned long, float> sample;
 		sampleSet.waterTemperatureSamples.pull(&sample);
-		sendSampleCompact(sample.first(), String(sample.second(), 2).c_str(), sampleBaseTimestamp, sampleBuff, messageCount, sentMessages, sampleSet.waterTemperatureSamples.isEmpty());
+		sampleMessage(sample.first(), String(sample.second(), 2).c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.waterTemperatureSamples.isEmpty());
+		sendMessageCompact(sampleBuff, messageBuff, messageCount, sentMessages);
 	}
-	#pragma endregion
+#pragma endregion
 
-	#pragma region Wind direction.
+#pragma region Wind direction.
 	// Start wind direction samples.
 	sampleBaseTimestamp = sampleSet.windDirectionSamples.peek(0)->first();
-	groupPacketStartMessage(Sensors::WIND_DIRECTION, "VALUES", "T|V", sampleSet.windDirectionSamples.numElements(), sampleBaseTimestamp, formatBuff);
-	sentMessages += sendMessage(RadioCommands::SAMPLE_DEVICE_GROUP_START, formatBuff); messageCount++;
+	sampleGroupDividerMessage(Sensors::WIND_DIRECTION, "VALUES", "T|V", sampleSet.windDirectionSamples.numElements(), sampleBaseTimestamp, formatBuff);
+	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages);
 
 	// Samples.
 	while (!sampleSet.windDirectionSamples.isEmpty()) {
 		Pair<unsigned long, int> sample;
 		sampleSet.windDirectionSamples.pull(&sample);
-		sendSampleCompact(sample.first(), String(sample.second()).c_str(), sampleBaseTimestamp, sampleBuff, messageCount, sentMessages, sampleSet.windDirectionSamples.isEmpty());
+		sampleMessage(sample.first(), String(sample.second()).c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.windDirectionSamples.isEmpty());
+		sendMessageCompact(sampleBuff, messageBuff, messageCount, sentMessages);
 	}
-	#pragma endregion
+#pragma endregion
 
-	#pragma region Wind speed.
+#pragma region Wind speed.
 	// Start wind speed samples.
 	sampleBaseTimestamp = sampleSet.windSpeedSamples.peek(0)->first();
-	groupPacketStartMessage(Sensors::WIND_SPEED, "VALUES", "T|S|TS", sampleSet.windSpeedSamples.numElements(), sampleBaseTimestamp, formatBuff);
-	sentMessages += sendMessage(RadioCommands::SAMPLE_DEVICE_GROUP_START, formatBuff); messageCount++;
+	sampleGroupDividerMessage(Sensors::WIND_SPEED, "VALUES", "T|S|TS", sampleSet.windSpeedSamples.numElements(), sampleBaseTimestamp, formatBuff);
+	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages);
 
 	// Samples.
 	while (!sampleSet.windSpeedSamples.isEmpty()) {
 		Pair<unsigned long, windspeedpoint> sample;
 		sampleSet.windSpeedSamples.pull(&sample);
 		snprintf(formatBuff, sizeof(formatBuff), "%s|%s", String(sample.second().speedCorrected, 2).c_str(), String(sample.second().sensorTemperature, 2).c_str());
-		sendSampleCompact(sample.first(), formatBuff, sampleBaseTimestamp, sampleBuff, messageCount, sentMessages, sampleSet.windSpeedSamples.isEmpty());
+		sampleMessage(sample.first(), formatBuff, sampleBaseTimestamp, sampleBuff, sampleSet.windSpeedSamples.isEmpty());
+		sendMessageCompact(sampleBuff, messageBuff, messageCount, sentMessages);
 	}
-	#pragma endregion
-	
-	// Tell base station we are ending samples.
-	sprintf(formatBuff, "T:%lu", millis());
-	sentMessages += sendMessage(RadioCommands::SAMPLES_FINISH, formatBuff); messageCount++;
+#pragma endregion
+
+	// Tell base station we are ending samples and how many messages were sent successfully out of total.
+	snprintf(formatBuff, sizeof(formatBuff), "[%d]S:%d/%dT:%lu", RadioCommands::SAMPLES_FINISH, sentMessages + 1, messageCount + 1, millis());
+	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages, true);
 
 	// Put radio back to sleep to save power.
 	sleep();
 
 	return Pair<int, int>(sentMessages, messageCount);
 }
-

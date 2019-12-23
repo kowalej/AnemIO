@@ -34,8 +34,8 @@ class RadioTransceiver {
 	#else
 		RFM69 _radio = RFM69(RADIO_CS_SLAVE_SELECT_PIN, RADIO_INTERRUPT_PIN, true);
 	#endif
-		bool sendSample(unsigned long timestamp, const char* serializedValue, unsigned long baseTimestamp);
-		void RadioTransceiver::sendSampleCompact(unsigned long timestamp, const char* serializedValue, unsigned long baseTimestamp, char* sampleBuff, int &numSent, int &numSuccess, bool flush = false);
+		bool RadioTransceiver::sendSample(unsigned long timestamp, const char* serializedValue, unsigned long baseTimestamp);
+		void RadioTransceiver::sendMessageCompact(const char* message, char* messageBuff, int &numSent, int &numSuccess, bool flush = false);
 };
 
 #endif
