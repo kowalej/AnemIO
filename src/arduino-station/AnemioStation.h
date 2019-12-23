@@ -60,6 +60,8 @@ class AnemioStation {
 
 		bool setupDevice_(Devices device);
 		bool checkDeviceOnline_(Devices device);
+
+		char formatBuff[RADIO_MAX_MESSAGE_LENGTH];
 };
 
 #endif

@@ -63,8 +63,8 @@ inline unsigned long getRelativeTimestamp(unsigned long timestamp, unsigned long
 // Sends a single sample.
 bool RadioTransceiver::sendSample(unsigned long timestamp, const char* serializedValue, unsigned long baseTimestamp) {
 	char formatBuff[RADIO_MAX_MESSAGE_LENGTH];
-	// [<command>]<time>|<value>.
-	snprintf(formatBuff, sizeof(formatBuff), "[%d]%lu|%s", RadioCommands::SAMPLE_WRITE, getRelativeTimestamp(timestamp, baseTimestamp), serializedValue);
+	// [<command><time>,<value>.
+	snprintf(formatBuff, sizeof(formatBuff), "[%d]%lu,%s", RadioCommands::SAMPLE_WRITE, getRelativeTimestamp(timestamp, baseTimestamp), serializedValue);
 	bool sent = _radio.sendWithRetry(RADIO_BASE_NODE_ID, formatBuff, strlen(formatBuff), RADIO_RETRY_NUM, RADIO_RETRY_WAIT_MS);
 	return sent;
 }
@@ -72,9 +72,8 @@ bool RadioTransceiver::sendSample(unsigned long timestamp, const char* serialize
 // Only sends a message when the radio buffer is full.
 void RadioTransceiver::sendMessageCompact(const char* message, char* messageBuff, int& numSent, int& numSuccess, bool flush) {
 	char formatBuff[RADIO_MAX_MESSAGE_LENGTH];
-	// [<command>]<time>|<value>;
 	int currentBuffLength = strlen(messageBuff);
-	int newMessageLength = snprintf(formatBuff, sizeof(formatBuff), "%s", message);
+	int newMessageLength = snprintf(formatBuff, sizeof(formatBuff), "%s%s", currentBuffLength < 1 ? COMPACT_MESSAGES_START : "", message);
 	strncat(messageBuff, formatBuff, newMessageLength);
 	int messagesLength = currentBuffLength + newMessageLength;
 	if (messagesLength >= RADIO_MAX_MESSAGE_LENGTH) {
@@ -87,19 +86,23 @@ void RadioTransceiver::sendMessageCompact(const char* message, char* messageBuff
 	}
 
 	if (flush) {
+		strncat(messageBuff, COMPACT_MESSAGES_END, strlen(COMPACT_MESSAGES_END));
 		int messagesLength = strlen(messageBuff);
-		if (messagesLength != 0) {
-			int buffInd = 0;
+		int buffInd = 0;
 
-			for (int i = 0; i < messagesLength; i++) {
-				formatBuff[buffInd] = messageBuff[i];
-				buffInd++;
-				if (buffInd == RADIO_MAX_MESSAGE_LENGTH - 1 || i == messagesLength - 1) {
-					numSuccess += _radio.sendWithRetry(RADIO_BASE_NODE_ID, formatBuff, strlen(formatBuff), RADIO_RETRY_NUM, RADIO_RETRY_WAIT_MS); numSent++;
-					buffInd = 0;
-					for (int i = 0; i < sizeof(formatBuff); i++) {
-						formatBuff[i] = null;
-					}
+		// Clean formatBuff.
+		for (int i = 0; i < sizeof(formatBuff); i++) {
+			formatBuff[i] = null;
+		}
+
+		for (int i = 0; i < messagesLength; i++) {
+			formatBuff[buffInd] = messageBuff[i];
+			buffInd++;
+			if (buffInd == RADIO_MAX_MESSAGE_LENGTH - 1 || i == messagesLength - 1) {
+				numSuccess += _radio.sendWithRetry(RADIO_BASE_NODE_ID, formatBuff, strlen(formatBuff), RADIO_RETRY_NUM, RADIO_RETRY_WAIT_MS); numSent++;
+				buffInd = 0;
+				for (int i = 0; i < sizeof(formatBuff); i++) {
+					formatBuff[i] = null;
 				}
 			}
 		}
@@ -111,9 +114,13 @@ void sampleMessage(unsigned long timestamp, const char* serializedValues, unsign
 	sprintf(formatBuff, "%lu,%s%s", getRelativeTimestamp(timestamp, baseTimestamp), serializedValues, !last ? "|" : "");
 }
 
-void sampleGroupDividerMessage(Sensors::Sensors sensor, const char* sampleCategory, const char* headerFormat, size_t numElements, unsigned long firstSampleTime, char* formatBuff) {
-	// D: Device, C: Sample category, N: number of elements in upcoming series of samples, B: absolute value of first timestamp in upcoming set, T: current timestamp.
-	sprintf(formatBuff, "[%d]D:%dC:%sF:%sN:%uB:%luT:%lu[7]", RadioCommands::SAMPLE_GROUP_DIVIDER, sensor, sampleCategory, headerFormat, numElements, firstSampleTime, millis());
+void sampleGroupDividerMessage(Sensors::Sensors sensor, const char* sampleCategory, const char* headerFormat, size_t numElements, unsigned long sampleBaseTimestamp, unsigned long samplesStartTime, char* formatBuff) {
+	// D: Device.
+	// C: Sample category.
+	// N: number of elements in upcoming series of samples.
+	// B: relative (implicitly negative) value of sample first timestamp compared to samples start time.
+	// T: current timestamp.
+	sprintf(formatBuff, "[%d]D:%dC:%sF:%sN:%uB:%luT:%lu[7]", RadioCommands::SAMPLE_GROUP_DIVIDER, sensor, sampleCategory, headerFormat, numElements, getRelativeTimestamp(samplesStartTime, sampleBaseTimestamp), millis());
 }
 
 Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
@@ -128,13 +135,14 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 	wake();
 
 	// Tell base station we are starting samples.
-	sprintf(formatBuff, "[%d]T:%lu", RadioCommands::SAMPLES_START, millis());
+	unsigned long samplesStartTime = millis();
+	sprintf(formatBuff, "[%d]T:%lu", RadioCommands::SAMPLES_START, samplesStartTime);
 	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages);
 
 #pragma region Ambient Light Values.
 	// Start ambient light samples.
 	sampleBaseTimestamp = sampleSet.ambientLightSamples.peek(0)->first();
-	sampleGroupDividerMessage(Sensors::AMBIENT_LIGHT, "VALUES", "T|V", sampleSet.ambientLightSamples.numElements(), sampleBaseTimestamp, formatBuff);
+	sampleGroupDividerMessage(Sensors::AMBIENT_LIGHT, "VALUES", "T,V", sampleSet.ambientLightSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff);
 	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages);
 
 	// Samples.
@@ -149,7 +157,7 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 #pragma region Ambient Light State
 	// Start ambient light state samples.
 	sampleBaseTimestamp = sampleSet.ambientLightStateSample.first();
-	sampleGroupDividerMessage(Sensors::AMBIENT_LIGHT, "STATE", "T|V", 1, sampleBaseTimestamp, formatBuff);
+	sampleGroupDividerMessage(Sensors::AMBIENT_LIGHT, "STATE", "T,V", 1, sampleBaseTimestamp, samplesStartTime, formatBuff);
 	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages);
 
 	// Samples.
@@ -161,14 +169,14 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 	///* Disabling compass XYZ, since data is sort of useless.
 	// Start compass XYZ samples.
 	sampleBaseTimestamp = sampleSet.compassXYZSamples.peek(0)->first();
-	sampleGroupDividerMessage(Sensors::COMPASS, "XYZ", "T|X|Y|Z", sampleSet.compassXYZSamples.numElements(), sampleBaseTimestamp, formatBuff);
-	sendMessageCompact(sampleBuff, messageBuff, messageCount, sentMessages);
+	sampleGroupDividerMessage(Sensors::COMPASS, "XYZ", "T,X,Y,Z", sampleSet.compassXYZSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff);
+	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages);
 
 	// Samples.
 	while (!sampleSet.compassXYZSamples.isEmpty()) {
 		Pair<unsigned long, coord> sample;
 		sampleSet.compassXYZSamples.pull(&sample);
-		snprintf(formatBuff, sizeof(formatBuff), "%s|%s|%s", String(sample.second().x, 2).c_str(), String(sample.second().y, 2).c_str(), String(sample.second().z, 2).c_str());
+		snprintf(formatBuff, sizeof(formatBuff), "%s,%s,%s", String(sample.second().x, 2).c_str(), String(sample.second().y, 2).c_str(), String(sample.second().z, 2).c_str());
 		sampleMessage(sample.first(), formatBuff, sampleBaseTimestamp, sampleBuff, sampleSet.compassXYZSamples.isEmpty());
 		sendMessageCompact(sampleBuff, messageBuff, messageCount, sentMessages);
 	}
@@ -178,7 +186,7 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 #pragma region Compass Heading.
 // Start compass heading samples.
 	sampleBaseTimestamp = sampleSet.compassHeadingSamples.peek(0)->first();
-	sampleGroupDividerMessage(Sensors::COMPASS, "HEADING", "T|V", sampleSet.compassHeadingSamples.numElements(), sampleBaseTimestamp, formatBuff);
+	sampleGroupDividerMessage(Sensors::COMPASS, "HEADING", "T,V", sampleSet.compassHeadingSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff);
 	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages);
 
 	// Samples.
@@ -193,14 +201,14 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 #pragma region Accelerometer XYZ.
 	// Start accelerometer XYZ samples.
 	sampleBaseTimestamp = sampleSet.accelerometerXYZSamples.peek(0)->first();
-	sampleGroupDividerMessage(Sensors::ACCELEROMETER, "XYZ", "T|X|Y|Z", sampleSet.accelerometerXYZSamples.numElements(), sampleBaseTimestamp, formatBuff);
+	sampleGroupDividerMessage(Sensors::ACCELEROMETER, "XYZ", "T,X,Y,Z", sampleSet.accelerometerXYZSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff);
 	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages);
 
 	// Samples.
 	while (!sampleSet.accelerometerXYZSamples.isEmpty()) {
 		Pair<unsigned long, coord> sample;
 		sampleSet.accelerometerXYZSamples.pull(&sample);
-		snprintf(formatBuff, sizeof(formatBuff), "%s|%s|%s", String(sample.second().x, 2).c_str(), String(sample.second().y, 2).c_str(), String(sample.second().z, 2).c_str());
+		snprintf(formatBuff, sizeof(formatBuff), "%s,%s,%s", String(sample.second().x, 2).c_str(), String(sample.second().y, 2).c_str(), String(sample.second().z, 2).c_str());
 		sampleMessage(sample.first(), formatBuff, sampleBaseTimestamp, sampleBuff, sampleSet.accelerometerXYZSamples.isEmpty());
 		sendMessageCompact(sampleBuff, messageBuff, messageCount, sentMessages);
 	}
@@ -209,7 +217,7 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 #pragma region Pressure.
 	// Start pressure samples.
 	sampleBaseTimestamp = sampleSet.pressureSamples.peek(0)->first();
-	sampleGroupDividerMessage(Sensors::PRESSURE, "PRESSURE", "T|V", sampleSet.pressureSamples.numElements(), sampleBaseTimestamp, formatBuff);
+	sampleGroupDividerMessage(Sensors::PRESSURE, "PRESSURE", "T,V", sampleSet.pressureSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff);
 	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages);
 
 	// Samples.
@@ -224,7 +232,7 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 #pragma region Pressure sensor temperature.
 	// Start pressure sensor temperature samples.
 	sampleBaseTimestamp = sampleSet.pressureTemperatureSamples.peek(0)->first();
-	sampleGroupDividerMessage(Sensors::PRESSURE, "TEMPERATURE", "T|V", sampleSet.pressureTemperatureSamples.numElements(), sampleBaseTimestamp, formatBuff);
+	sampleGroupDividerMessage(Sensors::PRESSURE, "TEMPERATURE", "T,V", sampleSet.pressureTemperatureSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff);
 	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages);
 
 	// Samples.
@@ -239,7 +247,7 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 #pragma region Pressure altitude estimate.
 	// Start pressure altitude estimate samples.
 	sampleBaseTimestamp = sampleSet.pressureAltitudeSamples.peek(0)->first();
-	sampleGroupDividerMessage(Sensors::PRESSURE, "ALTITUDE", "T|V", sampleSet.pressureAltitudeSamples.numElements(), sampleBaseTimestamp, formatBuff);
+	sampleGroupDividerMessage(Sensors::PRESSURE, "ALTITUDE", "T,V", sampleSet.pressureAltitudeSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff);
 	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages);
 
 	// Samples.
@@ -254,7 +262,7 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 #pragma region Rain.
 	// Start rain samples.
 	sampleBaseTimestamp = sampleSet.rainSamples.peek(0)->first();
-	sampleGroupDividerMessage(Sensors::RAIN, "VALUES", "T|V", sampleSet.rainSamples.numElements(), sampleBaseTimestamp, formatBuff);
+	sampleGroupDividerMessage(Sensors::RAIN, "VALUES", "T,V", sampleSet.rainSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff);
 	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages);
 
 	// Samples.
@@ -269,7 +277,7 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 #pragma region Rain state.
 	// Start rain state samples.
 	sampleBaseTimestamp = sampleSet.rainStateSample.first();
-	sampleGroupDividerMessage(Sensors::RAIN, "STATE", "T|V", 1, sampleBaseTimestamp, formatBuff);
+	sampleGroupDividerMessage(Sensors::RAIN, "STATE", "T,V", 1, sampleBaseTimestamp, samplesStartTime, formatBuff);
 	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages);
 
 	// Samples.
@@ -280,7 +288,7 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 #pragma region Temperature.
 	// Start temperature samples.
 	sampleBaseTimestamp = sampleSet.temperatureSamples.peek(0)->first();
-	sampleGroupDividerMessage(Sensors::TEMPERATURE, "VALUES", "T|V", sampleSet.temperatureSamples.numElements(), sampleBaseTimestamp, formatBuff);
+	sampleGroupDividerMessage(Sensors::TEMPERATURE, "VALUES", "T,V", sampleSet.temperatureSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff);
 	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages);
 
 	// Samples.
@@ -295,7 +303,7 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 #pragma region Humidity.
 	// Start humidity samples.
 	sampleBaseTimestamp = sampleSet.humiditySamples.peek(0)->first();
-	sampleGroupDividerMessage(Sensors::HUMIDITY, "VALUES", "T|V", sampleSet.humiditySamples.numElements(), sampleBaseTimestamp, formatBuff);
+	sampleGroupDividerMessage(Sensors::HUMIDITY, "VALUES", "T,V", sampleSet.humiditySamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff);
 	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages);
 
 	// Samples.
@@ -310,7 +318,7 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 #pragma region Water temperature.
 	// Start waterTemperature samples.
 	sampleBaseTimestamp = sampleSet.waterTemperatureSamples.peek(0)->first();
-	sampleGroupDividerMessage(Sensors::WATER_TEMPERATURE, "VALUES", "T|V", sampleSet.waterTemperatureSamples.numElements(), sampleBaseTimestamp, formatBuff);
+	sampleGroupDividerMessage(Sensors::WATER_TEMPERATURE, "VALUES", "T,V", sampleSet.waterTemperatureSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff);
 	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages);
 
 	// Samples.
@@ -325,7 +333,7 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 #pragma region Wind direction.
 	// Start wind direction samples.
 	sampleBaseTimestamp = sampleSet.windDirectionSamples.peek(0)->first();
-	sampleGroupDividerMessage(Sensors::WIND_DIRECTION, "VALUES", "T|V", sampleSet.windDirectionSamples.numElements(), sampleBaseTimestamp, formatBuff);
+	sampleGroupDividerMessage(Sensors::WIND_DIRECTION, "VALUES", "T,V", sampleSet.windDirectionSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff);
 	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages);
 
 	// Samples.
@@ -340,21 +348,21 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 #pragma region Wind speed.
 	// Start wind speed samples.
 	sampleBaseTimestamp = sampleSet.windSpeedSamples.peek(0)->first();
-	sampleGroupDividerMessage(Sensors::WIND_SPEED, "VALUES", "T|S|TS", sampleSet.windSpeedSamples.numElements(), sampleBaseTimestamp, formatBuff);
+	sampleGroupDividerMessage(Sensors::WIND_SPEED, "VALUES", "T,S,TS", sampleSet.windSpeedSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff);
 	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages);
 
 	// Samples.
 	while (!sampleSet.windSpeedSamples.isEmpty()) {
 		Pair<unsigned long, windspeedpoint> sample;
 		sampleSet.windSpeedSamples.pull(&sample);
-		snprintf(formatBuff, sizeof(formatBuff), "%s|%s", String(sample.second().speedCorrected, 2).c_str(), String(sample.second().sensorTemperature, 2).c_str());
+		snprintf(formatBuff, sizeof(formatBuff), "%s,%s", String(sample.second().speedCorrected, 2).c_str(), String(sample.second().sensorTemperature, 2).c_str());
 		sampleMessage(sample.first(), formatBuff, sampleBaseTimestamp, sampleBuff, sampleSet.windSpeedSamples.isEmpty());
 		sendMessageCompact(sampleBuff, messageBuff, messageCount, sentMessages);
 	}
 #pragma endregion
 
 	// Tell base station we are ending samples and how many messages were sent successfully out of total.
-	snprintf(formatBuff, sizeof(formatBuff), "[%d]S:%d/%dT:%lu", RadioCommands::SAMPLES_FINISH, sentMessages + 1, messageCount + 1, millis());
+	snprintf(formatBuff, sizeof(formatBuff), "[%d]S:%d/%dT:%lu", RadioCommands::SAMPLES_FINISH, (sentMessages + 1), (messageCount + 1), millis());
 	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages, true);
 
 	// Put radio back to sleep to save power.

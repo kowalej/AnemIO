@@ -8,22 +8,12 @@ from aiohttp import ClientSession
 import time
 import sqlite3
 import sys
-from enum import Enum
+import re
+from constants import *
 
 # Set high priority.
 import os
 os.nice(1)
-
-class RadioCommands(Enum):
-	SETUP_START = 1,
-	SETUP_FINISH = 2,
-	REPORT_ONLINE_STATE = 3,
-	REPORT_SETUP_STATE = 4,
-	SAMPLES_START = 5,
-	SAMPLE_DEVICE_GROUP_START = 6,
-	SAMPLE_WRITE = 7,
-	SAMPLE_DEVICE_GROUP_END = 8,
-	SAMPLES_FINISH = 9
 
 NODE = 87 # Radio node number.
 NET = 223 # Radio network.
@@ -34,11 +24,44 @@ ENCRYPT_KEY= 'J53Y25U5D8CE79NO' # uncomment if we want to use encryption.
 print('Connecting to database...')
 dbConn = sqlite3.connect('anemio.db')
 
+
+# Handle one or more messages in packet (multiple occurs with compact send).
+def handle_messages(data):
+	messages = []
+	breaks = [m.span() for m in re.finditer('\[[0-9]+\]', data)]
+	for i in range(0, len(breaks)):
+		radio_command = data[breaks[i][0]:breaks[i][1]]
+		end_index = breaks[i+1][0] if i < len(breaks) - 1 else len(data)
+		contents = data[breaks[i][1]:end_index]
+		messages.append({ 'radio_command': radio_command, 'contents': contents })
+		print(messages[-1])
+	return messages
+
 async def receiver(radio):
-	while True:
+	compact_collecting = False
+	messages = ''
+	parsed_messages = []
+
+	while True:	
 		for packet in radio.get_packets():
-			print("Packet received:", packet)
-			print(''.join([chr(letter) for letter in packet.data]))
+			data = ''.join([chr(letter) for letter in packet.data])
+			print('Packet received:', packet)
+			#print(data)
+
+			# See if we have started a long series of messages (compact messaging).
+			if(data.startswith(COMPACT_MESSAGES_START)):
+				compact_collecting = True
+				data = data.lstrip(COMPACT_MESSAGES_START)
+			if(data.endswith(COMPACT_MESSAGES_END)):
+				compact_collecting = False
+				data = data.rstrip(COMPACT_MESSAGES_END)
+
+			# Always add the data to our messages object.
+			messages += data
+
+			if not compact_collecting:
+				parsed_messages = handle_messages(messages)
+				messages = '' # Make sure we clear messages now that we have parsed them.
 
 		# TODO: Save data...
 	 	# await call_API("http://httpbin.org/post", packet)

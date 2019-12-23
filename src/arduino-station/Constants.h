@@ -14,7 +14,7 @@
 #define GET_BUFFER_SIZE(sensorRateHz, maxSendMs) (size_t(maxSendMs/1000 * sensorRateHz)) 
 
 namespace {
-	const uint16_t RADIO_SEND_INTERVAL_MS = 3000; // Maximum time between transmitting consecutive sample sets over the radio.
+	const uint16_t RADIO_SEND_INTERVAL_MS = 5000; // Maximum time between transmitting consecutive sample sets over the radio.
 
 	// Ambient light sensor.
 	const uint8_t AMBIENT_LIGHT_UPDATE_RATE_HZ = 1; // Update rate of light sensor.
@@ -77,6 +77,8 @@ namespace {
 	const int16_t RADIO_ATC_RSSI = -90;
 	const char* RADIO_ENCRYPT_KEY = "J53Y25U5D8CE79NO";
 	const int RADIO_MAX_MESSAGE_LENGTH = 61;
+	const char* COMPACT_MESSAGES_START = "^^";
+	const char* COMPACT_MESSAGES_END = "$$";
 
 	enum Devices {
 		AMBIENT_LIGHT = 0,

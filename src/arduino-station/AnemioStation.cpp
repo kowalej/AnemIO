@@ -33,8 +33,8 @@ void AnemioStation::setup() {
 	int numOffline = setupProviders(3);
 
 	debugA("Setup completed with %d device(s) offline.\n\n", numOffline);
-	String radioMsg = "Setup completed with " + String(numOffline) + " device(s) offline.";
-	_radioTransceiver.sendMessage(RadioCommands::SETUP_FINISH, radioMsg.c_str());
+	snprintf(formatBuff, sizeof(formatBuff), "N:%d - Setup completed with %d device(s) offline.", numOffline, numOffline);
+	_radioTransceiver.sendMessage(RadioCommands::SETUP_FINISH, formatBuff);
 
 	// Done with radio for now (sleep).
 	_radioTransceiver.sleep();
@@ -93,17 +93,18 @@ int AnemioStation::setupProviders(int numberOfRetries) {
 		for (int i = 0; i < Devices::TOTAL; i++) {
 			if (!_online[i]) {
 				bool setup = setupDevice_(static_cast<Devices>(i));
-				char formatBuff[50];
 				_online[i] = setup;
 				if (setup) {
 					debugA("%s setup was successful.", DeviceNames[i]);
-					sprintf(formatBuff, "%s setup was successful.", DeviceNames[i]);
+					snprintf(formatBuff, sizeof(formatBuff), "D:%dO:%d - %s setup was successful.", i, setup, DeviceNames[i]);
+					// Radio should already be ready during startup.
 					_radioTransceiver.sendMessage(RadioCommands::REPORT_SETUP_STATE, formatBuff);
 				}
 				else {
-					debugA("%s setup was unsuccessful.", DeviceNames[i], retryMsg);
+					debugA("%s setup was unsuccessful %s.", DeviceNames[i], retryMsg);
 					if (!retry) {
-						sprintf(formatBuff, "%s setup was unsuccessfully.", DeviceNames[i]);
+						snprintf(formatBuff, sizeof(formatBuff), "D:%dO:%d - %s setup was unsuccessfully.", i, setup, DeviceNames[i]);
+						// Radio should already be ready during startup.
 						_radioTransceiver.sendMessage(RadioCommands::REPORT_SETUP_STATE, formatBuff);
 					}
 				}
@@ -118,14 +119,13 @@ int AnemioStation::setupProviders(int numberOfRetries) {
 }
 
 void AnemioStation::healthCheck() {
-	char formatBuff[50];
 	for (int i = 0; i < Devices::TOTAL; i++) {
 		bool isOnline = checkDeviceOnline_(static_cast<Devices>(i));
 		// If state changed...
 		if (_online[i] != isOnline) {
 			_online[i] = isOnline;
 			debugA("%s sensing unexpectedly %s.", DeviceNames[i], isOnline ? "came online" : "went offline");
-			sprintf(formatBuff, "%s sensing unexpectedly %s", DeviceNames[i], isOnline ? "came online" : "went offline");
+			snprintf(formatBuff, sizeof(formatBuff), "D:%dO:%d - %s sensing unexpectedly %s", i, isOnline, DeviceNames[i], isOnline ? "came online" : "went offline");
 			_radioTransceiver.sendMessageWithAutoWake(RadioCommands::REPORT_ONLINE_STATE, formatBuff);
 		}
 	}
