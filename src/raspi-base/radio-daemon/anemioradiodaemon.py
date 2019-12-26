@@ -6,68 +6,139 @@ import datetime
 import asyncio
 from aiohttp import ClientSession
 import time
-import sqlite3
+import sqlite
 import sys
 import re
+from urllib.request import pathname2url
 from constants import *
 
 # Set high priority.
 import os
 os.nice(1)
 
-NODE = 87 # Radio node number.
-NET = 223 # Radio network.
-TOSLEEP = 50.0/1000.0 # Sleep time will be 50 ms (try get new set of packets every 50 ms).
-ENCRYPT_KEY= 'J53Y25U5D8CE79NO' # uncomment if we want to use encryption.
+DB_NAME = 'anemio.db'
+dbConn = None
 
-# DB setup.
-print('Connecting to database...')
-dbConn = sqlite3.connect('anemio.db')
+def create_db():
+	c = conn.cursor()
 
+	# Create station table.
+	c.execute('''CREATE TABLE station_state
+				(location text, status int, devices_online text, devices_offline text)''')
 
-# Handle one or more messages in packet (multiple occurs with compact send).
-def handle_messages(data):
-	messages = []
+	# Create ambient light values table.
+	c.execute('''CREATE TABLE ambient_light_values
+				(timestamp date, value real)''')
+
+	# Create ambient light state table.
+	c.execute('''CREATE TABLE ambient_light_state
+				(timestamp date, state text)''')
+
+	# Create compass XYZ table.
+	c.execute('''CREATE TABLE compass_xyz
+				(timestamp date, x real, y real, z real)''')
+
+	# Create compass heading table.
+	c.execute('''CREATE TABLE compass_heading
+				(timestamp date, heading int)''')
+
+	# Create accelerometer XYZ table.
+	c.execute('''CREATE TABLE accelerometer_xyz
+				(timestamp date, x real, y real, z real)''')
+
+	# Create accelerometer XYZ table.
+	c.execute('''CREATE TABLE accelerometer_xyz
+				(timestamp date, x real, y real, z real)''')
+
+    PRESSURE = 3,
+    RAIN = 4,
+    TEMPERATURE = 5,
+    HUMIDITY = 6,
+    WATER_TEMPERATURE = 7,
+    WIND_DIRECTION = 8,
+    WIND_SPEED = 9,
+
+	# Save changes.
+	dbConn.commit()
+
+# Parse one or more messages in packet (multiple occurs with compact send).
+def parse_messages(messages):
+	data = ''.join[message.data for message in messages]
+	if len(data < 1):
+		# TODO: log message is empty.
+	parsed = []
 	breaks = [m.span() for m in re.finditer('\[[0-9]+\]', data)]
+	if len(breaks < 1):
+		# TODO: log no control character found in messages (cannot determine message type).
 	for i in range(0, len(breaks)):
 		radio_command = data[breaks[i][0]:breaks[i][1]]
 		end_index = breaks[i+1][0] if i < len(breaks) - 1 else len(data)
 		contents = data[breaks[i][1]:end_index]
-		messages.append({ 'radio_command': radio_command, 'contents': contents })
-		print(messages[-1])
-	return messages
+		parsed.append({ 'radio_command': (RadioCommands)radio_command, 'contents': contents })
+		print(parsed[-1])
+	return parsed
+
+def handle_messages(parsed_messages):
+	for message in parsed_messages:
+		if message.radio_command == RadioCommands.SETUP_START:
+
+
+		SETUP_START = 1,
+		SETUP_FINISH = 2,
+		REPORT_ONLINE_STATE = 3,
+		REPORT_SETUP_STATE = 4,
+		SAMPLES_START = 5,
+		SAMPLE_GROUP_DIVIDER = 6,
+		SAMPLE_WRITE = 7,
+		SAMPLES_FINISH = 8
 
 async def receiver(radio):
 	compact_collecting = False
-	messages = ''
+	messages_collected = []
 	parsed_messages = []
 
 	while True:	
 		for packet in radio.get_packets():
-			data = ''.join([chr(letter) for letter in packet.data])
+			message = ''.join([chr(letter) for letter in packet.data])
 			print('Packet received:', packet)
-			#print(data)
+			#print(message)
 
 			# See if we have started a long series of messages (compact messaging).
-			if(data.startswith(COMPACT_MESSAGES_START)):
+			# Compact messages start with ^^ and end with $$ - which we will remove.
+			if(message.startswith(COMPACT_MESSAGES_START)):
 				compact_collecting = True
-				data = data.lstrip(COMPACT_MESSAGES_START)
-			if(data.endswith(COMPACT_MESSAGES_END)):
+				message = message.lstrip(COMPACT_MESSAGES_START)
+			if(message.endswith(COMPACT_MESSAGES_END)):
 				compact_collecting = False
-				data = data.rstrip(COMPACT_MESSAGES_END)
+				message = message.rstrip(COMPACT_MESSAGES_END)
 
 			# Always add the data to our messages object.
-			messages += data
+			messages_collected.append({ 'data': data, 'timestamp': packet.received })
 
 			if not compact_collecting:
-				parsed_messages = handle_messages(messages)
-				messages = '' # Make sure we clear messages now that we have parsed them.
+				parsed_messages = parse_messages(messages_collected)
+				if len(parsed_messages) > 0:
+					handle_messages(parsed_messages)
+				messages_collected.clear() # Make sure we clear messages now that we have parsed them.
 
 		# TODO: Save data...
 	 	# await call_API("http://httpbin.org/post", packet)
 		await asyncio.sleep(TOSLEEP)
 
+# Main sequence.
 try:
+	# DB setup.
+	print('Connecting to database {}...'.format(DB_NAME))
+	try:
+		dburi = 'file:{}?mode=rw'.format(pathname2url(DB_NAME))
+		dbConn = sqlite3.connect(dburi, uri=True)
+	except sqlite3.OperationalError:
+		print('DB does not exist, creating {}...'.format(DB_NAME))
+		dbConn = sqlite3.connect(DB_NAME)
+		create_db()
+	print('Done.')
+
+
 	loop = asyncio.get_event_loop()
 	print('Radio initialization...')
 	# Initialize the radio as a resource.

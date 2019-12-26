@@ -1,5 +1,10 @@
 from enum import Enum
 
+NODE = 87 # Radio node number.
+NET = 223 # Radio network.
+TOSLEEP = 50.0/1000.0 # Sleep time will be 50 ms (try get new set of packets every 50 ms).
+ENCRYPT_KEY= 'J53Y25U5D8CE79NO' # uncomment if we want to use encryption.
+
 COMPACT_MESSAGES_START = "^^"
 COMPACT_MESSAGES_END = "$$"
 
@@ -36,3 +41,10 @@ class RadioCommands(Enum):
 	SAMPLE_GROUP_DIVIDER = 6,
 	SAMPLE_WRITE = 7,
 	SAMPLES_FINISH = 8
+
+class StationStatus(Enum):
+    ONLINE = 1,  # Normal operation.
+    PENDING_RESTART = 2,  # Restart requested, awaiting completion.
+    STANDBY = 3,  # Save power - station will check for command once and awhile.
+    OFFLINE = 4  # Station is off - in transit or otherwise.
+
