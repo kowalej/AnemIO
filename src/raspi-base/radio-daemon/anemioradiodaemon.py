@@ -20,52 +20,111 @@ DB_NAME = 'anemio.db'
 dbConn = None
 
 def create_db():
-	c = conn.cursor()
+	with closing(db.cursor()) as c:
+		c = conn.cursor()
 
-	# Create station table.
-	c.execute('''CREATE TABLE station_state
-				(location text, status int, devices_online text, devices_offline text)''')
+		# Create station location table.
+		c.execute('''CREATE TABLE station_location
+					(timestamp INTEGER, lat REAL, lon REAL)''')
 
-	# Create ambient light values table.
-	c.execute('''CREATE TABLE ambient_light_values
-				(timestamp date, value real)''')
+		# Create station state table.
+		c.execute('''CREATE TABLE station_state
+					(timestamp INTEGER, state INTEGER)''')
 
-	# Create ambient light state table.
-	c.execute('''CREATE TABLE ambient_light_state
-				(timestamp date, state text)''')
+		# Create station device state table.
+		c.execute(
+				'''CREATE TABLE device_state
+					(timestamp INTEGER, 
+					ambient_light INTEGER, 
+					compass_accelerometer INTEGER,
+					pressure INTEGER,
+					rain INTEGER,
+					temperature_humidity INTEGER,
+					water_temperature INTEGER,
+					wind_direction INTEGER,
+					wind_speed INTEGER,
+				)'''
+		)
 
-	# Create compass XYZ table.
-	c.execute('''CREATE TABLE compass_xyz
-				(timestamp date, x real, y real, z real)''')
+		# Create ambient light values table.
+		c.execute('''CREATE TABLE ambient_light_values
+					(timestamp INTEGER, value REAL)''')
 
-	# Create compass heading table.
-	c.execute('''CREATE TABLE compass_heading
-				(timestamp date, heading int)''')
+		# Create ambient light state table.
+		c.execute('''CREATE TABLE ambient_light_state
+					(timestamp INTEGER, state TEXT)''')
 
-	# Create accelerometer XYZ table.
-	c.execute('''CREATE TABLE accelerometer_xyz
-				(timestamp date, x real, y real, z real)''')
+		# Create compass XYZ table.
+		c.execute('''CREATE TABLE compass_xyz
+					(timestamp INTEGER, x REAL, y REAL, z REAL)''')
 
-	# Create accelerometer XYZ table.
-	c.execute('''CREATE TABLE accelerometer_xyz
-				(timestamp date, x real, y real, z real)''')
+		# Create compass heading table.
+		c.execute('''CREATE TABLE compass_heading
+					(timestamp INTEGER, heading INTEGER)''')
 
-    PRESSURE = 3,
-    RAIN = 4,
-    TEMPERATURE = 5,
-    HUMIDITY = 6,
-    WATER_TEMPERATURE = 7,
-    WIND_DIRECTION = 8,
-    WIND_SPEED = 9,
+		# Create accelerometer XYZ table.
+		c.execute('''CREATE TABLE accelerometer_xyz
+					(timestamp INTEGER, x REAL, y REAL, z REAL)''')
 
-	# Save changes.
-	dbConn.commit()
+		# Create pressure values table.
+		c.execute('''CREATE TABLE pressure_values
+					(timestamp INTEGER, value REAL)''')
+
+		# Create pressure temperature table.
+		c.execute('''CREATE TABLE pressure_temperature
+					(timestamp INTEGER, value REAL)''')
+
+		# Create pressure altitude table.
+		c.execute('''CREATE TABLE pressure_altitude
+					(timestamp INTEGER, value REAL)''')
+
+		# Create rain values table.
+		c.execute('''CREATE TABLE rain_values
+					(timestamp INTEGER, value REAL)''')
+
+		# Create rain state table.
+		c.execute('''CREATE TABLE rain_state
+					(timestamp INTEGER, state TEXT)''')
+
+		# Create temperature table.
+		c.execute('''CREATE TABLE temperature
+					(timestamp INTEGER, value REAL)''')
+
+		# Create humidity table.
+		c.execute('''CREATE TABLE humidity
+					(timestamp INTEGER, value REAL)''')
+
+		# Create water temperature table.
+		c.execute('''CREATE TABLE water_temperature
+					(timestamp INTEGER, value REAL)''')
+
+		# Create wind direction table.
+		c.execute('''CREATE TABLE wind_direction
+					(timestamp INTEGER, value INTEGER)''')
+
+		# Create wind speed table.
+		c.execute('''CREATE TABLE wind_speed
+					(timestamp INTEGER, value REAL, temperature REAL)''')
+
+		# Save changes.
+		dbConn.commit()
 
 # Parse one or more messages in packet (multiple occurs with compact send).
 def parse_messages(messages):
-	data = ''.join[message.data for message in messages]
+	data = ''
+	timestamps_lookup = []
+
+	# Connect all the data and then mark the timestamp of that message(s) part in a lookup for later.
+	data_part_start_index = 0 
+	data_part_end_index = -1
+	for message in messages:
+		data += message.data
+		data_part_start_index = data_part_end_index + 1
+		data_part_end_index = data_part_start_index + len(data) - 1
+		timestamps_lookup.push({ 'start': data_part_start_index, 'end': data_part_end_index, 'received_timestamp': receieved_timestamp })
+
 	if len(data < 1):
-		# TODO: log message is empty.
+		# TODO: log messages are empty.
 	parsed = []
 	breaks = [m.span() for m in re.finditer('\[[0-9]+\]', data)]
 	if len(breaks < 1):
@@ -74,23 +133,35 @@ def parse_messages(messages):
 		radio_command = data[breaks[i][0]:breaks[i][1]]
 		end_index = breaks[i+1][0] if i < len(breaks) - 1 else len(data)
 		contents = data[breaks[i][1]:end_index]
-		parsed.append({ 'radio_command': (RadioCommands)radio_command, 'contents': contents })
+		received_timestamp = next(x for x in timestamps_lookup if x.start >= breaks[i][0] and x.end <= (end_index - 1))
+		parsed.append({ 'radio_command': (RadioCommands)radio_command, 'contents': contents, 'received_timestamp': received_timestamp})
 		print(parsed[-1])
 	return parsed
 
 def handle_messages(parsed_messages):
-	for message in parsed_messages:
-		if message.radio_command == RadioCommands.SETUP_START:
+	with closing(db.cursor()) as c:
+		c = conn.cursor()
 
-
-		SETUP_START = 1,
-		SETUP_FINISH = 2,
-		REPORT_ONLINE_STATE = 3,
-		REPORT_SETUP_STATE = 4,
-		SAMPLES_START = 5,
-		SAMPLE_GROUP_DIVIDER = 6,
-		SAMPLE_WRITE = 7,
-		SAMPLES_FINISH = 8
+		for message in parsed_messages:
+			if message.radio_command == RadioCommands.SETUP_START:
+				c.execute(
+					'INSERT INTO station_state(timestamp, state) VALUES (?,?)', 
+					(message.receieved_timestamp, StationStatus.BOOTING)'
+				)
+			elif message.radio_command == RadioCommands.SETUP_FINISH:
+				c.execute(
+					'INSERT INTO station_state(timestamp, state) VALUES (?,?)', 
+					(message.receieved_timestamp, StationStatus.ONLINE)'
+				)
+			elif message.radio_command == RadioCommands.REPORT_ONLINE_STATE:
+			elif message.radio_command == RadioCommands.REPORT_SETUP_STATE:
+			elif message.radio_command == RadioCommands.SAMPLES_START:
+			elif message.radio_command == RadioCommands.SAMPLE_GROUP_DIVIDER:
+			elif message.radio_command == RadioCommands.SAMPLE_WRITE:
+			elif message.radio_command == RadioCommands.SAMPLES_FINISH:
+		
+		# Save changes.
+		dbConn.commit()
 
 async def receiver(radio):
 	compact_collecting = False
@@ -104,7 +175,7 @@ async def receiver(radio):
 			#print(message)
 
 			# See if we have started a long series of messages (compact messaging).
-			# Compact messages start with ^^ and end with $$ - which we will remove.
+			# Compact messages start with control characters ^^ and end with $$ - which we will remove.
 			if(message.startswith(COMPACT_MESSAGES_START)):
 				compact_collecting = True
 				message = message.lstrip(COMPACT_MESSAGES_START)
@@ -113,7 +184,7 @@ async def receiver(radio):
 				message = message.rstrip(COMPACT_MESSAGES_END)
 
 			# Always add the data to our messages object.
-			messages_collected.append({ 'data': data, 'timestamp': packet.received })
+			messages_collected.append({ 'data': data, 'received_timestamp': packet.received })
 
 			if not compact_collecting:
 				parsed_messages = parse_messages(messages_collected)

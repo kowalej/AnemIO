@@ -41,10 +41,12 @@ class RadioCommands(Enum):
 	SAMPLE_GROUP_DIVIDER = 6,
 	SAMPLE_WRITE = 7,
 	SAMPLES_FINISH = 8
+    LATENCY_CALLBACK = 9
 
 class StationStatus(Enum):
-    ONLINE = 1,  # Normal operation.
-    PENDING_RESTART = 2,  # Restart requested, awaiting completion.
-    STANDBY = 3,  # Save power - station will check for command once and awhile.
-    OFFLINE = 4  # Station is off - in transit or otherwise.
+    BOOTING = 1,  # Station is booting up.
+    ONLINE = 2,  # Normal operation.
+    PENDING_RESTART = 3,  # Restart requested, awaiting completion.
+    STANDBY = 4,  # Save power - station will check for command once and awhile.
+    OFFLINE = 5  # Station is off - in transit or otherwise.
 
