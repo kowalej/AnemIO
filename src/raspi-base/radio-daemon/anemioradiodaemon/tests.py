@@ -11,7 +11,7 @@ sys.modules['RPi.GPIO'] = MagicMock()
 sys.modules['rpidevmocks'] = MagicMock()
 sys.modules['rpidevmocks'] = MagicMock()
 
-from RFM69 import Radio, FREQ_915MHZ
+from RFM69 import Radio, FREQ_915MHZ, Packet
 from anemioradiodaemon import anemioradiodaemon
 
 class TestingRadio(Radio):
@@ -33,9 +33,14 @@ class TestAnemioRadioDaemon(unittest.TestCase):
 
             # Initialize the radio as a resource.
             print('Radio initializing...')
+            
             radio = TestingRadio(FREQ_915MHZ, 1, 1, isHighPower = True, verbose = True)
             print('Done.')
-            radio.get_packets = MagicMock(return_value='hi')
+
+            packets = [
+                Packet(int(1), int(1), int(-44), [33,33])
+            ]
+            radio.get_packets = MagicMock(return_value=packets)
             anemioradiodaemon.start_listening(radio, loop)
 
         except KeyboardInterrupt: # If CTRL+C is pressed, exit cleanly:

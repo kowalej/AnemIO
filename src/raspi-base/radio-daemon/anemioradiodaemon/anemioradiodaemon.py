@@ -115,17 +115,18 @@ def parse_messages(messages):
 	data_part_start_index = 0 
 	data_part_end_index = -1
 	for message in messages:
-		data += message.data
+		data += message['data']
 		data_part_start_index = data_part_end_index + 1
 		data_part_end_index = data_part_start_index + len(data) - 1
-		timestamps_lookup.push({ 'start': data_part_start_index, 'end': data_part_end_index, 'received_timestamp': receieved_timestamp })
+		received_timestamp = message['received_timestamp']
+		timestamps_lookup.append({ 'start': data_part_start_index, 'end': data_part_end_index, 'received_timestamp': received_timestamp })
 
-	if len(data < 1):
+	if len(data) < 1:
 		pass
 		# TODO: log messages are empty.
 	parsed = []
 	breaks = [m.span() for m in re.finditer('\[[0-9]+\]', data)]
-	if len(breaks < 1):
+	if len(breaks) < 1:
 		pass
 		# TODO: log no control character found in messages (cannot determine message type).
 	for i in range(0, len(breaks)):
@@ -146,7 +147,7 @@ def handle_messages(parsed_messages):
 				# Station is in booting state.
 				c.execute(
 					'INSERT INTO station_state(timestamp, state) VALUES (?,?)',
-					(message.receieved_timestamp, StationStatus.BOOTING)
+					(message.received_timestamp, StationStatus.BOOTING)
 				)
 			elif message.radio_command == RadioCommands.REPORT_SETUP_STATE:
 				m = re.match('D:([0-9]+)O:([1,2]+)')
@@ -167,7 +168,7 @@ def handle_messages(parsed_messages):
 				# Record device statuses.
 				c.execute(
 					'INSERT INTO device_state(timestamp, online_devices, offline_devices) VALUES (?,?,?)', 
-					(message.receieved_timestamp, online_devices, offline_devices)
+					(message.received_timestamp, online_devices, offline_devices)
 				)
 
 				m = re.match('N:([0-9]+)')
@@ -175,7 +176,7 @@ def handle_messages(parsed_messages):
 					# Station is now online.
 					c.execute(
 						'INSERT INTO station_state(timestamp, state) VALUES (?,?)', 
-						(message.receieved_timestamp, StationStatus.ONLINE)
+						(message.received_timestamp, StationStatus.ONLINE)
 					)
 					device_statuses.clear()
 				else:
@@ -212,7 +213,7 @@ async def receiver(radio):
 				message = message.rstrip(COMPACT_MESSAGES_END)
 
 			# Always add the data to our messages object.
-			messages_collected.append({ 'data': data, 'received_timestamp': packet.received })
+			messages_collected.append({ 'data': message, 'received_timestamp': packet.received })
 
 			if not compact_collecting:
 				parsed_messages = parse_messages(messages_collected)
