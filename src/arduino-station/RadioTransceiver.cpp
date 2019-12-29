@@ -153,7 +153,7 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 #pragma region Ambient Light Values.
 	// Start ambient light samples.
 	sampleBaseTimestamp = sampleSet.ambientLightSamples.peek(0)->first();
-	sampleGroupDividerMessage(Sensors::AMBIENT_LIGHT, "VALUES", "T,V", sampleSet.ambientLightSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff);
+	sampleGroupDividerMessage(Sensors::AMBIENT_LIGHT, "VALUES", "T,V", sampleSet.ambientLightSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
 	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages, roudtripAverage);
 
 	// Samples.
@@ -168,7 +168,7 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 #pragma region Ambient Light State
 	// Start ambient light state samples.
 	sampleBaseTimestamp = sampleSet.ambientLightStateSample.first();
-	sampleGroupDividerMessage(Sensors::AMBIENT_LIGHT, "STATE", "T,V", 1, sampleBaseTimestamp, samplesStartTime, formatBuff);
+	sampleGroupDividerMessage(Sensors::AMBIENT_LIGHT, "STATE", "T,V", 1, sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
 	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages, roudtripAverage);
 
 	// Samples.
@@ -180,7 +180,7 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 	///* Disabling compass XYZ, since data is sort of useless.
 	// Start compass XYZ samples.
 	sampleBaseTimestamp = sampleSet.compassXYZSamples.peek(0)->first();
-	sampleGroupDividerMessage(Sensors::COMPASS, "XYZ", "T,X,Y,Z", sampleSet.compassXYZSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff);
+	sampleGroupDividerMessage(Sensors::COMPASS, "XYZ", "T,X,Y,Z", sampleSet.compassXYZSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
 	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages, roudtripAverage);
 
 	// Samples.
@@ -197,7 +197,7 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 #pragma region Compass Heading.
 // Start compass heading samples.
 	sampleBaseTimestamp = sampleSet.compassHeadingSamples.peek(0)->first();
-	sampleGroupDividerMessage(Sensors::COMPASS, "HEADING", "T,V", sampleSet.compassHeadingSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff);
+	sampleGroupDividerMessage(Sensors::COMPASS, "HEADING", "T,V", sampleSet.compassHeadingSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
 	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages, roudtripAverage);
 
 	// Samples.
@@ -212,7 +212,7 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 #pragma region Accelerometer XYZ.
 	// Start accelerometer XYZ samples.
 	sampleBaseTimestamp = sampleSet.accelerometerXYZSamples.peek(0)->first();
-	sampleGroupDividerMessage(Sensors::ACCELEROMETER, "XYZ", "T,X,Y,Z", sampleSet.accelerometerXYZSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff);
+	sampleGroupDividerMessage(Sensors::ACCELEROMETER, "XYZ", "T,X,Y,Z", sampleSet.accelerometerXYZSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
 	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages, roudtripAverage);
 
 	// Samples.
@@ -228,7 +228,7 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 #pragma region Pressure.
 	// Start pressure samples.
 	sampleBaseTimestamp = sampleSet.pressureSamples.peek(0)->first();
-	sampleGroupDividerMessage(Sensors::PRESSURE, "PRESSURE", "T,V", sampleSet.pressureSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff);
+	sampleGroupDividerMessage(Sensors::PRESSURE, "PRESSURE", "T,V", sampleSet.pressureSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
 	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages, roudtripAverage);
 
 	// Samples.
@@ -243,7 +243,7 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 #pragma region Pressure sensor temperature.
 	// Start pressure sensor temperature samples.
 	sampleBaseTimestamp = sampleSet.pressureTemperatureSamples.peek(0)->first();
-	sampleGroupDividerMessage(Sensors::PRESSURE, "TEMPERATURE", "T,V", sampleSet.pressureTemperatureSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff);
+	sampleGroupDividerMessage(Sensors::PRESSURE, "TEMPERATURE", "T,V", sampleSet.pressureTemperatureSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
 	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages, roudtripAverage);
 
 	// Samples.
@@ -258,7 +258,7 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 #pragma region Pressure altitude estimate.
 	// Start pressure altitude estimate samples.
 	sampleBaseTimestamp = sampleSet.pressureAltitudeSamples.peek(0)->first();
-	sampleGroupDividerMessage(Sensors::PRESSURE, "ALTITUDE", "T,V", sampleSet.pressureAltitudeSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff);
+	sampleGroupDividerMessage(Sensors::PRESSURE, "ALTITUDE", "T,V", sampleSet.pressureAltitudeSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
 	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages, roudtripAverage);
 
 	// Samples.
@@ -273,7 +273,7 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 #pragma region Rain.
 	// Start rain samples.
 	sampleBaseTimestamp = sampleSet.rainSamples.peek(0)->first();
-	sampleGroupDividerMessage(Sensors::RAIN, "VALUES", "T,V", sampleSet.rainSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff);
+	sampleGroupDividerMessage(Sensors::RAIN, "VALUES", "T,V", sampleSet.rainSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
 	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages, roudtripAverage);
 
 	// Samples.
@@ -288,7 +288,7 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 #pragma region Rain state.
 	// Start rain state samples.
 	sampleBaseTimestamp = sampleSet.rainStateSample.first();
-	sampleGroupDividerMessage(Sensors::RAIN, "STATE", "T,V", 1, sampleBaseTimestamp, samplesStartTime, formatBuff);
+	sampleGroupDividerMessage(Sensors::RAIN, "STATE", "T,V", 1, sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
 	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages, roudtripAverage);
 
 	// Samples.
@@ -299,7 +299,7 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 #pragma region Temperature.
 	// Start temperature samples.
 	sampleBaseTimestamp = sampleSet.temperatureSamples.peek(0)->first();
-	sampleGroupDividerMessage(Sensors::TEMPERATURE, "VALUES", "T,V", sampleSet.temperatureSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff);
+	sampleGroupDividerMessage(Sensors::TEMPERATURE, "VALUES", "T,V", sampleSet.temperatureSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
 	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages, roudtripAverage);
 
 	// Samples.
@@ -314,7 +314,7 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 #pragma region Humidity.
 	// Start humidity samples.
 	sampleBaseTimestamp = sampleSet.humiditySamples.peek(0)->first();
-	sampleGroupDividerMessage(Sensors::HUMIDITY, "VALUES", "T,V", sampleSet.humiditySamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff);
+	sampleGroupDividerMessage(Sensors::HUMIDITY, "VALUES", "T,V", sampleSet.humiditySamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
 	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages, roudtripAverage);
 
 	// Samples.
@@ -329,7 +329,7 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 #pragma region Water temperature.
 	// Start waterTemperature samples.
 	sampleBaseTimestamp = sampleSet.waterTemperatureSamples.peek(0)->first();
-	sampleGroupDividerMessage(Sensors::WATER_TEMPERATURE, "VALUES", "T,V", sampleSet.waterTemperatureSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff);
+	sampleGroupDividerMessage(Sensors::WATER_TEMPERATURE, "VALUES", "T,V", sampleSet.waterTemperatureSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
 	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages, roudtripAverage);
 
 	// Samples.
@@ -344,7 +344,7 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 #pragma region Wind direction.
 	// Start wind direction samples.
 	sampleBaseTimestamp = sampleSet.windDirectionSamples.peek(0)->first();
-	sampleGroupDividerMessage(Sensors::WIND_DIRECTION, "VALUES", "T,V", sampleSet.windDirectionSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff);
+	sampleGroupDividerMessage(Sensors::WIND_DIRECTION, "VALUES", "T,V", sampleSet.windDirectionSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
 	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages, roudtripAverage);
 
 	// Samples.
@@ -359,7 +359,7 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 #pragma region Wind speed.
 	// Start wind speed samples.
 	sampleBaseTimestamp = sampleSet.windSpeedSamples.peek(0)->first();
-	sampleGroupDividerMessage(Sensors::WIND_SPEED, "VALUES", "T,S,TS", sampleSet.windSpeedSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff);
+	sampleGroupDividerMessage(Sensors::WIND_SPEED, "VALUES", "T,S,TS", sampleSet.windSpeedSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
 	sendMessageCompact(formatBuff, messageBuff, messageCount, sentMessages, roudtripAverage);
 
 	// Samples.

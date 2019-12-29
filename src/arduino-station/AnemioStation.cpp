@@ -33,7 +33,7 @@ void AnemioStation::setup() {
 	int numOffline = setupProviders(3);
 
 	debugA("Setup completed with %d device(s) offline.\n\n", numOffline);
-	snprintf(formatBuff, sizeof(formatBuff), "N:%d - Setup completed with %d device(s) offline.", numOffline, numOffline);
+	snprintf(formatBuff, sizeof(formatBuff), "O:%d - Setup completed with %d device(s) offline.", numOffline, numOffline);
 	_radioTransceiver.sendMessage(RadioCommands::SETUP_FINISH, formatBuff);
 
 	// Done with radio for now (sleep).

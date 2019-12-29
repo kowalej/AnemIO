@@ -1,23 +1,26 @@
 #!/usr/bin/env python3
 
-from RFM69 import Radio, FREQ_915MHZ
-from RFM69.registers import REG_RSSITHRESH
-import datetime
 import asyncio
-from aiohttp import ClientSession
-import time
-import sqlite
-import sys
-import re
-from urllib.request import pathname2url
-from constants import *
-
-# Set high priority.
+import datetime
 import os
-os.nice(1)
+import re
+import sqlite3
+import sys
+import time
+from contextlib import closing
+from urllib.request import pathname2url
+
+from aiohttp import ClientSession
+from RFM69 import FREQ_915MHZ, Radio
+from RFM69.registers import REG_RSSITHRESH
+
+from .constants import *
 
 DB_NAME = 'anemio.db'
-dbConn = None
+db_conn = None
+
+# Station state stuff.
+device_statuses = {}
 
 def create_db():
 	with closing(db.cursor()) as c:
@@ -35,14 +38,8 @@ def create_db():
 		c.execute(
 				'''CREATE TABLE device_state
 					(timestamp INTEGER, 
-					ambient_light INTEGER, 
-					compass_accelerometer INTEGER,
-					pressure INTEGER,
-					rain INTEGER,
-					temperature_humidity INTEGER,
-					water_temperature INTEGER,
-					wind_direction INTEGER,
-					wind_speed INTEGER,
+					online_devices TEXT,
+					offline_devices TEXT
 				)'''
 		)
 
@@ -107,7 +104,7 @@ def create_db():
 					(timestamp INTEGER, value REAL, temperature REAL)''')
 
 		# Save changes.
-		dbConn.commit()
+		db_conn.commit()
 
 # Parse one or more messages in packet (multiple occurs with compact send).
 def parse_messages(messages):
@@ -124,17 +121,19 @@ def parse_messages(messages):
 		timestamps_lookup.push({ 'start': data_part_start_index, 'end': data_part_end_index, 'received_timestamp': receieved_timestamp })
 
 	if len(data < 1):
+		pass
 		# TODO: log messages are empty.
 	parsed = []
 	breaks = [m.span() for m in re.finditer('\[[0-9]+\]', data)]
 	if len(breaks < 1):
+		pass
 		# TODO: log no control character found in messages (cannot determine message type).
 	for i in range(0, len(breaks)):
-		radio_command = data[breaks[i][0]:breaks[i][1]]
+		radio_command = data[breaks[i][0]:breaks[i][1]].replace('[','').replace(']','')
 		end_index = breaks[i+1][0] if i < len(breaks) - 1 else len(data)
 		contents = data[breaks[i][1]:end_index]
 		received_timestamp = next(x for x in timestamps_lookup if x.start >= breaks[i][0] and x.end <= (end_index - 1))
-		parsed.append({ 'radio_command': (RadioCommands)radio_command, 'contents': contents, 'received_timestamp': received_timestamp})
+		parsed.append({ 'radio_command': RadioCommands(radio_command), 'contents': contents, 'received_timestamp': received_timestamp})
 		print(parsed[-1])
 	return parsed
 
@@ -144,31 +143,60 @@ def handle_messages(parsed_messages):
 
 		for message in parsed_messages:
 			if message.radio_command == RadioCommands.SETUP_START:
+				# Station is in booting state.
 				c.execute(
-					'INSERT INTO station_state(timestamp, state) VALUES (?,?)', 
-					(message.receieved_timestamp, StationStatus.BOOTING)'
+					'INSERT INTO station_state(timestamp, state) VALUES (?,?)',
+					(message.receieved_timestamp, StationStatus.BOOTING)
 				)
-			elif message.radio_command == RadioCommands.SETUP_FINISH:
-				c.execute(
-					'INSERT INTO station_state(timestamp, state) VALUES (?,?)', 
-					(message.receieved_timestamp, StationStatus.ONLINE)'
-				)
-			elif message.radio_command == RadioCommands.REPORT_ONLINE_STATE:
 			elif message.radio_command == RadioCommands.REPORT_SETUP_STATE:
-			elif message.radio_command == RadioCommands.SAMPLES_START:
-			elif message.radio_command == RadioCommands.SAMPLE_GROUP_DIVIDER:
-			elif message.radio_command == RadioCommands.SAMPLE_WRITE:
-			elif message.radio_command == RadioCommands.SAMPLES_FINISH:
+				m = re.match('D:([0-9]+)O:([1,2]+)')
+				if m is not None:
+					device_statuses[m.groups[0]] = m.groups[1]
+				else:
+					pass
+					# TODO: log bad formatted message.
+			elif message.radio_command == RadioCommands.SETUP_FINISH:
+				online_devices = []
+				offline_devices = []
+				for k in device_statuses:
+					if(device_statuses[k] == True):
+						online.append(k)
+					else:
+						offline.append(k)
+
+				# Record device statuses.
+				c.execute(
+					'INSERT INTO device_state(timestamp, online_devices, offline_devices) VALUES (?,?,?)', 
+					(message.receieved_timestamp, online_devices, offline_devices)
+				)
+
+				m = re.match('N:([0-9]+)')
+				if m is not None:
+					# Station is now online.
+					c.execute(
+						'INSERT INTO station_state(timestamp, state) VALUES (?,?)', 
+						(message.receieved_timestamp, StationStatus.ONLINE)
+					)
+					device_statuses.clear()
+				else:
+					pass
+					# TODO: log bad formatted message.
+
+			# elif message.radio_command == RadioCommands.REPORT_ONLINE_STATE:
+			# elif message.radio_command == RadioCommands.SAMPLES_START:
+			# elif message.radio_command == RadioCommands.SAMPLE_GROUP_DIVIDER:
+			# elif message.radio_command == RadioCommands.SAMPLE_WRITE:
+			# elif message.radio_command == RadioCommands.SAMPLES_FINISH:
 		
 		# Save changes.
-		dbConn.commit()
+		db_conn.commit()
 
 async def receiver(radio):
 	compact_collecting = False
 	messages_collected = []
 	parsed_messages = []
 
-	while True:	
+	while True:
 		for packet in radio.get_packets():
 			message = ''.join([chr(letter) for letter in packet.data])
 			print('Packet received:', packet)
@@ -193,53 +221,69 @@ async def receiver(radio):
 				messages_collected.clear() # Make sure we clear messages now that we have parsed them.
 
 		# TODO: Save data...
-	 	# await call_API("http://httpbin.org/post", packet)
+		# await call_API("http://httpbin.org/post", packet)
 		await asyncio.sleep(TOSLEEP)
 
-# Main sequence.
-try:
+def start_listening(radio, loop):
+	print('Radio settings: NODE = {0}, NETWORK = {1}'.format(NODE, NET))
+	print('Listening...')
+	loop.run_until_complete(receiver(radio))
+	
+def setup_db(db_name):
 	# DB setup.
-	print('Connecting to database {}...'.format(DB_NAME))
+	print('Connecting to database {}...'.format(db_name))
 	try:
-		dburi = 'file:{}?mode=rw'.format(pathname2url(DB_NAME))
-		dbConn = sqlite3.connect(dburi, uri=True)
+		dburi = 'file:{}?mode=rw'.format(pathname2url(db_name))
+		db_conn = sqlite3.connect(dburi, uri=True)
 	except sqlite3.OperationalError:
-		print('DB does not exist, creating {}...'.format(DB_NAME))
-		dbConn = sqlite3.connect(DB_NAME)
+		print('DB does not exist, creating {}...'.format(db_name))
+		db_conn = sqlite3.connect(db_name)
 		create_db()
 	print('Done.')
+	return db_conn
 
+# Main sequence.
+def main():
+	# Try to set OS high priority.
+	try:
+		os.nice(1)
+	except:
+		pass
 
-	loop = asyncio.get_event_loop()
-	print('Radio initialization...')
-	# Initialize the radio as a resource.
-	with Radio(
-		FREQ_915MHZ,
-		NODE,
-		NET,
-		isHighPower = True,
-		encryptionKey = ENCRYPT_KEY,
-		power = 100,  # Send at 100% power, since we don't care about power saving on this end (we are wired in).
-		promiscuous = False,  # We don't care about any messages except our weather station.
-		autoAcknowledge = True,  # Station expects Acknowledgements.
-		verbose = False
-	) as radio:
-		print('Done.')
-		radio._writeReg(REG_RSSITHRESH, 240)
-		print('Radio settings: NODE = {0}, NETWORK = {1}'.format(NODE, NET))
-		print('Listening...')
+	try:
+		# Get our database.
+		db_conn = setup_db(DB_NAME)
 
-		loop.create_task(receiver(radio))
-		loop.run_forever()
+		# Get our async loop object.
+		loop = asyncio.get_event_loop()
 
-except KeyboardInterrupt: # If CTRL+C is pressed, exit cleanly:
-	print('Keyboard interrupt.')
+		# Initialize the radio as a resource.
+		print('Radio initialization...')
+		with Radio(
+				FREQ_915MHZ,
+				NODE,
+				NET,
+				isHighPower = True,
+				encryptionKey = ENCRYPT_KEY,
+				power = 100,  # Send at 100% power, since we don't care about power saving on this end (we are wired in).
+				promiscuous = False,  # We don't care about any messages except our weather station.
+				autoAcknowledge = True,  # Station expects Acknowledgements.
+				verbose = False
+			) as radio:
+			print('Done.')
+			start_listening(radio, loop)
 
-except Exception:
-	e = sys.exc_info()[0]
-	print('An error occured: {0}'.format(str(e)))
+	except KeyboardInterrupt: # If CTRL+C is pressed, exit cleanly:
+		print('Keyboard interrupt.')
 
-finally:
-	print('Shutting down.')
-	dbConn.close()
-	loop.close()
+	except Exception:
+		e = sys.exc_info()[0]
+		print('An error occured: {0}'.format(str(e)))
+
+	finally:
+		print('Shutting down.')
+		db_conn.close()
+		loop.close()
+
+if __name__ == '__main__':
+    unittest.main()

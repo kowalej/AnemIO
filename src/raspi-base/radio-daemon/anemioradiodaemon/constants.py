@@ -41,7 +41,6 @@ class RadioCommands(Enum):
 	SAMPLE_GROUP_DIVIDER = 6,
 	SAMPLE_WRITE = 7,
 	SAMPLES_FINISH = 8
-    LATENCY_CALLBACK = 9
 
 class StationStatus(Enum):
     BOOTING = 1,  # Station is booting up.
