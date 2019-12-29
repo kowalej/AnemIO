@@ -23,9 +23,7 @@ db_conn = None
 device_statuses = {}
 
 def create_db():
-	with closing(db.cursor()) as c:
-		c = conn.cursor()
-
+	with closing(db_conn.cursor()) as c:
 		# Create station location table.
 		c.execute('''CREATE TABLE station_location
 					(timestamp INTEGER, lat REAL, lon REAL)''')
@@ -133,30 +131,30 @@ def parse_messages(messages):
 		radio_command = data[breaks[i][0]:breaks[i][1]].replace('[','').replace(']','')
 		end_index = breaks[i+1][0] if i < len(breaks) - 1 else len(data)
 		contents = data[breaks[i][1]:end_index]
-		received_timestamp = next(x for x in timestamps_lookup if x.start >= breaks[i][0] and x.end <= (end_index - 1))
-		parsed.append({ 'radio_command': RadioCommands(radio_command), 'contents': contents, 'received_timestamp': received_timestamp})
+		received_timestamp = next(x['received_timestamp'] for x in timestamps_lookup if x['start'] >= breaks[i][0] and x['end'] <= (end_index - 1))
+		parsed.append({ 'radio_command': RadioCommands(int(radio_command)), 'contents': contents, 'received_timestamp': received_timestamp})
 		print(parsed[-1])
 	return parsed
 
 def handle_messages(parsed_messages):
-	with closing(db.cursor()) as c:
-		c = conn.cursor()
-
+	with closing(db_conn.cursor()) as c:
 		for message in parsed_messages:
-			if message.radio_command == RadioCommands.SETUP_START:
+			command = message['radio_command']
+			contents = message['contents']
+			if command == RadioCommands.SETUP_START:
 				# Station is in booting state.
 				c.execute(
 					'INSERT INTO station_state(timestamp, state) VALUES (?,?)',
 					(message.received_timestamp, StationStatus.BOOTING)
 				)
-			elif message.radio_command == RadioCommands.REPORT_SETUP_STATE:
-				m = re.match('D:([0-9]+)O:([1,2]+)')
+			elif command == RadioCommands.REPORT_SETUP_STATE:
+				m = re.match('D:([0-9]+)O:([1,2]+)', contents)
 				if m is not None:
-					device_statuses[m.groups[0]] = m.groups[1]
+					device_statuses[m.group(1)] = m.group(2)
 				else:
 					pass
 					# TODO: log bad formatted message.
-			elif message.radio_command == RadioCommands.SETUP_FINISH:
+			elif command == RadioCommands.SETUP_FINISH:
 				online_devices = []
 				offline_devices = []
 				for k in device_statuses:
@@ -171,7 +169,7 @@ def handle_messages(parsed_messages):
 					(message.received_timestamp, online_devices, offline_devices)
 				)
 
-				m = re.match('N:([0-9]+)')
+				m = re.match('N:([0-9]+)', contents)
 				if m is not None:
 					# Station is now online.
 					c.execute(
@@ -183,11 +181,11 @@ def handle_messages(parsed_messages):
 					pass
 					# TODO: log bad formatted message.
 
-			# elif message.radio_command == RadioCommands.REPORT_ONLINE_STATE:
-			# elif message.radio_command == RadioCommands.SAMPLES_START:
-			# elif message.radio_command == RadioCommands.SAMPLE_GROUP_DIVIDER:
-			# elif message.radio_command == RadioCommands.SAMPLE_WRITE:
-			# elif message.radio_command == RadioCommands.SAMPLES_FINISH:
+			# elif command == RadioCommands.REPORT_ONLINE_STATE:
+			# elif command == RadioCommands.SAMPLES_START:
+			# elif command == RadioCommands.SAMPLE_GROUP_DIVIDER:
+			# elif command == RadioCommands.SAMPLE_WRITE:
+			# elif command == RadioCommands.SAMPLES_FINISH:
 		
 		# Save changes.
 		db_conn.commit()
@@ -199,9 +197,8 @@ async def receiver(radio):
 
 	while True:
 		for packet in radio.get_packets():
-			message = ''.join([chr(letter) for letter in packet.data])
 			print('Packet received:', packet)
-			#print(message)
+			message = ''.join([chr(letter) for letter in packet.data])
 
 			# See if we have started a long series of messages (compact messaging).
 			# Compact messages start with control characters ^^ and end with $$ - which we will remove.

@@ -34,11 +34,11 @@ class TestAnemioRadioDaemon(unittest.TestCase):
             # Initialize the radio as a resource.
             print('Radio initializing...')
             
-            radio = TestingRadio(FREQ_915MHZ, 1, 1, isHighPower = True, verbose = True)
+            radio = TestingRadio(FREQ_915MHZ, 1, 1)
             print('Done.')
 
             packets = [
-                Packet(int(1), int(1), int(-44), [33,33])
+                Packet(int(1), int(1), int(-44), [91, 52, 93, 68, 58, 50, 79, 58, 49, 32, 45, 32, 80, 82, 69, 83, 83, 85, 82, 69, 32, 115, 101, 116, 117, 112, 32, 119, 97, 115, 32, 115, 117, 99, 99, 101, 115, 115, 102, 117, 108, 46])
             ]
             radio.get_packets = MagicMock(return_value=packets)
             anemioradiodaemon.start_listening(radio, loop)
