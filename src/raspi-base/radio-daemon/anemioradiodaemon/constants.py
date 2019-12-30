@@ -1,8 +1,11 @@
 from enum import Enum
 
+DEFAULT_DB_NAME = 'anemio.db'
+
+DEFAULT_RADIO_DELAY_MS = 20 
+
 NODE = 87 # Radio node number.
 NET = 223 # Radio network.
-TOSLEEP = 50.0/1000.0 # Sleep time will be 50 ms (try get new set of packets every 50 ms).
 ENCRYPT_KEY= 'J53Y25U5D8CE79NO' # uncomment if we want to use encryption.
 
 COMPACT_MESSAGES_START = "^^"
@@ -33,19 +36,18 @@ class Sensors(Enum):
     TOTAL = 10
 
 class RadioCommands(Enum):
-	SETUP_START = 1
-	SETUP_FINISH = 2
-	REPORT_ONLINE_STATE = 3
-	REPORT_SETUP_STATE = 4
-	SAMPLES_START = 5
-	SAMPLE_GROUP_DIVIDER = 6
-	SAMPLE_WRITE = 7
-	SAMPLES_FINISH = 8
+    SETUP_START = 1
+    REPORT_SETUP_STATE = 2
+    SETUP_FINISH = 3
+    REPORT_ONLINE_STATE = 4
+    SAMPLES_START = 5
+    SAMPLE_GROUP_DIVIDER = 6
+    SAMPLE_WRITE = 7
+    SAMPLES_FINISH = 8
 
-class StationStatus(Enum):
+class StationState(Enum):
     BOOTING = 1  # Station is booting up.
     ONLINE = 2  # Normal operation.
     PENDING_RESTART = 3  # Restart requested, awaiting completion.
     STANDBY = 4  # Save power - station will check for command once and awhile.
     OFFLINE = 5  # Station is off - in transit or otherwise.
-

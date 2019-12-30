@@ -7,7 +7,9 @@ import re
 import sqlite3
 import sys
 import time
+import geocoder
 from contextlib import closing
+from sqlite3 import Connection
 from urllib.request import pathname2url
 
 from aiohttp import ClientSession
@@ -16,95 +18,108 @@ from RFM69.registers import REG_RSSITHRESH
 
 from .constants import *
 
-DB_NAME = 'anemio.db'
-db_conn = None
+# Sleep time will be 50 ms (try get new set of packets every 50 ms).
+RECIEVE_SLEEP_SEC = 50.0/1000.0
 
-# Station state stuff.
+# Database connection object.
+db_conn: Connection = None
+
+# Online / offline device statuses.
 device_statuses = {}
 
-def create_db():
+# Average time it takes to receive data after it was sent by station.
+average_radio_delay_ms = DEFAULT_RADIO_DELAY_MS
+
+# Sets up the database schema, creating tables if needed.
+def create_db_schema(db_conn):
 	with closing(db_conn.cursor()) as c:
 		# Create station location table.
-		c.execute('''CREATE TABLE station_location
-					(timestamp INTEGER, lat REAL, lon REAL)''')
+		c.execute('''CREATE TABLE IF NOT EXISTS station_location
+					(timestamp INTEGER, lat REAL, lon REAL, is_actual INTEGER)''')
 
 		# Create station state table.
-		c.execute('''CREATE TABLE station_state
+		c.execute('''CREATE TABLE IF NOT EXISTS station_state
 					(timestamp INTEGER, state INTEGER)''')
 
 		# Create station device state table.
 		c.execute(
-				'''CREATE TABLE device_state
+				'''CREATE TABLE IF NOT EXISTS device_state
 					(timestamp INTEGER, 
 					online_devices TEXT,
-					offline_devices TEXT
+					offline_devices TEXT,
+					is_setup INTEGER
 				)'''
 		)
 
 		# Create ambient light values table.
-		c.execute('''CREATE TABLE ambient_light_values
+		c.execute('''CREATE TABLE IF NOT EXISTS ambient_light_values
 					(timestamp INTEGER, value REAL)''')
 
 		# Create ambient light state table.
-		c.execute('''CREATE TABLE ambient_light_state
+		c.execute('''CREATE TABLE IF NOT EXISTS ambient_light_state
 					(timestamp INTEGER, state TEXT)''')
 
 		# Create compass XYZ table.
-		c.execute('''CREATE TABLE compass_xyz
+		c.execute('''CREATE TABLE IF NOT EXISTS compass_xyz
 					(timestamp INTEGER, x REAL, y REAL, z REAL)''')
 
 		# Create compass heading table.
-		c.execute('''CREATE TABLE compass_heading
+		c.execute('''CREATE TABLE IF NOT EXISTS compass_heading
 					(timestamp INTEGER, heading INTEGER)''')
 
 		# Create accelerometer XYZ table.
-		c.execute('''CREATE TABLE accelerometer_xyz
+		c.execute('''CREATE TABLE IF NOT EXISTS accelerometer_xyz
 					(timestamp INTEGER, x REAL, y REAL, z REAL)''')
 
 		# Create pressure values table.
-		c.execute('''CREATE TABLE pressure_values
+		c.execute('''CREATE TABLE IF NOT EXISTS pressure_values
 					(timestamp INTEGER, value REAL)''')
 
 		# Create pressure temperature table.
-		c.execute('''CREATE TABLE pressure_temperature
+		c.execute('''CREATE TABLE IF NOT EXISTS pressure_temperature
 					(timestamp INTEGER, value REAL)''')
 
 		# Create pressure altitude table.
-		c.execute('''CREATE TABLE pressure_altitude
+		c.execute('''CREATE TABLE IF NOT EXISTS pressure_altitude
 					(timestamp INTEGER, value REAL)''')
 
 		# Create rain values table.
-		c.execute('''CREATE TABLE rain_values
+		c.execute('''CREATE TABLE IF NOT EXISTS rain_values
 					(timestamp INTEGER, value REAL)''')
 
 		# Create rain state table.
-		c.execute('''CREATE TABLE rain_state
+		c.execute('''CREATE TABLE IF NOT EXISTS rain_state
 					(timestamp INTEGER, state TEXT)''')
 
 		# Create temperature table.
-		c.execute('''CREATE TABLE temperature
+		c.execute('''CREATE TABLE IF NOT EXISTS temperature
 					(timestamp INTEGER, value REAL)''')
 
 		# Create humidity table.
-		c.execute('''CREATE TABLE humidity
+		c.execute('''CREATE TABLE IF NOT EXISTS humidity
 					(timestamp INTEGER, value REAL)''')
 
 		# Create water temperature table.
-		c.execute('''CREATE TABLE water_temperature
+		c.execute('''CREATE TABLE IF NOT EXISTS water_temperature
 					(timestamp INTEGER, value REAL)''')
 
 		# Create wind direction table.
-		c.execute('''CREATE TABLE wind_direction
+		c.execute('''CREATE TABLE IF NOT EXISTS wind_direction
 					(timestamp INTEGER, value INTEGER)''')
 
 		# Create wind speed table.
-		c.execute('''CREATE TABLE wind_speed
+		c.execute('''CREATE TABLE IF NOT EXISTS wind_speed
 					(timestamp INTEGER, value REAL, temperature REAL)''')
 
 		# Save changes.
 		db_conn.commit()
 
-# Parse one or more messages in packet (multiple occurs with compact send).
+def get_ts(timestamp, apply_delay = True):
+	unix_ts = (timestamp - datetime.datetime(1970, 1, 1)).total_seconds()
+	delay = 0 if not apply_delay else (average_radio_delay_ms / 1000)
+	return int((unix_ts - delay) * 1000)
+
+# Parse one or more messages in packet (multiple messagse occurs with a compact send).
 def parse_messages(messages):
 	data = ''
 	timestamps_lookup = []
@@ -136,45 +151,57 @@ def parse_messages(messages):
 		print(parsed[-1])
 	return parsed
 
+# Apply logic to parsed messages (save to DB, push data, etc).
 def handle_messages(parsed_messages):
 	with closing(db_conn.cursor()) as c:
 		for message in parsed_messages:
 			command = message['radio_command']
 			contents = message['contents']
+			timestamp = get_ts(message['received_timestamp'])
+			print(timestamp)
+
 			if command == RadioCommands.SETUP_START:
 				# Station is in booting state.
 				c.execute(
 					'INSERT INTO station_state(timestamp, state) VALUES (?,?)',
-					(message.received_timestamp, StationStatus.BOOTING)
+					(timestamp, StationState.BOOTING.value)
 				)
 			elif command == RadioCommands.REPORT_SETUP_STATE:
-				m = re.match('D:([0-9]+)O:([1,2]+)', contents)
+				m = re.match('D:([0-9]+)O:([0,1]+)', contents)
 				if m is not None:
-					device_statuses[m.group(1)] = m.group(2)
+					device_statuses[int(m.group(1))] = True if int(m.group(2)) == 1 else False
+					print(device_statuses)
 				else:
 					pass
 					# TODO: log bad formatted message.
 			elif command == RadioCommands.SETUP_FINISH:
 				online_devices = []
 				offline_devices = []
-				for k in device_statuses:
-					if(device_statuses[k] == True):
-						online.append(k)
+				for key, value in device_statuses.items():
+					if(value == True):
+						online_devices.append(key)
 					else:
-						offline.append(k)
+						offline_devices.append(key)
 
 				# Record device statuses.
 				c.execute(
-					'INSERT INTO device_state(timestamp, online_devices, offline_devices) VALUES (?,?,?)', 
-					(message.received_timestamp, online_devices, offline_devices)
+					'INSERT INTO device_state(timestamp, online_devices, offline_devices, is_setup) VALUES (?,?,?,?)', 
+					(timestamp, repr(online_devices), repr(offline_devices), True)
 				)
 
-				m = re.match('N:([0-9]+)', contents)
+				m = re.match('O:([0-9]+)F:([0-9])', contents)
 				if m is not None:
+					if int(m.group(1)) != len(online_devices):
+						pass
+						# TODO: log total online does not match reported total
+					if int(m.group(2)) != len(offline_devices):
+						pass
+						# TODO: log total offfline does nt match total reported
+
 					# Station is now online.
 					c.execute(
 						'INSERT INTO station_state(timestamp, state) VALUES (?,?)', 
-						(message.received_timestamp, StationStatus.ONLINE)
+						(timestamp, StationState.ONLINE.value)
 					)
 					device_statuses.clear()
 				else:
@@ -190,6 +217,7 @@ def handle_messages(parsed_messages):
 		# Save changes.
 		db_conn.commit()
 
+# Continuously running radio packet recieve sequence.
 async def receiver(radio):
 	compact_collecting = False
 	messages_collected = []
@@ -208,7 +236,6 @@ async def receiver(radio):
 			if(message.endswith(COMPACT_MESSAGES_END)):
 				compact_collecting = False
 				message = message.rstrip(COMPACT_MESSAGES_END)
-
 			# Always add the data to our messages object.
 			messages_collected.append({ 'data': message, 'received_timestamp': packet.received })
 
@@ -220,13 +247,20 @@ async def receiver(radio):
 
 		# TODO: Save data...
 		# await call_API("http://httpbin.org/post", packet)
-		await asyncio.sleep(TOSLEEP)
+		await asyncio.sleep(RECIEVE_SLEEP_SEC)
 
+# Starts up the main loops.
 def start_listening(radio, loop):
 	print('Radio settings: NODE = {0}, NETWORK = {1}'.format(NODE, NET))
 	print('Listening...')
 	loop.run_until_complete(receiver(radio))
+
+# Stops the main loops.
+def stop_listening(loop):
+	print('Stopping radio listening...')
+	loop.stop()
 	
+# Sets up the database, returns connection.	
 def setup_db(db_name):
 	# DB setup.
 	print('Connecting to database {}...'.format(db_name))
@@ -236,9 +270,30 @@ def setup_db(db_name):
 	except sqlite3.OperationalError:
 		print('DB does not exist, creating {}...'.format(db_name))
 		db_conn = sqlite3.connect(db_name)
-		create_db()
+	create_db_schema(db_conn)
 	print('Done.')
 	return db_conn
+
+# Tries to record the station's location based on this device's IP address.
+def record_location():
+	latlng = None
+	try:
+		g = geocoder.ip('me')
+		latlng = g.latlng
+		print('Found location using IP address! Latitude: {0} / Longitude: {0}'.format(latlng[0], latlng[1]))
+	except:
+		print('Could not get location using IP address.')
+		pass
+	if latlng is not None:
+		with closing(db_conn.cursor()) as c:
+			c.execute('INSERT INTO station_location(timestamp, lat, lon, is_actual) VALUES(?,?,?,?)', 
+				(
+					get_ts(datetime.datetime.utcnow(), False),
+					latlng[0],
+					latlng[1],
+					0
+				)
+			)
 
 # Main sequence.
 def main():
@@ -250,7 +305,10 @@ def main():
 
 	try:
 		# Get our database.
-		db_conn = setup_db(DB_NAME)
+		db_conn = setup_db(DEFAULT_DB_NAME)
+
+        # Record station location estimate, based on our base station's IP address.
+		record_location()
 
 		# Get our async loop object.
 		loop = asyncio.get_event_loop()
@@ -273,15 +331,19 @@ def main():
 
 	except KeyboardInterrupt: # If CTRL+C is pressed, exit cleanly:
 		print('Keyboard interrupt.')
+		stop_listening(loop)
 
 	except Exception:
 		e = sys.exc_info()[0]
 		print('An error occured: {0}'.format(str(e)))
+		stop_listening(loop)
 
 	finally:
 		print('Shutting down.')
-		db_conn.close()
-		loop.close()
+		if db_conn is not None:
+			db_conn.close()
+		if loop is not None:
+			loop.close()
 
 if __name__ == '__main__':
-    unittest.main()
+    main()
