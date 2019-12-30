@@ -13,8 +13,8 @@ sys.modules['rpidevmocks'] = MagicMock()
 sys.modules['rpidevmocks'] = MagicMock()
 
 from RFM69 import Radio, FREQ_915MHZ, Packet
-from anemioradiodaemon import anemioradiodaemon
-from anemioradiodaemon.constants import *
+from .radiodaemon import RadioDaemon, connect_db, get_ts
+from .constants import *
 
 # Fake radio (based on actual Radio), we override some initialization methods.
 class TestingRadio(Radio):
@@ -34,37 +34,17 @@ def packet_gen(packets: list):
     except IndexError:
         return []
 
-def run_radio(packet_gen):
-    try:
-        # Get our async loop object.
-        loop = asyncio.get_event_loop()
-
-        # Record station location estimate, based on our base station's IP address.
-        anemioradiodaemon.record_location()
-
-        # Initialize the radio as a resource.
-        print('Radio initializing...')
-        
-        radio = TestingRadio(FREQ_915MHZ, 1, 1)
-        print('Done.')
-
-        radio.get_packets = MagicMock(side_effect=packet_gen)
-        anemioradiodaemon.start_listening(radio, loop)
-
-    except KeyboardInterrupt: # If CTRL+C is pressed, exit cleanly:
-        print('Keyboard interrupt.')
-
-    finally:
-        print('Shutting down.')
-        if loop is not None:
-            loop.close()
-
 class TestAnemioRadioDaemon(unittest.TestCase):
     def setUp(self):
         # Get our database.
-        self.db_conn = anemioradiodaemon.setup_db('anemio-test.db')
-        anemioradiodaemon.RECIEVE_SLEEP_SEC = 0.1
-        anemioradiodaemon.db_conn = self.db_conn
+        self.db_conn = connect_db('anemio-test.db')
+
+    def run_daemon(self, packet_gen):
+        radio = TestingRadio(FREQ_915MHZ, 1, 1)
+        radio.get_packets = MagicMock(side_effect=packet_gen)
+
+        radio_daemon = RadioDaemon(self.db_conn, radio, receive_sleep_sec = 0.5)
+        radio_daemon.run()
 
     def test_startup(self):
         packets = [
@@ -77,11 +57,11 @@ class TestAnemioRadioDaemon(unittest.TestCase):
         def packet_gen_local():
             return packet_gen(packets)
 
-        self.start_timestamp = anemioradiodaemon.get_ts(datetime.datetime.utcnow())
-        run_radio(packet_gen_local)
-        self.end_timestamp = anemioradiodaemon.get_ts(datetime.datetime.utcnow())
+        self.start_timestamp = get_ts(datetime.datetime.utcnow(), DEFAULT_RADIO_DELAY_MS)
+        self.run_daemon(packet_gen_local)
+        self.end_timestamp = get_ts(datetime.datetime.utcnow())
 
-        c = anemioradiodaemon.db_conn.cursor()
+        c = self.db_conn.cursor()
 
         c.execute('SELECT * FROM station_location ORDER BY timestamp DESC, ROWID DESC LIMIT 1')
         station_location = c.fetchone()

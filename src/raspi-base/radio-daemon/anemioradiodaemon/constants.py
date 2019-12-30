@@ -1,12 +1,17 @@
 from enum import Enum
+import os
 
 DEFAULT_DB_NAME = 'anemio.db'
 
+# Average time it takes to receive data after it was sent by station.
 DEFAULT_RADIO_DELAY_MS = 20 
+
+# Sleep time will be 50 ms (try get new set of packets every 50 ms).
+DEFAULT_RECEIVE_SLEEP_SEC = 50.0/1000.0
 
 NODE = 87 # Radio node number.
 NET = 223 # Radio network.
-ENCRYPT_KEY= 'J53Y25U5D8CE79NO' # uncomment if we want to use encryption.
+ENCRYPT_KEY= os.environ.get('ANEMIO_ENCRYPT_KEY', 'J53Y25U5D8CE79NO') # tries to get from environment first.
 
 COMPACT_MESSAGES_START = "^^"
 COMPACT_MESSAGES_END = "$$"
