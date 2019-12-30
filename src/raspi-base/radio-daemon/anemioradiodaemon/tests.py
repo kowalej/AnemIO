@@ -13,8 +13,8 @@ sys.modules['rpidevmocks'] = MagicMock()
 sys.modules['rpidevmocks'] = MagicMock()
 
 from RFM69 import Radio, FREQ_915MHZ, Packet
-from .radiodaemon import RadioDaemon, connect_db, get_ts
-from .constants import *
+from radiodaemon import RadioDaemon, get_ts, connect_db
+from constants import *
 
 # Fake radio (based on actual Radio), we override some initialization methods.
 class TestingRadio(Radio):

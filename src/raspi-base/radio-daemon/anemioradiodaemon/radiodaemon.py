@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import asyncio
 import datetime
 import os
@@ -142,28 +140,27 @@ class RadioDaemon():
 		timestamps_lookup = []
 
 		# Connect all the data and then mark the timestamp of that message(s) part in a lookup for later.
-		data_part_start_index = 0 
-		data_part_end_index = -1
 		for message in messages:
+			data_part_start_index = len(data)
 			data += message['data']
-			data_part_start_index = data_part_end_index + 1
-			data_part_end_index = data_part_start_index + len(data) - 1
-			received_timestamp = message['received_timestamp']
-			timestamps_lookup.append({ 'start': data_part_start_index, 'end': data_part_end_index, 'received_timestamp': received_timestamp })
-
+			data_part_end_index = len(data) - 1
+			# We only care about the messages where the starting control character '[' exists.
+			if '[' in data:
+				received_timestamp = message['received_timestamp']
+				timestamps_lookup.append({ 'start': data_part_start_index, 'end': data_part_end_index, 'received_timestamp': received_timestamp })
 		if len(data) < 1:
 			pass
 			# TODO: log messages are empty.
 		parsed = []
 		breaks = [m.span() for m in re.finditer('\[[0-9]+\]', data)]
 		if len(breaks) < 1:
+			# TODO: log no control characters found in messages (cannot determine message type).
 			pass
-			# TODO: log no control character found in messages (cannot determine message type).
 		for i in range(0, len(breaks)):
 			radio_command = data[breaks[i][0]:breaks[i][1]].replace('[','').replace(']','')
 			end_index = breaks[i+1][0] if i < len(breaks) - 1 else len(data)
 			contents = data[breaks[i][1]:end_index]
-			received_timestamp = next(x['received_timestamp'] for x in timestamps_lookup if x['start'] >= breaks[i][0] and x['end'] <= (end_index - 1))
+			received_timestamp = next(x['received_timestamp'] for x in timestamps_lookup if breaks[i][0] >= x['start'] and breaks[i][0] <= x['end'])
 			parsed.append({ 'radio_command': RadioCommands(int(radio_command)), 'contents': contents, 'received_timestamp': received_timestamp})
 			print(parsed[-1])
 		return parsed
@@ -175,7 +172,6 @@ class RadioDaemon():
 				command = message['radio_command']
 				contents = message['contents']
 				timestamp = get_ts(message['received_timestamp'], self.average_radio_delay_ms)
-				print(timestamp)
 
 				if command == RadioCommands.SETUP_START:
 					# Station is in booting state.
@@ -241,27 +237,31 @@ class RadioDaemon():
 		parsed_messages = []
 
 		while True:
-			for packet in radio.get_packets():
-				print('Packet received:', packet)
-				message = ''.join([chr(letter) for letter in packet.data])
+			try:
+				for packet in radio.get_packets():
+					print('Packet received:', packet)
+					message = ''.join([chr(letter) for letter in packet.data])
 
-				# See if we have started a long series of messages (compact messaging).
-				# Compact messages start with control characters ^^ and end with $$ - which we will remove.
-				if(message.startswith(COMPACT_MESSAGES_START)):
-					compact_collecting = True
-					message = message.lstrip(COMPACT_MESSAGES_START)
-				if(message.endswith(COMPACT_MESSAGES_END)):
-					compact_collecting = False
-					message = message.rstrip(COMPACT_MESSAGES_END)
-				# Always add the data to our messages object.
-				messages_collected.append({ 'data': message, 'received_timestamp': packet.received })
+					# See if we have started a long series of messages (compact messaging).
+					# Compact messages start with control characters ^^ and end with $$ - which we will remove.
+					if(message.startswith(COMPACT_MESSAGES_START)):
+						compact_collecting = True
+						message = message.lstrip(COMPACT_MESSAGES_START)
+					if(message.endswith(COMPACT_MESSAGES_END)):
+						compact_collecting = False
+						message = message.rstrip(COMPACT_MESSAGES_END)
+					# Always add the data to our messages object.
+					messages_collected.append({ 'data': message, 'received_timestamp': packet.received })
 
-				if not compact_collecting:
-					parsed_messages = self.parse_messages(messages_collected)
-					if len(parsed_messages) > 0:
-						self.handle_messages(parsed_messages)
-					messages_collected.clear() # Make sure we clear messages now that we have parsed them.
+					if not compact_collecting:
+						parsed_messages = self.parse_messages(messages_collected)
+						messages_collected.clear() # Make sure we clear messages now that we have parsed them.
+						if len(parsed_messages) > 0:
+							self.handle_messages(parsed_messages)
 
+			except Exception as e:
+				print('An error occured...')
+				print(sys.exc_info())
 			# TODO: Save data...
 			# await call_API("http://httpbin.org/post", packet)
 			await asyncio.sleep(self.receive_sleep_sec)
@@ -300,12 +300,6 @@ class RadioDaemon():
 
 	# Main sequence.
 	def run(self):
-		# Try to set OS high priority.
-		try:
-			os.nice(1)
-		except:
-			pass
-
 		try:
 			# Get our async loop object.
 			loop = asyncio.get_event_loop()
@@ -355,6 +349,3 @@ class RadioDaemon():
 				self.db_conn.close()
 			if loop is not None:
 				loop.close()
-
-if __name__ == '__main__':
-    RadioDaemon().run()

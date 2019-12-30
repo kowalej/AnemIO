@@ -4,3 +4,4 @@ rpi-rfm69==0.2.1b0
 aiohttp
 cchardet
 aiodns
+geocoder
