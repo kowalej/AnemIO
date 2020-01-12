@@ -6,6 +6,7 @@ AnemioStation::AnemioStation() {
 		_lastCheck[i] = 0;
 	}
 	_radioLastTransmit = 0;
+	_radioLastTransmit = 0;
 }
 
 void AnemioStation::setup() {
@@ -132,191 +133,214 @@ void AnemioStation::healthCheck() {
 }
 
 void AnemioStation::loop() {
-	// Check if each device is online.
-	healthCheck();
-
-	// Ambient Light.
-	if (_online[Devices::AMBIENT_LIGHT] && (TIME_DELTA(_lastCheck[Devices::AMBIENT_LIGHT]) >= UPDATE_RATE_MS(AMBIENT_LIGHT_UPDATE_RATE_HZ))) {
-		debugD("----------------------");
-		debugD("Ambient light check start: %lu\n", millis());
-
-		float ambientLightValue = _ambientLightProvider.getAmbientLightValue();
-		_sampleSet.ambientLightSamples.add(Pair<unsigned long, float>(millis(), ambientLightValue), false);
-
-		debugD("Ambient Light Sensor Values: %s", String(ambientLightValue).c_str());
-
-		_lastCheck[Devices::AMBIENT_LIGHT] = millis();
-
-		debugD("Ambient light check end: %lu\n", millis());
+	if (_sleeping)
+	{
+		#ifndef DEBUG_DISABLED
+		delay(5000);
+		#else
+		LowPower.deepSleep(5000);
+		#endif
 	}
 
-	// Compass / Accelerometer.
-	if (_online[Devices::COMPASS_ACCELEROMETER] && (TIME_DELTA(_lastCheck[Devices::COMPASS_ACCELEROMETER]) >= UPDATE_RATE_MS(COMPASS_ACCELEROMETER_UPDATE_RATE_HZ))) {
-		debugD("----------------------");
-		debugD("Compass accelerometer check start: %lu\n", millis());
+	else {
+		// Check if each device is online.
+		healthCheck();
 
-		coord compassXYZ = _compassAccelerometerProvider.getCompass();
-		_sampleSet.compassXYZSamples.add(Pair<unsigned long, coord>(millis(), compassXYZ), false);
+		// Ambient Light.
+		if (_online[Devices::AMBIENT_LIGHT] && (TIME_DELTA(_lastCheck[Devices::AMBIENT_LIGHT]) >= UPDATE_RATE_MS(AMBIENT_LIGHT_UPDATE_RATE_HZ))) {
+			debugD("----------------------");
+			debugD("Ambient light check start: %lu\n", millis());
 
-		int compassHeading = _compassAccelerometerProvider.getHeading(compassXYZ.x, compassXYZ.y);
-		_sampleSet.compassHeadingSamples.add(Pair<unsigned long, int>(millis(), compassHeading), false);
+			float ambientLightValue = _ambientLightProvider.getAmbientLightValue();
+			_sampleSet.ambientLightSamples.add(Pair<unsigned long, float>(millis(), ambientLightValue), false);
 
-		coord accelerometerXYZ = _compassAccelerometerProvider.getAccelerometer();
-		_sampleSet.accelerometerXYZSamples.add(Pair<unsigned long, coord>(millis(), accelerometerXYZ), false);
+			debugD("Ambient Light Sensor Values: %s", String(ambientLightValue).c_str());
 
-		debugD("Compass / Accelerometer Sensor Values:");
-		debugD("  Compass (X,Y,Z) %s, %s, %s", String(compassXYZ.x).c_str(), String(compassXYZ.y).c_str(), String(compassXYZ.z).c_str());
-		debugD("  Compass Heading %s", String(compassHeading).c_str());
-		debugD("  Accelerometer (X,Y,Z) %s %s %s", String(accelerometerXYZ.x).c_str(), String(accelerometerXYZ.y).c_str(), String(accelerometerXYZ.z).c_str());
+			_lastCheck[Devices::AMBIENT_LIGHT] = millis();
 
-		_lastCheck[Devices::COMPASS_ACCELEROMETER] = millis();
-
-		debugD("Compass accelerometer check end: %lu\n", millis());
-	}
-
-	// Pressure (+ Backup Temperature and Altitude).
-	if (_online[Devices::PRESSURE] && (TIME_DELTA(_lastCheck[Devices::PRESSURE]) >= UPDATE_RATE_MS(PRESSURE_UPDATE_RATE_HZ))) {
-		debugD("----------------------");
-		debugD("Pressure check start: %lu\n", millis());
-
-		float pressureValue = _pressureProvider.getPressure();
-		_sampleSet.pressureSamples.add(Pair<unsigned long, float>(millis(), pressureValue), false);
-
-		float pressureTemperatureValue = _pressureProvider.getTemperature();
-		_sampleSet.pressureTemperatureSamples.add(Pair<unsigned long, float>(millis(), pressureTemperatureValue), false);
-
-		float pressureAltitudeValue = _pressureProvider.getAltitude();
-		_sampleSet.pressureAltitudeSamples.add(Pair<unsigned long, float>(millis(), pressureAltitudeValue), false);
-
-		debugD("Pressure Sensor Values:");
-		debugD("  Pressure (Pascals) %s", String(pressureValue).c_str());
-		debugD("  Temperature (Celcius) %s", String(pressureTemperatureValue).c_str());
-		debugD("  Altitude Estimation (Meters) %s", String(pressureAltitudeValue).c_str());
-
-		_lastCheck[Devices::PRESSURE] = millis();
-
-		debugD("Pressure check end: %lu", millis());
-	}
-
-	// Rain.
-	if (_online[Devices::RAIN] && (TIME_DELTA(_lastCheck[Devices::RAIN]) >= UPDATE_RATE_MS(RAIN_UPDATE_RATE_HZ))) {
-		debugD("----------------------");
-		debugD("Rain check start: %lu\n", millis());
-
-		float rainValue = _rainProvider.getRainValue();
-		_sampleSet.rainSamples.add(Pair<unsigned long, float>(millis(), rainValue), false);
-
-		debugD("Rain Sensor Values: %s", String(rainValue).c_str());
-
-		_lastCheck[Devices::RAIN] = millis();
-
-		debugD("Rain check end: %lu\n", millis());
-	}
-
-	// Temperature / Humidity.
-	if (_online[Devices::TEMPERATURE_HUMIDITY] && (TIME_DELTA(_lastCheck[Devices::TEMPERATURE_HUMIDITY]) >= UPDATE_RATE_MS(TEMPERATURE_HUMIDITY_UPDATE_RATE_HZ))) {
-		debugD("----------------------");
-		debugD("Temperature / humidity check start: %lu\n", millis());
-
-		float temperatureValue = _temperatureHumidityProvider.getTemperature();
-		_sampleSet.temperatureSamples.add(Pair<unsigned long, float>(millis(), temperatureValue), false);
-
-		float humidityValue = _temperatureHumidityProvider.getHumidity();
-		_sampleSet.humiditySamples.add(Pair<unsigned long, float>(millis(), humidityValue), false);
-
-		debugD("Temperature / Humidity Sensor Values:");
-		debugD("  Temperature (Celcius) %s", String(temperatureValue).c_str());
-		debugD("  Humidity (%%) %s", String(humidityValue).c_str());
-
-		_lastCheck[Devices::TEMPERATURE_HUMIDITY] = millis();
-
-		debugD("Temperature / humidity check end: %lu\n", millis());
-	}
-
-	// Water Temperature.
-	if (_online[Devices::WATER_TEMPERATURE] && (TIME_DELTA(_lastCheck[Devices::WATER_TEMPERATURE]) >= UPDATE_RATE_MS(WATER_TEMP_UPDATE_RATE_HZ))) {
-		debugD("----------------------");
-		debugD("Water temperature check start: %lu\n", millis());
-
-		float waterTemperature = _waterTemperatureProvider.getWaterTemperature();
-		_sampleSet.waterTemperatureSamples.add(Pair<unsigned long, float>(millis(), waterTemperature), false);
-
-		debugD("Water Temperature Sensor Values: %s", String(waterTemperature).c_str());
-
-		_lastCheck[Devices::WATER_TEMPERATURE] = millis();
-
-		debugD("Water temperature check end: %lu\n", millis());
-	}
-
-	// Wind Direction.
-	if (_online[Devices::WIND_DIRECTION] && (TIME_DELTA(_lastCheck[Devices::WIND_DIRECTION]) >= UPDATE_RATE_MS(WIND_DIRECTION_UPDATE_RATE_HZ))) {
-		debugD("----------------------");
-		debugD("Wind direction check start: %lu\n", millis());
-
-		int windHeadingRaw = _windDirectionProvider.getHeading();
-		int windHeadingCorrected = NAN;
-		
-		// Get the compass corrected wind direction (if possible).
-		if (_compassAccelerometerProvider.isOnline()) {
-			coord compassHeading = _compassAccelerometerProvider.getCompass();
-			 windHeadingCorrected = _windDirectionProvider.getCorrectedHeading(
-				windHeadingRaw,
-				_compassAccelerometerProvider.getHeading(compassHeading.x, compassHeading.y)
-			);
+			debugD("Ambient light check end: %lu\n", millis());
 		}
-		_sampleSet.windDirectionSamples.add(Pair<unsigned long, int>(millis(), windHeadingCorrected), false);
-		debugD("Wind Direction Sensor Values:");
-		debugD("  Wind Heading Raw %d", windHeadingRaw);
-		debugD("  Wind Heading Corrected %d", windHeadingCorrected);
 
-		_lastCheck[Devices::WIND_DIRECTION] = millis();
+		// Compass / Accelerometer.
+		if (_online[Devices::COMPASS_ACCELEROMETER] && (TIME_DELTA(_lastCheck[Devices::COMPASS_ACCELEROMETER]) >= UPDATE_RATE_MS(COMPASS_ACCELEROMETER_UPDATE_RATE_HZ))) {
+			debugD("----------------------");
+			debugD("Compass accelerometer check start: %lu\n", millis());
 
-		debugD("Wind direction check end: %lu\n", millis());
-	}
+			coord compassXYZ = _compassAccelerometerProvider.getCompass();
+			_sampleSet.compassXYZSamples.add(Pair<unsigned long, coord>(millis(), compassXYZ), false);
 
-	// Wind Speed.
-	if (_online[Devices::WIND_SPEED] && (TIME_DELTA(_lastCheck[Devices::WIND_SPEED]) >= UPDATE_RATE_MS(WIND_SPEED_UPDATE_RATE_HZ))) {
-		debugD("----------------------");
-		debugD("Wind speed / temperature check start: %lu\n", millis());
+			int compassHeading = _compassAccelerometerProvider.getHeading(compassXYZ.x, compassXYZ.y);
+			_sampleSet.compassHeadingSamples.add(Pair<unsigned long, int>(millis(), compassHeading), false);
 
-		float windSpeedRaw = _windSpeedProvider.getWindSpeedRaw();
+			coord accelerometerXYZ = _compassAccelerometerProvider.getAccelerometer();
+			_sampleSet.accelerometerXYZSamples.add(Pair<unsigned long, coord>(millis(), accelerometerXYZ), false);
 
-		// Wind ambient temperature.
-		float windSensorTemperature = _windSpeedProvider.getWindSensorTemperature();
+			debugD("Compass / Accelerometer Sensor Values:");
+			debugD("  Compass (X,Y,Z) %s, %s, %s", String(compassXYZ.x).c_str(), String(compassXYZ.y).c_str(), String(compassXYZ.z).c_str());
+			debugD("  Compass Heading %s", String(compassHeading).c_str());
+			debugD("  Accelerometer (X,Y,Z) %s %s %s", String(accelerometerXYZ.x).c_str(), String(accelerometerXYZ.y).c_str(), String(accelerometerXYZ.z).c_str());
 
-		// Temperature corrected wind speed. We will send this with the temperature.
-		// We can always reverse the math at the ground station if we don't like the corrected values.
-		float windSpeedCorrected = _windSpeedProvider.getCorrectedWindSpeed(windSensorTemperature);
-		_sampleSet.windSpeedSamples.add(Pair<unsigned long, windspeedpoint>(millis(), windspeedpoint(windSpeedCorrected, windSensorTemperature)), false);
+			_lastCheck[Devices::COMPASS_ACCELEROMETER] = millis();
 
-		debugD("Wind Speed Sensor Values:");
-		debugD("  Wind Speed Raw (Knots) %s", String(windSpeedRaw).c_str());
-		debugD("  Wind Sensor Temperature (Celcius) %s", String(windSensorTemperature).c_str());
-		debugD("  Wind Speed Temperature Corrected %s", String(windSpeedCorrected).c_str());
+			debugD("Compass accelerometer check end: %lu\n", millis());
+		}
 
-		_lastCheck[Devices::WIND_SPEED] = millis();
+		// Pressure (+ Backup Temperature and Altitude).
+		if (_online[Devices::PRESSURE] && (TIME_DELTA(_lastCheck[Devices::PRESSURE]) >= UPDATE_RATE_MS(PRESSURE_UPDATE_RATE_HZ))) {
+			debugD("----------------------");
+			debugD("Pressure check start: %lu\n", millis());
 
-		debugD("Wind speed / temperature check end: %lu\n", millis());
-	}
+			float pressureValue = _pressureProvider.getPressure();
+			_sampleSet.pressureSamples.add(Pair<unsigned long, float>(millis(), pressureValue), false);
 
-	// Transmit data to "ground" station.
-	if (TIME_DELTA(_radioLastTransmit) >= RADIO_SEND_INTERVAL_MS) {
+			float pressureTemperatureValue = _pressureProvider.getTemperature();
+			_sampleSet.pressureTemperatureSamples.add(Pair<unsigned long, float>(millis(), pressureTemperatureValue), false);
 
-		// Aggregation for rain state.
-		String rainState = _rainProvider.getRainState(_sampleSet);
-		debugD("Rain state: %s", rainState.c_str());
-		_sampleSet.rainStateSample = Pair<unsigned long, String>(millis(), rainState);
+			float pressureAltitudeValue = _pressureProvider.getAltitude();
+			_sampleSet.pressureAltitudeSamples.add(Pair<unsigned long, float>(millis(), pressureAltitudeValue), false);
 
-		// Aggregation for ambient light state.
-		String ambientLightState = _ambientLightProvider.getAmbientLightState(_sampleSet);
-		debugD("Ambient light state: %s", ambientLightState.c_str());
-		_sampleSet.ambientLightStateSample = Pair<unsigned long, String>(millis(), ambientLightState);
+			debugD("Pressure Sensor Values:");
+			debugD("  Pressure (Pascals) %s", String(pressureValue).c_str());
+			debugD("  Temperature (Celcius) %s", String(pressureTemperatureValue).c_str());
+			debugD("  Altitude Estimation (Meters) %s", String(pressureAltitudeValue).c_str());
 
-		// Send data over radio.
-		debugD("Radio transmit start: %lu\n", millis());
-		Pair<int,int> sentResults = _radioTransceiver.sendSamples(_sampleSet);
-		debugD("Radio sent %d/%d messages. Percent success: %f.", sentResults.first(), sentResults.second(), (static_cast<double>(sentResults.first()) / static_cast<double>(sentResults.second())) );
-		_radioLastTransmit = millis();
-		debugD("Radio transmit end: %lu\n", _radioLastTransmit);
+			_lastCheck[Devices::PRESSURE] = millis();
+
+			debugD("Pressure check end: %lu", millis());
+		}
+
+		// Rain.
+		if (_online[Devices::RAIN] && (TIME_DELTA(_lastCheck[Devices::RAIN]) >= UPDATE_RATE_MS(RAIN_UPDATE_RATE_HZ))) {
+			debugD("----------------------");
+			debugD("Rain check start: %lu\n", millis());
+
+			float rainValue = _rainProvider.getRainValue();
+			_sampleSet.rainSamples.add(Pair<unsigned long, float>(millis(), rainValue), false);
+
+			debugD("Rain Sensor Values: %s", String(rainValue).c_str());
+
+			_lastCheck[Devices::RAIN] = millis();
+
+			debugD("Rain check end: %lu\n", millis());
+		}
+
+		// Temperature / Humidity.
+		if (_online[Devices::TEMPERATURE_HUMIDITY] && (TIME_DELTA(_lastCheck[Devices::TEMPERATURE_HUMIDITY]) >= UPDATE_RATE_MS(TEMPERATURE_HUMIDITY_UPDATE_RATE_HZ))) {
+			debugD("----------------------");
+			debugD("Temperature / humidity check start: %lu\n", millis());
+
+			float temperatureValue = _temperatureHumidityProvider.getTemperature();
+			_sampleSet.temperatureSamples.add(Pair<unsigned long, float>(millis(), temperatureValue), false);
+
+			float humidityValue = _temperatureHumidityProvider.getHumidity();
+			_sampleSet.humiditySamples.add(Pair<unsigned long, float>(millis(), humidityValue), false);
+
+			debugD("Temperature / Humidity Sensor Values:");
+			debugD("  Temperature (Celcius) %s", String(temperatureValue).c_str());
+			debugD("  Humidity (%%) %s", String(humidityValue).c_str());
+
+			_lastCheck[Devices::TEMPERATURE_HUMIDITY] = millis();
+
+			debugD("Temperature / humidity check end: %lu\n", millis());
+		}
+
+		// Water Temperature.
+		if (_online[Devices::WATER_TEMPERATURE] && (TIME_DELTA(_lastCheck[Devices::WATER_TEMPERATURE]) >= UPDATE_RATE_MS(WATER_TEMP_UPDATE_RATE_HZ))) {
+			debugD("----------------------");
+			debugD("Water temperature check start: %lu\n", millis());
+
+			float waterTemperature = _waterTemperatureProvider.getWaterTemperature();
+			_sampleSet.waterTemperatureSamples.add(Pair<unsigned long, float>(millis(), waterTemperature), false);
+
+			debugD("Water Temperature Sensor Values: %s", String(waterTemperature).c_str());
+
+			_lastCheck[Devices::WATER_TEMPERATURE] = millis();
+
+			debugD("Water temperature check end: %lu\n", millis());
+		}
+
+		// Wind Direction.
+		if (_online[Devices::WIND_DIRECTION] && (TIME_DELTA(_lastCheck[Devices::WIND_DIRECTION]) >= UPDATE_RATE_MS(WIND_DIRECTION_UPDATE_RATE_HZ))) {
+			debugD("----------------------");
+			debugD("Wind direction check start: %lu\n", millis());
+
+			int windHeadingRaw = _windDirectionProvider.getHeading();
+			int windHeadingCorrected = NAN;
+
+			// Get the compass corrected wind direction (if possible).
+			if (_compassAccelerometerProvider.isOnline()) {
+				coord compassHeading = _compassAccelerometerProvider.getCompass();
+				windHeadingCorrected = _windDirectionProvider.getCorrectedHeading(
+					windHeadingRaw,
+					_compassAccelerometerProvider.getHeading(compassHeading.x, compassHeading.y)
+				);
+			}
+			_sampleSet.windDirectionSamples.add(Pair<unsigned long, int>(millis(), windHeadingCorrected), false);
+			debugD("Wind Direction Sensor Values:");
+			debugD("  Wind Heading Raw %d", windHeadingRaw);
+			debugD("  Wind Heading Corrected %d", windHeadingCorrected);
+
+			_lastCheck[Devices::WIND_DIRECTION] = millis();
+
+			debugD("Wind direction check end: %lu\n", millis());
+		}
+
+		// Wind Speed.
+		if (_online[Devices::WIND_SPEED] && (TIME_DELTA(_lastCheck[Devices::WIND_SPEED]) >= UPDATE_RATE_MS(WIND_SPEED_UPDATE_RATE_HZ))) {
+			debugD("----------------------");
+			debugD("Wind speed / temperature check start: %lu\n", millis());
+
+			float windSpeedRaw = _windSpeedProvider.getWindSpeedRaw();
+
+			// Wind ambient temperature.
+			float windSensorTemperature = _windSpeedProvider.getWindSensorTemperature();
+
+			// Temperature corrected wind speed. We will send this with the temperature.
+			// We can always reverse the math at the ground station if we don't like the corrected values.
+			float windSpeedCorrected = _windSpeedProvider.getCorrectedWindSpeed(windSensorTemperature);
+			_sampleSet.windSpeedSamples.add(Pair<unsigned long, windspeedpoint>(millis(), windspeedpoint(windSpeedCorrected, windSensorTemperature)), false);
+
+			debugD("Wind Speed Sensor Values:");
+			debugD("  Wind Speed Raw (Knots) %s", String(windSpeedRaw).c_str());
+			debugD("  Wind Sensor Temperature (Celcius) %s", String(windSensorTemperature).c_str());
+			debugD("  Wind Speed Temperature Corrected %s", String(windSpeedCorrected).c_str());
+
+			_lastCheck[Devices::WIND_SPEED] = millis();
+
+			debugD("Wind speed / temperature check end: %lu\n", millis());
+		}
+
+		// Transmit data to "ground" station.
+		if (TIME_DELTA(_radioLastTransmit) >= RADIO_SEND_INTERVAL_MS) {
+			// Aggregation for rain state.
+			String rainState = _rainProvider.getRainState(_sampleSet);
+			debugD("Rain state: %s", rainState.c_str());
+			_sampleSet.rainStateSample = Pair<unsigned long, String>(millis(), rainState);
+
+			// Aggregation for ambient light state.
+			String ambientLightState = _ambientLightProvider.getAmbientLightState(_sampleSet);
+			debugD("Ambient light state: %s", ambientLightState.c_str());
+			_sampleSet.ambientLightStateSample = Pair<unsigned long, String>(millis(), ambientLightState);
+
+			// Send data over radio.
+			debugD("Radio transmit start: %lu\n", millis());
+			Pair<int, int> sentResults = _radioTransceiver.sendSamples(_sampleSet);
+			debugD("Radio sent %d/%d messages. Percent success: %f.", sentResults.first(), sentResults.second(), (static_cast<double>(sentResults.first()) / static_cast<double>(sentResults.second())));
+			_radioLastTransmit = millis();
+			debugD("Radio transmit end: %lu\n", _radioLastTransmit);
+		}
+
+		// Listen for command from "ground" station.
+		if (TIME_DELTA(_radioLastReceive) >= RADIO_RECEIVE_INTERVAL_MS) {
+
+
+		}
+
+		// Loop sleep.
+		#ifndef DEBUG_DISABLED
+			delay(15);
+		#else
+			LowPower.sleep(15);
+		#endif
 	}
 }

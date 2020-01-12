@@ -1,32 +1,37 @@
 import asyncio
 import datetime
+import logging
 import os
 import re
 import sqlite3
 import sys
 import time
-import geocoder
 from contextlib import closing
 from sqlite3 import Connection
 from urllib.request import pathname2url
 
+import geocoder
+import requests
 from aiohttp import ClientSession
 from RFM69 import FREQ_915MHZ, Radio
 from RFM69.registers import REG_RSSITHRESH
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 
 from .constants import *
 
+
 # Sets up the database, returns connection.	
-def connect_db(db_name = DEFAULT_DB_NAME):
+def connect_db(db_name = DEFAULT_DB_NAME, logger=logging.getLogger()):
 	# DB setup.
-	print('Connecting to database {}...'.format(db_name))
+	logger.info('Connecting to database {}...'.format(db_name))
 	try:
 		dburi = 'file:{}?mode=rw'.format(pathname2url(db_name))
 		db_conn = sqlite3.connect(dburi, uri=True)
 	except sqlite3.OperationalError:
-		print('DB does not exist, creating {}...'.format(db_name))
+		logger.info('DB does not exist, creating {}...'.format(db_name))
 		db_conn = sqlite3.connect(db_name)
-	print('Done.')
+	logger.info('Done.')
 	return db_conn
 
 # Gets a Unix epoch millisecond timestamp with optional offset based on radio transmittion time.
@@ -36,7 +41,7 @@ def get_ts(timestamp, offset_ms = 0):
 
 class RadioDaemon():
 	# Construct the class.
-	def __init__(self, db_conn: Connection = None, radio: Radio = None, **kwargs):
+	def __init__(self, db_conn: Connection = None, radio: Radio = None, logger = logging.getLogger('anemio'), **kwargs):
 		# Database connection object.
 		self.db_conn = db_conn
 
@@ -49,6 +54,8 @@ class RadioDaemon():
 		# Average time it takes to receive data after it was sent by station.
 		self.average_radio_delay_ms = kwargs.get('average_radio_delay_ms', DEFAULT_RADIO_DELAY_MS)
 		self.receive_sleep_sec = kwargs.get('receive_sleep_sec', DEFAULT_RECEIVE_SLEEP_SEC)
+
+		self.logger = logger
 
 	# Sets up the database schema, creating tables if needed.
 	def _create_db_schema(self):
@@ -135,7 +142,7 @@ class RadioDaemon():
 			self.db_conn.commit()
 
 	# Parse one or more messages in packet (multiple messagse occurs with a compact send).
-	def parse_messages(self, messages):
+	def _parse_messages(self, messages):
 		data = ''
 		timestamps_lookup = []
 
@@ -162,11 +169,11 @@ class RadioDaemon():
 			contents = data[breaks[i][1]:end_index]
 			received_timestamp = next(x['received_timestamp'] for x in timestamps_lookup if breaks[i][0] >= x['start'] and breaks[i][0] <= x['end'])
 			parsed.append({ 'radio_command': RadioCommands(int(radio_command)), 'contents': contents, 'received_timestamp': received_timestamp})
-			print(parsed[-1])
+			self.logger.info(parsed[-1])
 		return parsed
 
 	# Apply logic to parsed messages (save to DB, push data, etc).
-	def handle_messages(self, parsed_messages):
+	def _handle_messages(self, parsed_messages):
 		with closing(self.db_conn.cursor()) as c:
 			for message in parsed_messages:
 				command = message['radio_command']
@@ -183,7 +190,7 @@ class RadioDaemon():
 					m = re.match('D:([0-9]+)O:([0,1]+)', contents)
 					if m is not None:
 						self.device_statuses[int(m.group(1))] = True if int(m.group(2)) == 1 else False
-						print(self.device_statuses)
+						self.logger.info(self.device_statuses)
 					else:
 						pass
 						# TODO: log bad formatted message.
@@ -205,11 +212,11 @@ class RadioDaemon():
 					m = re.match('O:([0-9]+)F:([0-9])', contents)
 					if m is not None:
 						if int(m.group(1)) != len(online_devices):
-							pass
+							_log
 							# TODO: log total online does not match reported total
 						if int(m.group(2)) != len(offline_devices):
 							pass
-							# TODO: log total offfline does nt match total reported
+							# TODO: log total offline does nt match total reported
 
 						# Station is now online.
 						c.execute(
@@ -230,6 +237,11 @@ class RadioDaemon():
 			# Save changes.
 			self.db_conn.commit()
 
+	def _get_station_state(self):
+		with closing(self.db_conn.cursor()) as c:
+			c.execute('SELECT state FROM device_state ORDER BY timestamp DESC, ROWID DESC LIMIT 1')
+			return StationState(c.fetchone()[0])
+
 	# Continuously running radio packet recieve sequence.
 	async def _receiver(self, radio):
 		compact_collecting = False
@@ -238,54 +250,70 @@ class RadioDaemon():
 
 		while True:
 			try:
-				for packet in radio.get_packets():
-					print('Packet received:', packet)
-					message = ''.join([chr(letter) for letter in packet.data])
+				station_state = self._get_station_state()
+				if(station_state == StationState.ONLINE):
+					for packet in radio.get_packets():
+						self.logger.info('Packet received:')
+						self.logger.info(packet)
+						message = ''.join([chr(letter) for letter in packet.data])
 
-					# See if we have started a long series of messages (compact messaging).
-					# Compact messages start with control characters ^^ and end with $$ - which we will remove.
-					if(message.startswith(COMPACT_MESSAGES_START)):
-						compact_collecting = True
-						message = message.lstrip(COMPACT_MESSAGES_START)
-					if(message.endswith(COMPACT_MESSAGES_END)):
-						compact_collecting = False
-						message = message.rstrip(COMPACT_MESSAGES_END)
-					# Always add the data to our messages object.
-					messages_collected.append({ 'data': message, 'received_timestamp': packet.received })
+						# See if we have started a long series of messages (compact messaging).
+						# Compact messages start with control characters ^^ and end with $$ - which we will remove.
+						if(message.startswith(COMPACT_MESSAGES_START)):
+							compact_collecting = True
+							message = message.lstrip(COMPACT_MESSAGES_START)
+						if(message.endswith(COMPACT_MESSAGES_END)):
+							compact_collecting = False
+							message = message.rstrip(COMPACT_MESSAGES_END)
+						# Always add the data to our messages object.
+						messages_collected.append({ 'data': message, 'received_timestamp': packet.received })
 
-					if not compact_collecting:
-						parsed_messages = self.parse_messages(messages_collected)
-						messages_collected.clear() # Make sure we clear messages now that we have parsed them.
-						if len(parsed_messages) > 0:
-							self.handle_messages(parsed_messages)
-
+						if not compact_collecting:
+							parsed_messages = self._parse_messages(messages_collected)
+							messages_collected.clear() # Make sure we clear messages now that we have parsed them.
+							if len(parsed_messages) > 0:
+								self._handle_messages(parsed_messages)
+				elif station_state == StationState.PENDING_RESTART:
+					self.logger.info('Sending restart request to station.')
+					success = radio.send(RADIO_STATION_NODE_ID, str(RadioCommands.RESTART.value))
+					self.logger.info('Restart request .'.format('successful' if success else 'unsuccessful'))
+				elif station_state == StationState.PENDING_SLEEP:
+					self.logger.info('Sending sleep request to station.')
+					success = radio.send(RADIO_STATION_NODE_ID, str(RadioCommands.SLEEP.value))
+					self.logger.info('Sleep request .'.format('successful' if success else 'unsuccessful'))
+				elif station_state == StationState.PENDING_WAKE:
+					self.logger.info('Sending wake request to station.')
+					success = radio.send(RADIO_STATION_NODE_ID, str(RadioCommands.WAKE.value))
+					self.logger.info('Wake request .'.format('successful' if success else 'unsuccessful'))
 			except Exception as e:
-				print('An error occured...')
-				print(sys.exc_info())
+				self.logger.info('An error occured...')
+				self.logger.info(sys.exc_info())
 			# TODO: Save data...
 			# await call_API("http://httpbin.org/post", packet)
 			await asyncio.sleep(self.receive_sleep_sec)
 
 	# Starts up the main data capture loop.
 	def start_capturing(self, radio, loop):
-		print('Radio settings: NODE = {0}, NETWORK = {1}'.format(NODE, NET))
-		print('Listening...')
+		self.logger.info('Radio settings: NODE = {0}, NETWORK = {1}'.format(RADIO_BASE_NODE_ID, NET))
+		self.logger.info('Listening...')
 		loop.run_until_complete(self._receiver(radio))
 
 	# Stops the main loops.
 	def stop_capturing(self, loop):
-		print('Stopping radio listening...')
+		self.logger.info('Stopping radio listening...')
 		loop.stop()
 
 	# Tries to record the station's location based on this device's IP address.
 	def record_location(self):
 		latlng = None
 		try:
-			g = geocoder.ip('me')
-			latlng = g.latlng
-			print('Found location using IP address! Latitude: {0} / Longitude: {0}'.format(latlng[0], latlng[1]))
+			with requests.Session() as session:
+				self.logger.info('Attempting to get (estimated) location automatically using base station IP address.')
+				g = geocoder.ip('me', session=session)
+				latlng = g.latlng
+				self.logger.info('Found location using IP address! Latitude: {0} / Longitude: {0}'.format(latlng[0], latlng[1]))
 		except:
-			print('Could not get location using IP address.')
+			self.logger.info('Could not get location using IP address.')
 			pass
 		if latlng is not None:
 			with closing(self.db_conn.cursor()) as c:
@@ -307,7 +335,7 @@ class RadioDaemon():
 			# Get the db connection, if it was not passed in (i.e. testing).
 			close_db = False
 			if self.db_conn is None:
-				self.db_conn = connect_db()
+				self.db_conn = connect_db(logger=self.logger)
 				close_db = True
 			
 			self._create_db_schema()
@@ -316,11 +344,11 @@ class RadioDaemon():
 			self.record_location()
 
 			# Initialize the radio as a resource, unless a radio was passed in (i.e. testing).
-			print('Radio initialization...')
+			self.logger.info('Radio initialization...')
 			if self.radio is None:
 				with Radio(
 						FREQ_915MHZ,
-						NODE,
+						RADIO_BASE_NODE_ID,
 						NET,
 						isHighPower = True,
 						encryptionKey = ENCRYPT_KEY,
@@ -329,22 +357,22 @@ class RadioDaemon():
 						autoAcknowledge = True,  # Station expects Acknowledgements.
 						verbose = False
 					) as radio:
-					print('Done.')
+					self.logger.info('Done.')
 					self.start_capturing(radio, loop)
 			else:
 				self.start_capturing(self.radio, loop)
 
 		except KeyboardInterrupt: # If CTRL+C is pressed, exit cleanly:
-			print('Keyboard interrupt.')
+			self.logger.info('Keyboard interrupt.')
 			self.stop_capturing(loop)
 
 		except Exception:
 			e = sys.exc_info()
-			print('An error occured: {0}'.format(str(e)))
+			self.logger.info('An error occured: {0}'.format(str(e)))
 			self.stop_capturing(loop)
 
 		finally:
-			print('Shutting down.')
+			self.logger.info('Shutting down.')
 			if close_db and self.db_conn is not None:
 				self.db_conn.close()
 			if loop is not None:

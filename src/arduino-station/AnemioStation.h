@@ -27,6 +27,7 @@
 #include <RingBufHelpers.h>
 #include "Coord.h"
 #include "RadioTransceiver.h"
+#include "ArduinoLowPower.h"
 
 class AnemioStation {
     public:
@@ -57,6 +58,9 @@ class AnemioStation {
 		bool _online[Devices::TOTAL];
 		unsigned long _lastCheck[Devices::TOTAL];
 		unsigned long _radioLastTransmit;
+		unsigned long _radioLastReceive;
+
+		bool _sleeping = false;
 
 		bool setupDevice_(Devices device);
 		bool checkDeviceOnline_(Devices device);

@@ -15,6 +15,7 @@
 
 namespace {
 	const uint16_t RADIO_SEND_INTERVAL_MS = 5000; // Maximum time between transmitting consecutive sample sets over the radio.
+	const uint16_t RADIO_RECEIVE_INTERVAL_MS = 15000; // Maximum time between receiving commands over the radio.
 
 	// Ambient light sensor.
 	const uint8_t AMBIENT_LIGHT_UPDATE_RATE_HZ = 1; // Update rate of light sensor.
@@ -127,7 +128,10 @@ namespace {
 		SAMPLES_START = 5,
 		SAMPLE_GROUP_DIVIDER = 6,
 		SAMPLE_WRITE = 7,
-		SAMPLES_FINISH = 8
+		SAMPLES_FINISH = 8,
+		SLEEP = 9,
+		WAKE = 10,
+		RESTART = 11
 	};
 }
 

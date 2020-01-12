@@ -46,8 +46,6 @@
 
 #include "AnemioStation.h"
 
-// #include "ArduinoLowPower.h"
-
 AnemioStation station;
 
 void setup()
@@ -73,11 +71,4 @@ void loop()
 	// 2. Collect samples.
 	// 3. Send over radio.
 	station.loop();
-
-#ifndef DEBUG_DISABLED
-	delay(15);
-#else
-	delay(15);
-	//LowPower.sleep(15);
-#endif
 }
