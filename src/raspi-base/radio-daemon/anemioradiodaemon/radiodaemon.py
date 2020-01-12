@@ -53,7 +53,7 @@ class RadioDaemon():
 
 		# Average time it takes to receive data after it was sent by station.
 		self.average_radio_delay_ms = kwargs.get('average_radio_delay_ms', DEFAULT_RADIO_DELAY_MS)
-		self.receive_sleep_sec = kwargs.get('receive_sleep_sec', DEFAULT_RECEIVE_SLEEP_SEC)
+		self.transceive_sleep_sec = kwargs.get('transceive_sleep_sec', DEFAULT_TRANSRECEIVE_SLEEP_SEC)
 
 		self.logger = logger
 
@@ -243,7 +243,7 @@ class RadioDaemon():
 			return StationState(c.fetchone()[0])
 
 	# Continuously running radio packet recieve sequence.
-	async def _receiver(self, radio):
+	async def _transceiver(self, radio):
 		compact_collecting = False
 		messages_collected = []
 		parsed_messages = []
@@ -251,7 +251,7 @@ class RadioDaemon():
 		while True:
 			try:
 				station_state = self._get_station_state()
-				if(station_state == StationState.ONLINE):
+				if station_state == StationState.ONLINE:
 					for packet in radio.get_packets():
 						self.logger.info('Packet received:')
 						self.logger.info(packet)
@@ -290,13 +290,13 @@ class RadioDaemon():
 				self.logger.info(sys.exc_info())
 			# TODO: Save data...
 			# await call_API("http://httpbin.org/post", packet)
-			await asyncio.sleep(self.receive_sleep_sec)
+			await asyncio.sleep(self.transceive_sleep_sec)
 
 	# Starts up the main data capture loop.
 	def start_capturing(self, radio, loop):
 		self.logger.info('Radio settings: NODE = {0}, NETWORK = {1}'.format(RADIO_BASE_NODE_ID, NET))
 		self.logger.info('Listening...')
-		loop.run_until_complete(self._receiver(radio))
+		loop.run_until_complete(self._transceiver(radio))
 
 	# Stops the main loops.
 	def stop_capturing(self, loop):

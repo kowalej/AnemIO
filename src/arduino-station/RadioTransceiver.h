@@ -22,6 +22,7 @@
 class RadioTransceiver {
 	public:
 		bool setup();
+		String receive(int waitMillis = RADIO_RECEIVE_WAIT_MS);
 		bool sendMessageWithAutoWake(int command, const char* message, uint8_t retries = RADIO_RETRY_NUM);
 		bool sendMessage(int command, const char* message, uint8_t retries = RADIO_RETRY_NUM);
 		Pair<int, int> sendSamples(SampleSet& sampleSet);

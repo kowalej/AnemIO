@@ -332,8 +332,10 @@ void AnemioStation::loop() {
 
 		// Listen for command from "ground" station.
 		if (TIME_DELTA(_radioLastReceive) >= RADIO_RECEIVE_INTERVAL_MS) {
-
-
+			debugD("Radio receive start: %lu\n", millis());
+			_radioTransceiver.receive(RADIO_RECEIVE_WAIT_MS);
+			_radioLastTransmit = millis();
+			debugD("Radio receive end: %lu\n", _radioLastTransmit);
 		}
 
 		// Loop sleep.

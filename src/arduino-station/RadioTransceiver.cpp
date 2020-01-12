@@ -42,6 +42,25 @@ void RadioTransceiver::wake() {
 	_radio.receiveDone(); // This function will wake the device.
 }
 
+String RadioTransceiver::receive(int wait) {
+	wake();
+	char message[61];
+	unsigned long startTime = millis();
+	while(millis() - startTime < wait)
+	{
+		if (_radio.receiveDone()) {
+			for (byte i = 0; i < _radio.DATALEN; i++) {
+				message[i] = (char)_radio.DATA[i];
+			}
+			sleep();
+			return message;
+		}
+		delay(10);
+	}
+	sleep();
+	return "";
+}
+
 bool RadioTransceiver::sendMessageWithAutoWake(int command, const char* message, uint8_t retries) {
 	wake();
 	bool sent = sendMessage(command, message, retries);
@@ -68,7 +87,7 @@ inline double calcroudtripAverage(double current, double newVal) {
 // Sends a single sample.
 bool RadioTransceiver::sendSample(unsigned long timestamp, const char* serializedValue, unsigned long baseTimestamp) {
 	char formatBuff[RADIO_MAX_MESSAGE_LENGTH];
-	// [<command><time>,<value>.
+	// [<command><time>],<value>.
 	snprintf(formatBuff, sizeof(formatBuff), "[%d]%lu,%s", RadioCommands::SAMPLE_WRITE, getRelativeTimestamp(timestamp, baseTimestamp), serializedValue);
 	bool sent = _radio.sendWithRetry(RADIO_BASE_NODE_ID, formatBuff, strlen(formatBuff), RADIO_RETRY_NUM, RADIO_RETRY_WAIT_MS);
 	return sent;

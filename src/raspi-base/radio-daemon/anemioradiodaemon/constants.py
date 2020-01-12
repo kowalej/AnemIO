@@ -6,8 +6,8 @@ DEFAULT_DB_NAME = 'anemio.db'
 # Average time it takes to receive data after it was sent by station.
 DEFAULT_RADIO_DELAY_MS = 20 
 
-# Sleep time will be 50 ms (try get new set of packets every 50 ms).
-DEFAULT_RECEIVE_SLEEP_SEC = 50.0/1000.0
+# Sleep time will be 50 ms (try to send command or get new set of packets every 50 ms).
+DEFAULT_TRANSRECEIVE_SLEEP_SEC = 50.0/1000.0
 
 RADIO_STATION_NODE_ID = 97 # Station node number.
 RADIO_BASE_NODE_ID = 87 # Base station node number.
