@@ -27,12 +27,12 @@
 #include <RingBufHelpers.h>
 #include "Coord.h"
 #include "RadioTransceiver.h"
-#include "ArduinoLowPower.h"
+#include "Sleep_n0m1.h"
 
 class AnemioStation {
     public:
         AnemioStation();
-        void setup();
+        void setup(bool initialLaunch = true);
 	    void loop();
 		
 		// Sets up devices and reports number that are offline (i.e. couldn't be setup).
@@ -66,6 +66,8 @@ class AnemioStation {
 		bool checkDeviceOnline_(Devices device);
 
 		char formatBuff[RADIO_MAX_MESSAGE_LENGTH];
+
+		Sleep sleep;
 };
 
 #endif

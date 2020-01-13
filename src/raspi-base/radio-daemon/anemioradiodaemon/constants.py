@@ -30,6 +30,9 @@ EMAIL_RATE_BURST = os.getenv('ANEMIO_EMAIL_RATE_BURST', '')
 COMPACT_MESSAGES_START = "^^"
 COMPACT_MESSAGES_END = "$$"
 
+# Maximum allowed time to receive no radio messages, until reporting that we are in unreachable state.
+MAX_NO_RECEIVE_SECONDS = 60
+
 class Devices(Enum):
     AMBIENT_LIGHT = 0
     COMPASS_ACCELEROMETER = 1
@@ -41,18 +44,22 @@ class Devices(Enum):
     WIND_SPEED = 7
     TOTAL = 8
 
-class Sensors(Enum):
-    AMBIENT_LIGHT = 0
-    COMPASS = 1
-    ACCELEROMETER = 2
-    PRESSURE = 3
-    RAIN = 4
-    TEMPERATURE = 5
-    HUMIDITY = 6
-    WATER_TEMPERATURE = 7
-    WIND_DIRECTION = 8
-    WIND_SPEED = 9
-    TOTAL = 10
+class SensorCategory(Enum):
+    AMBIENT_LIGHT_VALUES = 0,
+    AMBIENT_LIGHT_STATE = 1,
+    COMPASS_XYZ = 2,
+    COMPASS_HEADING = 3,
+    ACCELEROMETER_XYZ = 4,
+    PRESSURE_PRESSURE = 5,
+    PRESSURE_TEMPERATURE = 6,
+    PRESSURE_ALTITUDE = 7,
+    RAIN_VALUES = 8,
+    RAIN_STATE = 9,
+    TEMPERATURE = 10,
+    HUMIDITY = 11,
+    WATER_TEMPERATURE = 12,
+    WIND_DIRECTION = 13,
+    WIND_SPEED = 14
 
 class RadioCommands(Enum):
     SETUP_START = 1
@@ -68,11 +75,12 @@ class RadioCommands(Enum):
     RESTART = 11
 
 class StationState(Enum):
-    BOOTING = 1  # Station is booting up.
+    SETTING_UP = 1  # Station is setting up (initial launch or waking from sleep mode).
     ONLINE = 2  # Normal operation.
     PENDING_RESTART = 3  # Restart requested, awaiting completion, will transition to online.
     PENDING_SLEEP = 4  # Sleep mode requested, awaiting completion, will transition to sleeping.
     SLEEPING = 5  # Save power - station will check for command once and awhile.
     PENDING_WAKE = 6  # Wake requested, awaiting completion, will transition to online.
     UNREACHABLE = 7 # No signal has been recieved for awhile.
-    OFFLINE = 78  # Station is off - intentionally in transit or otherwise.
+    OFFLINE = 8  # Station is off - intentionally in transit or otherwise.
+    

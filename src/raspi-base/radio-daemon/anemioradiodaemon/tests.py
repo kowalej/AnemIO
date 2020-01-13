@@ -44,10 +44,10 @@ class TestAnemioRadioDaemon(unittest.TestCase):
         # Get our database.
         self.db_conn = connect_db(logger=logger, db_name='anemio-test.db')
 
-    def run_daemon(self, packet_gen):
+    def run_daemon(self, packet_gen = None, send_return = True):
         radio = TestingRadio(FREQ_915MHZ, 1, 1)
         radio.get_packets = MagicMock(side_effect=packet_gen)
-
+        radio.send = MagicMock(return_value=send_return)
         radio_daemon = RadioDaemon(self.db_conn, radio, receive_sleep_sec = 0.5)
         radio_daemon.run()
 
@@ -80,11 +80,11 @@ class TestAnemioRadioDaemon(unittest.TestCase):
             self.assertEqual(station_location[3], 0)
 
         # Check that current station_state is online, and previous state was booting.
-        c.execute('SELECT * FROM station_state ORDER BY timestamp DESC, ROWID DESC LIMIT 2')
+        c.execute('SELECT timestamp, state FROM station_state ORDER BY timestamp DESC, ROWID DESC LIMIT 2')
         station_state = c.fetchall()
         self.assertGreaterEqual(station_state[0][0], self.start_timestamp)
         self.assertLessEqual(station_state[0][0], self.end_timestamp)
-        self.assertEqual(station_state[1][1], StationState.BOOTING.value)
+        self.assertEqual(station_state[1][1], StationState.SETTING_UP.value)
         self.assertEqual(station_state[0][1], StationState.ONLINE.value)
 
         # Check the various device states.
@@ -95,6 +95,20 @@ class TestAnemioRadioDaemon(unittest.TestCase):
         self.assertEqual(eval(device_state[1]), [0])
         self.assertEqual(eval(device_state[2]), [1])
         self.assertEqual(device_state[3], 1)
+
+    # def test_station_restart(self):
+    #     c = self.db_conn.cursor()
+
+    #     # Write to DB to request restart.
+    #     c.execute(
+    #         'INSERT INTO station_state(timestamp, state) VALUES(?,?)', 
+    #         (get_ts(datetime.datetime.utcnow()), StationState.PENDING_RESTART.value)
+    #     )
+    #     self.db_conn.commit()
+
+    #     self.start_timestamp = get_ts(datetime.datetime.utcnow(), DEFAULT_RADIO_DELAY_MS)
+    #     self.run_daemon(send_return=True)
+    #     self.end_timestamp = get_ts(datetime.datetime.utcnow())
 
     def tearDown(self):
         self.db_conn.close()

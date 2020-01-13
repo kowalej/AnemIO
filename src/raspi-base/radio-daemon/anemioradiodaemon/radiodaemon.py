@@ -48,8 +48,23 @@ class RadioDaemon():
 		# Radio object.
 		self.radio = radio
 
+		# Last radio message received timestamp.
+		self.radio_last_receive:datetime = None
+
 		# Online / offline device statuses.
 		self.device_statuses = {}
+
+		# Timestamp for tracking sample set.
+		self.samples_start_timestamp = 0  # Real time.
+		self.samples_start_station_timestamp = 0  # Millis() on station.
+		# Current sample group values.
+		self.current_sample_group_db_table = ''
+		self.current_sample_group_format = ''
+		self.current_sample_group_db_format = ''
+		self.current_sample_group_db_value_specifier = ''
+		self.current_sample_group_expected_count = 0
+		self.current_sample_group_sample_count = 0
+		self.current_sample_group_base_time_offset = 0
 
 		# Average time it takes to receive data after it was sent by station.
 		self.average_radio_delay_ms = kwargs.get('average_radio_delay_ms', DEFAULT_RADIO_DELAY_MS)
@@ -92,14 +107,14 @@ class RadioDaemon():
 
 			# Create compass heading table.
 			c.execute('''CREATE TABLE IF NOT EXISTS compass_heading
-						(timestamp INTEGER, heading INTEGER)''')
+						(timestamp INTEGER, value INTEGER)''')
 
 			# Create accelerometer XYZ table.
 			c.execute('''CREATE TABLE IF NOT EXISTS accelerometer_xyz
 						(timestamp INTEGER, x REAL, y REAL, z REAL)''')
 
 			# Create pressure values table.
-			c.execute('''CREATE TABLE IF NOT EXISTS pressure_values
+			c.execute('''CREATE TABLE IF NOT EXISTS pressure_pressure
 						(timestamp INTEGER, value REAL)''')
 
 			# Create pressure temperature table.
@@ -136,7 +151,7 @@ class RadioDaemon():
 
 			# Create wind speed table.
 			c.execute('''CREATE TABLE IF NOT EXISTS wind_speed
-						(timestamp INTEGER, value REAL, temperature REAL)''')
+						(timestamp INTEGER, value REAL, tc REAL)''')
 
 			# Save changes.
 			self.db_conn.commit()
@@ -174,6 +189,23 @@ class RadioDaemon():
 
 	# Apply logic to parsed messages (save to DB, push data, etc).
 	def _handle_messages(self, parsed_messages):
+		def log_bad_command_format(command, contents):
+			self.logger.error('Bad command message format when executing %s command. Contents: %s.', str(command), contents)
+
+		def refine_average_radio_delay(roundtrip_average):
+			# Ignore large outliers.
+			if not (roundtrip_average > (self.average_radio_delay_ms * 3)):
+				self.average_radio_delay_ms = int((self.average_radio_delay_ms + roundtrip_average) / 2)
+
+		def end_sample_group():
+			if(self.current_sample_group_sample_count != self.current_sample_group_expected_count):
+				self.logger.error(
+					'Expected samples in group: (%d) did not match actual samples in group: %d.',
+					self.current_sample_group_expected_count,
+					self.current_sample_group_sample_count
+				)
+			self.logger.info('Done processing sample group: %s.', str(self.current_sample_group))
+
 		with closing(self.db_conn.cursor()) as c:
 			for message in parsed_messages:
 				command = message['radio_command']
@@ -184,17 +216,21 @@ class RadioDaemon():
 					# Station is in booting state.
 					c.execute(
 						'INSERT INTO station_state(timestamp, state) VALUES (?,?)',
-						(timestamp, StationState.BOOTING.value)
+						(timestamp, StationState.SETTING_UP.value)
 					)
+					self.device_statuses.clear()
+				
 				elif command == RadioCommands.REPORT_SETUP_STATE:
 					m = re.match('D:([0-9]+)O:([0,1]+)', contents)
 					if m is not None:
 						self.device_statuses[int(m.group(1))] = True if int(m.group(2)) == 1 else False
+						self.logger.info('Device statuses:')
 						self.logger.info(self.device_statuses)
 					else:
-						pass
-						# TODO: log bad formatted message.
+						log_bad_command_format(command, content)
+				
 				elif command == RadioCommands.SETUP_FINISH:
+					# Parse device statuses to separate online from offline.
 					online_devices = []
 					offline_devices = []
 					for key, value in self.device_statuses.items():
@@ -211,36 +247,113 @@ class RadioDaemon():
 
 					m = re.match('O:([0-9]+)F:([0-9])', contents)
 					if m is not None:
-						if int(m.group(1)) != len(online_devices):
-							_log
-							# TODO: log total online does not match reported total
-						if int(m.group(2)) != len(offline_devices):
-							pass
-							# TODO: log total offline does nt match total reported
+						# Sanity checks.
+						actual_num_online = int(m.group(1))
+						captured_num_online = len(online_devices)
+						if actual_num_online != captured_num_online:
+							self.logger.error('Total online devices (%d) does not match total from previous messages (%d).', actual_num_online, captured_num_online)
+						actual_num_offline = int(m.group(2))
+						captured_num_offline = len(offline_devices)
+						if actual_num_offline != captured_num_offline:
+							self.logger.error('Total offline devices (%d) does not match total from previous messages (%d).', actual_num_offline, captured_num_offline)
 
 						# Station is now online.
 						c.execute(
 							'INSERT INTO station_state(timestamp, state) VALUES (?,?)', 
 							(timestamp, StationState.ONLINE.value)
 						)
-						self.device_statuses.clear()
 					else:
-						pass
-						# TODO: log bad formatted message.
+						log_bad_command_format(command, content)
+				
+				elif command == RadioCommands.REPORT_ONLINE_STATE:
+					m = re.match('D:([0-9]+)O:([0,1]+)', contents)
+					if m is not None:
+						self.device_statuses[int(m.group(1))] = True if int(m.group(2)) == 1 else False
+						self.logger.info('Device statuses:')
+						self.logger.info(self.device_statuses)
+						
+						# Parse device statuses to separate online from offline.
+						online_devices = []
+						offline_devices = []
+						for key, value in self.device_statuses.items():
+							if(value == True):
+								online_devices.append(key)
+							else:
+								offline_devices.append(key)
 
-				# elif command == RadioCommands.REPORT_ONLINE_STATE:
-				# elif command == RadioCommands.SAMPLES_START:
-				# elif command == RadioCommands.SAMPLE_GROUP_DIVIDER:
-				# elif command == RadioCommands.SAMPLE_WRITE:
-				# elif command == RadioCommands.SAMPLES_FINISH:
-			
+						# Record device statuses.
+						c.execute(
+							'INSERT INTO device_state(timestamp, online_devices, offline_devices, is_setup) VALUES (?,?,?,?)', 
+							(timestamp, repr(online_devices), repr(offline_devices), True)
+						)
+					else:
+						log_bad_command_format(command, content)
+				
+				elif command == RadioCommands.SAMPLES_START:
+					self.current_sample_group = None
+					self.samples_start_timestamp = timestamp
+					m = re.match('T:([0-9]+)', contents)
+					if m is not None:
+						self.samples_start_station_timestamp = int(m.group(1))
+					else:
+						log_bad_command_format(command, content)
+
+				elif command == RadioCommands.SAMPLE_GROUP_DIVIDER:
+					end_sample_group()
+					m = re.match('S:([0-9]+)F:([A-Z,]+)N:([0-9]+)B:([0-9]+)R:([0-9]+(?:\.[0-9]+)?)', contents)
+					if m is not None:
+						self.current_sample_group = RadioCommands(int(m.group(1)))
+						self.current_sample_group_db_table = str(current_sample_group).lower().strip()
+						self.current_sample_group_format = m.group(2)
+						self.current_sample_group_db_format = self.current_sample_group_format.lower().replace('t', 'timestamp').replace('v', 'value')
+						self.current_sample_group_db_value_specifier = ','.join(['?' for x in self.current_sample_group_format.split(',')])
+						self.current_sample_group_expected_count = int(m.group(3))
+						self.current_sample_group_sample_count = 0
+						self.current_sample_group_base_time_offset = int(m.groups(4))
+						refine_average_radio_delay(float(m.groups(5)))
+						self.logger.info('Processing sample group: %s.')
+				elif command == RadioCommands.SAMPLE_WRITE:
+					samples = contents.split('|')
+					self.current_sample_group_sample_count += len(samples)
+					for sample in samples:
+						values = sample.split(',')
+						try:
+							if(len(values) == len(self.current_sample_group_format.split(','))):
+								real_timestamp = self.samples_start_timestamp - self.current_sample_group_base_time_offset + int(values[0])
+								c.execute(
+									'INSERT INTO {}({}) VALUES ({})'.format(
+										self.current_sample_group_db_table,
+										self.current_sample_group_db_format,
+										self.current_sample_group_db_value_specifier
+									),
+									(real_timestamp) + tuple(values[1:])
+								)
+								self.logger.info('Pushed sample %s to db table: %s.', sample, self.current_sample_group_db_table)
+							else:
+								self.logger.error('Bad sample: %s, does not match length for expected sample format: %s.', sample, self.current_sample_group_format)
+						except Exception:
+							e = sys.exc_info()
+							self.logger.error('Bad sample: %s, exception thrown during parsing: %s.', sample, e.msg)
+				elif command == RadioCommands.SAMPLES_FINISH:
+					end_sample_group()
 			# Save changes.
 			self.db_conn.commit()
 
 	def _get_station_state(self):
 		with closing(self.db_conn.cursor()) as c:
-			c.execute('SELECT state FROM device_state ORDER BY timestamp DESC, ROWID DESC LIMIT 1')
-			return StationState(c.fetchone()[0])
+			c.execute('SELECT state FROM station_state ORDER BY timestamp DESC, ROWID DESC LIMIT 1')
+			r = c.fetchall()
+			if len(r) < 1:
+				return StationState.UNREACHABLE
+			return StationState(r[0][0])
+		
+	def _set_station_state(self, timestamp, state):
+		with closing(self.db_conn.cursor()) as c:
+			c.execute(
+				'INSERT INTO station_state(timestamp, state) VALUES (?,?)',
+				(timestamp, state.value)
+			)
+			self.db_conn.commit()
 
 	# Continuously running radio packet recieve sequence.
 	async def _transceiver(self, radio):
@@ -251,8 +364,24 @@ class RadioDaemon():
 		while True:
 			try:
 				station_state = self._get_station_state()
-				if station_state == StationState.ONLINE:
+				if station_state in [StationState.ONLINE, StationState.SETTING_UP, StationState.UNREACHABLE]:
+					if station_state != StationState.UNREACHABLE and self.radio_last_receive != None:
+						# Check for no signal timeout.
+						msg_delta = (datetime.datetime.utcnow() - self.radio_last_receive)
+						if msg_delta.total_seconds() > MAX_NO_RECEIVE_SECONDS:
+							self.logger.critical(
+								'Station has become unreachable. Last message received at: %s. Current datetime: %s.',
+								self.radio_last_receive,
+								datetime.datetime.utcnow()
+							)
+							self._set_station_state(get_ts(datetime.datetime.utcnow()), StationState.UNREACHABLE)
 					for packet in radio.get_packets():
+						self.radio_last_receive = packet.received
+
+						# Back online baby.
+						if station_state == StationState.UNREACHABLE:
+							self._set_station_state(get_ts(packet.received, self.average_radio_delay_ms), StationState.PENDING_WAKE)
+
 						self.logger.info('Packet received:')
 						self.logger.info(packet)
 						message = ''.join([chr(letter) for letter in packet.data])
@@ -276,20 +405,26 @@ class RadioDaemon():
 				elif station_state == StationState.PENDING_RESTART:
 					self.logger.info('Sending restart request to station.')
 					success = radio.send(RADIO_STATION_NODE_ID, str(RadioCommands.RESTART.value))
-					self.logger.info('Restart request .'.format('successful' if success else 'unsuccessful'))
+					self.logger.info('Restart request %s.', 'successful' if success else 'unsuccessful')
+					if success:
+						self._set_station_state(get_ts(datetime.datetime.utcnow()), StationState.ONLINE)
 				elif station_state == StationState.PENDING_SLEEP:
 					self.logger.info('Sending sleep request to station.')
 					success = radio.send(RADIO_STATION_NODE_ID, str(RadioCommands.SLEEP.value))
-					self.logger.info('Sleep request .'.format('successful' if success else 'unsuccessful'))
+					self.logger.info('Sleep request %s.', 'successful' if success else 'unsuccessful')
+					if success:					
+						self._set_station_state(get_ts(datetime.datetime.utcnow()), StationState.SLEEPING)
 				elif station_state == StationState.PENDING_WAKE:
 					self.logger.info('Sending wake request to station.')
 					success = radio.send(RADIO_STATION_NODE_ID, str(RadioCommands.WAKE.value))
-					self.logger.info('Wake request .'.format('successful' if success else 'unsuccessful'))
+					self.logger.info('Wake request %s.', 'successful, setup should now begin' if success else 'unsuccessful')
+					if success:
+						self._set_station_state(get_ts(datetime.datetime.utcnow()), StationState.ONLINE)
 			except Exception as e:
 				self.logger.info('An error occured...')
 				self.logger.info(sys.exc_info())
-			# TODO: Save data...
-			# await call_API("http://httpbin.org/post", packet)
+
+			# Loop sleep.
 			await asyncio.sleep(self.transceive_sleep_sec)
 
 	# Starts up the main data capture loop.

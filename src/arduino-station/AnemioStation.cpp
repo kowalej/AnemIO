@@ -9,21 +9,23 @@ AnemioStation::AnemioStation() {
 	_radioLastTransmit = 0;
 }
 
-void AnemioStation::setup() {
-	// Setup radio - if we cannot setup succesfully, we will retry a few times, and if we're still not setup, we will restart the Arduino.
-	bool radioSetup = false;
-	for (int i = 0; i < 3; i++) {
-		radioSetup = _radioTransceiver.setup();
-		if (radioSetup) {
-			break;
+void AnemioStation::setup(bool initialLaunch) {
+	if (initialLaunch) {
+		// Setup radio - if we cannot setup succesfully, we will retry a few times, and if we're still not setup, we will restart the Arduino.
+		bool radioSetup = false;
+		for (int i = 0; i < 3; i++) {
+			radioSetup = _radioTransceiver.setup();
+			if (radioSetup) {
+				break;
+			}
 		}
-	}
-	if (!radioSetup) {
-		soft_restart();
-	}
+		if (!radioSetup) {
+			soft_restart();
+		}
 
-	// Startup i2c interface.
-	Wire.begin();
+		// Startup i2c interface.
+		Wire.begin();
+	}
 
 	// Start using radio for a bit (wake up).
 	_radioTransceiver.wake();
@@ -43,43 +45,43 @@ void AnemioStation::setup() {
 
 bool AnemioStation::checkDeviceOnline_(Devices device) {
 	switch (device) {
-		case Devices::AMBIENT_LIGHT:
-			return _ambientLightProvider.isOnline();
-		case Devices::COMPASS_ACCELEROMETER:
-			return _compassAccelerometerProvider.isOnline();
-		case Devices::PRESSURE:
-			return _pressureProvider.isOnline();
-		case Devices::RAIN:
-			return _rainProvider.isOnline();
-		case Devices::TEMPERATURE_HUMIDITY:
-			return _temperatureHumidityProvider.isOnline();
-		case Devices::WATER_TEMPERATURE:
-			return _waterTemperatureProvider.isOnline();
-		case Devices::WIND_DIRECTION:
-			return _windDirectionProvider.isOnline();
-		case Devices::WIND_SPEED:
-			return _windSpeedProvider.isOnline();
+	case Devices::AMBIENT_LIGHT:
+		return _ambientLightProvider.isOnline();
+	case Devices::COMPASS_ACCELEROMETER:
+		return _compassAccelerometerProvider.isOnline();
+	case Devices::PRESSURE:
+		return _pressureProvider.isOnline();
+	case Devices::RAIN:
+		return _rainProvider.isOnline();
+	case Devices::TEMPERATURE_HUMIDITY:
+		return _temperatureHumidityProvider.isOnline();
+	case Devices::WATER_TEMPERATURE:
+		return _waterTemperatureProvider.isOnline();
+	case Devices::WIND_DIRECTION:
+		return _windDirectionProvider.isOnline();
+	case Devices::WIND_SPEED:
+		return _windSpeedProvider.isOnline();
 	}
 }
 
 bool AnemioStation::setupDevice_(Devices device) {
 	switch (device) {
-		case Devices::AMBIENT_LIGHT:
-			return _ambientLightProvider.setup();
-		case Devices::COMPASS_ACCELEROMETER:
-			return _compassAccelerometerProvider.setup();
-		case Devices::PRESSURE:
-			return _pressureProvider.setup();
-		case Devices::RAIN:
-			return _rainProvider.setup();
-		case Devices::TEMPERATURE_HUMIDITY:
-			return _temperatureHumidityProvider.setup();
-		case Devices::WATER_TEMPERATURE:
-			return _waterTemperatureProvider.setup();
-		case Devices::WIND_DIRECTION:
-			return _windDirectionProvider.setup();
-		case Devices::WIND_SPEED:
-			return _windSpeedProvider.setup();
+	case Devices::AMBIENT_LIGHT:
+		return _ambientLightProvider.setup();
+	case Devices::COMPASS_ACCELEROMETER:
+		return _compassAccelerometerProvider.setup();
+	case Devices::PRESSURE:
+		return _pressureProvider.setup();
+	case Devices::RAIN:
+		return _rainProvider.setup();
+	case Devices::TEMPERATURE_HUMIDITY:
+		return _temperatureHumidityProvider.setup();
+	case Devices::WATER_TEMPERATURE:
+		return _waterTemperatureProvider.setup();
+	case Devices::WIND_DIRECTION:
+		return _windDirectionProvider.setup();
+	case Devices::WIND_SPEED:
+		return _windSpeedProvider.setup();
 	}
 }
 
@@ -112,7 +114,7 @@ int AnemioStation::setupProviders(int numberOfRetries) {
 				numberOffline += setup ? 0 : 1;
 			}
 		}
-		
+
 		retries += 1;
 	} while (numberOffline > 0 && retries < numberOfRetries);
 
@@ -133,15 +135,24 @@ void AnemioStation::healthCheck() {
 }
 
 void AnemioStation::loop() {
+	// Station is in "sleep" low power mode. This would be for night hour operation and is controlled by the ground station.
 	if (_sleeping)
 	{
-		#ifndef DEBUG_DISABLED
-		delay(5000);
-		#else
-		LowPower.deepSleep(5000);
-		#endif
+#ifndef DEBUG_DISABLED
+		delay(1000); // Let serial finish.
+#endif
+		sleep.pwrDownMode();
+		sleep.sleepDelay(SLEEP_MODE_SLEEP_TIME_MS);
+		// Need to setup the radio each time, since we went into deep sleep mode.
+		_radioTransceiver.setup();
+		String receivedValue = _radioTransceiver.receive(RADIO_SLEEP_MODE_RECEIVE_WAIT_MS);
+		if (receivedValue == "[" + String(RadioCommands::WAKE) + "]") {
+			setup(false);
+			_sleeping = false;
+		}
 	}
 
+	// Station is in normal operating mode, collecting and sending data regularily.
 	else {
 		// Check if each device is online.
 		healthCheck();
@@ -330,19 +341,24 @@ void AnemioStation::loop() {
 			debugD("Radio transmit end: %lu\n", _radioLastTransmit);
 		}
 
-		// Listen for command from "ground" station.
+		// Intermittently, listen for command from "ground" station.
 		if (TIME_DELTA(_radioLastReceive) >= RADIO_RECEIVE_INTERVAL_MS) {
 			debugD("Radio receive start: %lu\n", millis());
-			_radioTransceiver.receive(RADIO_RECEIVE_WAIT_MS);
-			_radioLastTransmit = millis();
+			String receivedValue = _radioTransceiver.receive(RADIO_RECEIVE_WAIT_MS);
+			// Put into sleep mode.
+			if (receivedValue == "[" + String(RadioCommands::SLEEP) + "]") _sleeping = true;
+			// Restart the device.
+			else if (receivedValue == "[" + String(RadioCommands::RESTART) + "]") soft_restart();
+			_radioLastReceive = millis();
 			debugD("Radio receive end: %lu\n", _radioLastTransmit);
 		}
 
 		// Loop sleep.
-		#ifndef DEBUG_DISABLED
-			delay(15);
-		#else
-			LowPower.sleep(15);
-		#endif
+#ifndef DEBUG_DISABLED
+		delay(15);
+#else
+		sleep.idleMode();
+		sleep.sleepDelay(15);
+#endif
 	}
 }

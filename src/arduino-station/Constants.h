@@ -16,7 +16,10 @@
 namespace {
 	const uint16_t RADIO_SEND_INTERVAL_MS = 5000; // Maximum time between transmitting consecutive sample sets over the radio.
 	const uint16_t RADIO_RECEIVE_INTERVAL_MS = 15000; // Maximum time between receiving commands over the radio.
-	const uint16_t RADIO_RECEIVE_WAIT_MS = 500; // Maximum time to wait for command from base station.
+	const uint16_t RADIO_RECEIVE_WAIT_MS = 500; // Default time to wait for command from base station.
+	const uint16_t RADIO_SLEEP_MODE_RECEIVE_WAIT_MS = 2000; // How long check for wake message before sleeping again.
+
+	const uint16_t SLEEP_MODE_SLEEP_TIME_MS = 15000; // How long to sleep before checking for message.
 
 	// Ambient light sensor.
 	const uint8_t AMBIENT_LIGHT_UPDATE_RATE_HZ = 1; // Update rate of light sensor.
@@ -105,19 +108,23 @@ namespace {
 		"WIND_SPEED"
 	};
 
-	namespace Sensors {
-		enum Sensors {
-			AMBIENT_LIGHT = 0,
-			COMPASS = 1,
-			ACCELEROMETER = 2,
-			PRESSURE = 3,
-			RAIN = 4,
-			TEMPERATURE = 5,
-			HUMIDITY = 6,
-			WATER_TEMPERATURE = 7,
-			WIND_DIRECTION = 8,
-			WIND_SPEED = 9,
-			TOTAL = 10
+	namespace SensorCategory {
+		enum SensorCategory {
+			AMBIENT_LIGHT_VALUES = 0,
+			AMBIENT_LIGHT_STATE = 1,
+			COMPASS_XYZ = 2,
+			COMPASS_HEADING = 3,
+			ACCELEROMETER_XYZ = 4,
+			PRESSURE_PRESSURE = 5,
+			PRESSURE_TEMPERATURE = 6,
+			PRESSURE_ALTITUDE = 7,
+			RAIN_VALUES = 8,
+			RAIN_STATE = 9,
+			TEMPERATURE = 10,
+			HUMIDITY = 11,
+			WATER_TEMPERATURE = 12,
+			WIND_DIRECTION = 13,
+			WIND_SPEED = 14
 		};
 	}
 
