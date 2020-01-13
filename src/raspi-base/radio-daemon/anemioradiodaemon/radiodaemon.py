@@ -371,8 +371,8 @@ class RadioDaemon():
 						if msg_delta.total_seconds() > MAX_NO_RECEIVE_SECONDS:
 							self.logger.critical(
 								'Station has become unreachable. Last message received at: %s. Current datetime: %s.',
-								self.radio_last_receive,
-								datetime.datetime.utcnow()
+								str(self.radio_last_receive),
+								str(datetime.datetime.utcnow())
 							)
 							self._set_station_state(get_ts(datetime.datetime.utcnow()), StationState.UNREACHABLE)
 					for packet in radio.get_packets():
@@ -380,7 +380,11 @@ class RadioDaemon():
 
 						# Back online baby.
 						if station_state == StationState.UNREACHABLE:
-							self._set_station_state(get_ts(packet.received, self.average_radio_delay_ms), StationState.PENDING_WAKE)
+							self.logger.critical(
+								'Station has come back online after being unreachable. Current datetime: %s.',
+								str(datetime.datetime.utcnow())
+							)
+							self._set_station_state(get_ts(packet.received, self.average_radio_delay_ms), StationState.ONLINE)
 
 						self.logger.info('Packet received:')
 						self.logger.info(packet)

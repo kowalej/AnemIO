@@ -31,7 +31,7 @@ COMPACT_MESSAGES_START = "^^"
 COMPACT_MESSAGES_END = "$$"
 
 # Maximum allowed time to receive no radio messages, until reporting that we are in unreachable state.
-MAX_NO_RECEIVE_SECONDS = 60
+MAX_NO_RECEIVE_SECONDS = 5
 
 class Devices(Enum):
     AMBIENT_LIGHT = 0
