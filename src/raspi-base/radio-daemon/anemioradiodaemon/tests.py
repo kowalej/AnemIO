@@ -6,6 +6,7 @@ import unittest
 from unittest.mock import MagicMock
 from logging.handlers import SMTPHandler
 from pathlib import Path
+from asyncio import CancelledError
 
 # Mock the dependent modules for RFM69.
 sys.modules['spidev'] = MagicMock()
@@ -34,7 +35,7 @@ def packet_gen(packets: list):
         packet = packets[packet_index]
         return [packet]
     except IndexError:
-        return []
+        raise CancelledError
 
 class TestAnemioRadioDaemon(unittest.TestCase):
     def setUp(self):

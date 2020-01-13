@@ -424,6 +424,9 @@ class RadioDaemon():
 					self.logger.info('Wake request %s.', 'successful, setup should now begin' if success else 'unsuccessful')
 					if success:
 						self._set_station_state(get_ts(datetime.datetime.utcnow()), StationState.ONLINE)
+			except asyncio.CancelledError:
+				print('Radio transceiving cancelled.')
+				raise
 			except Exception as e:
 				self.logger.info('An error occured...')
 				self.logger.info(sys.exc_info())
@@ -432,13 +435,13 @@ class RadioDaemon():
 			await asyncio.sleep(self.transceive_sleep_sec)
 
 	# Starts up the main data capture loop.
-	def start_capturing(self, radio, loop):
+	def _start_daemon(self, radio, loop):
 		self.logger.info('Radio settings: NODE = {0}, NETWORK = {1}'.format(RADIO_BASE_NODE_ID, NET))
 		self.logger.info('Listening...')
 		loop.run_until_complete(self._transceiver(radio))
 
 	# Stops the main loops.
-	def stop_capturing(self, loop):
+	def _stop_daemon(self, loop):
 		self.logger.info('Stopping radio listening...')
 		loop.stop()
 
@@ -497,18 +500,18 @@ class RadioDaemon():
 						verbose = False
 					) as radio:
 					self.logger.info('Done.')
-					self.start_capturing(radio, loop)
+					self._start_daemon(radio, loop)
 			else:
-				self.start_capturing(self.radio, loop)
+				self._start_daemon(self.radio, loop)
 
 		except KeyboardInterrupt: # If CTRL+C is pressed, exit cleanly:
 			self.logger.info('Keyboard interrupt.')
-			self.stop_capturing(loop)
+			self._stop_daemon(loop)
 
 		except Exception:
 			e = sys.exc_info()
 			self.logger.info('An error occured: {0}'.format(str(e)))
-			self.stop_capturing(loop)
+			self._stop_daemon(loop)
 
 		finally:
 			self.logger.info('Shutting down.')
