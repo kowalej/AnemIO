@@ -11,7 +11,7 @@ bool RadioTransceiver::setup() {
 
 	// Setup the radio.
 	bool radioInit = _radio.initialize(RADIO_FREQUENCY, RADIO_STATION_NODE_ID, RADIO_NETWORK_ID);
-	debugA("Radio initialized? %s", radioInit ? "true" : "false");
+	debugA("Radio initialized? %s.", radioInit ? "true" : "false");
 
 	// Set modes / calibrate.
 	_radio.setHighPower(); // Set to high power since we are using RFM69HCW.

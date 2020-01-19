@@ -50,6 +50,8 @@ namespace {
 	const uint8_t WIND_DIRECTION_SENSOR_CLK_PIN = 7; // Use a PWM "clock" pin.
 	const uint8_t WIND_DIRECTION_SENSOR_CS_PIN = 32; // Chip select (digital pin, out).
 	const uint8_t WIND_DIRECTION_SENSOR_DO_PIN = 33; // Data pin (in).
+	const uint8_t WIND_DIRECTION_ZERO_NUM_SAMPLES = 20; // Number of times to samples position while calibrating.
+	const uint8_t WIND_DIRECTION_ZERO_TIME_SECONDS = 5; // Time for user to hold wind sock in place while sampling.
 
 	// Wind speed sensor.
 	const uint8_t WIND_SPEED_UPDATE_RATE_HZ = 1; // Update rate of wind speed sensor.
@@ -84,6 +86,8 @@ namespace {
 	const int RADIO_MAX_MESSAGE_LENGTH = 61;
 	const char* COMPACT_MESSAGES_START = "^^";
 	const char* COMPACT_MESSAGES_END = "$$";
+	
+	const int EEPROM_WIND_DIRECTION_ZERO = 0;
 
 	enum Devices {
 		AMBIENT_LIGHT = 0,

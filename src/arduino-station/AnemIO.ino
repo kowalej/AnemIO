@@ -12,7 +12,7 @@
 
 // Disable SerialDebug debugger ? No more commands and features as functions and globals
 // Uncomment this to disable it
-#define DEBUG_DISABLE_DEBUGGER true
+#define DEBUG_DISABLE_DEBUGGER false
 
 // Disable auto function naming (good if your debug message already contains it)
 //#define DEBUG_AUTO_FUNC_DISABLED true
