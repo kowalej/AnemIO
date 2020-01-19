@@ -30,7 +30,8 @@ void AnemioStation::setup(bool initialLaunch) {
 	// Start using radio for a bit (wake up).
 	_radioTransceiver.wake();
 
-	_radioTransceiver.sendMessage(RadioCommands::SETUP_START, "Setup starting.");
+	snprintf(formatBuff, sizeof(formatBuff), "I:%d - Setup starting.", initialLaunch);
+	_radioTransceiver.sendMessage(RadioCommands::SETUP_START, formatBuff);
 
 	// Setup the providers (using 3 retries) and report status.
 	int numOffline = setupProviders(3);

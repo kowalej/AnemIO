@@ -72,6 +72,20 @@ class RadioDaemon():
 
 		self.logger = logger
 
+		# Get the db connection, if it was not passed in (i.e. testing).
+		self.close_db = False
+		if self.db_conn is None:
+			self.db_conn = connect_db(logger=self.logger)
+			self.close_db = True
+		
+		self._create_db_schema()
+
+		self._set_station_state(get_ts(datetime.datetime.utcnow()), StationState.UNKNOWN)
+
+	def __del__(self):
+		if self.close_db and self.db_conn is not None:
+			self.db_conn.close()
+
 	# Sets up the database schema, creating tables if needed.
 	def _create_db_schema(self):
 		with closing(self.db_conn.cursor()) as c:
@@ -213,15 +227,20 @@ class RadioDaemon():
 				timestamp = get_ts(message['received_timestamp'], self.average_radio_delay_ms)
 
 				if command == RadioCommands.SETUP_START:
-					# Station is in booting state.
-					c.execute(
-						'INSERT INTO station_state(timestamp, state) VALUES (?,?)',
-						(timestamp, StationState.SETTING_UP.value)
-					)
-					self.device_statuses.clear()
-				
+					m = re.match('I:([0,1])', contents)
+					if m is not None:
+						boot_type = StationState.SETUP_BOOT if int(m.group(1)) == 1 else StationState.SETUP_WAKE
+						# Station is in a booting state.
+						c.execute(
+							'INSERT INTO station_state(timestamp, state) VALUES (?,?)',
+							(timestamp, boot_type.value)
+						)
+						self.device_statuses.clear()
+					else:
+						log_bad_command_format(command, content)
+
 				elif command == RadioCommands.REPORT_SETUP_STATE:
-					m = re.match('D:([0-9]+)O:([0,1]+)', contents)
+					m = re.match('D:([0-9]+)O:([0,1])', contents)
 					if m is not None:
 						self.device_statuses[int(m.group(1))] = True if int(m.group(2)) == 1 else False
 						self.logger.info('Device statuses:')
@@ -266,7 +285,7 @@ class RadioDaemon():
 						log_bad_command_format(command, content)
 				
 				elif command == RadioCommands.REPORT_ONLINE_STATE:
-					m = re.match('D:([0-9]+)O:([0,1]+)', contents)
+					m = re.match('D:([0-9]+)O:([0,1])', contents)
 					if m is not None:
 						self.device_statuses[int(m.group(1))] = True if int(m.group(2)) == 1 else False
 						self.logger.info('Device statuses:')
@@ -312,6 +331,7 @@ class RadioDaemon():
 						self.current_sample_group_base_time_offset = int(m.groups(4))
 						refine_average_radio_delay(float(m.groups(5)))
 						self.logger.info('Processing sample group: %s.')
+
 				elif command == RadioCommands.SAMPLE_WRITE:
 					samples = contents.split('|')
 					self.current_sample_group_sample_count += len(samples)
@@ -334,8 +354,10 @@ class RadioDaemon():
 						except Exception:
 							e = sys.exc_info()
 							self.logger.error('Bad sample: %s, exception thrown during parsing: %s.', sample, e.msg)
+
 				elif command == RadioCommands.SAMPLES_FINISH:
 					end_sample_group()
+
 			# Save changes.
 			self.db_conn.commit()
 
@@ -364,22 +386,25 @@ class RadioDaemon():
 		while True:
 			try:
 				station_state = self._get_station_state()
-				if station_state in [StationState.ONLINE, StationState.SETTING_UP, StationState.UNREACHABLE]:
-					if station_state != StationState.UNREACHABLE and self.radio_last_receive != None:
+
+				# If we are in online, setting up, or unreachable state, we will check for packets.
+				if station_state in [StationState.UNKNOWN, StationState.ONLINE, StationState.SETUP_BOOT, StationState.SETUP_WAKE, StationState.RESTARTING, StationState.SLEEPING, StationState.UNREACHABLE]:
+					if station_state not in [StationState.UNREACHABLE, StationState.SLEEPING, StationState.UNKNOWN]:
 						# Check for no signal timeout.
-						msg_delta = (datetime.datetime.utcnow() - self.radio_last_receive)
-						if msg_delta.total_seconds() > MAX_NO_RECEIVE_SECONDS:
-							self.logger.critical(
-								'Station has become unreachable. Last message received at: %s. Current datetime: %s.',
-								str(self.radio_last_receive),
-								str(datetime.datetime.utcnow())
-							)
-							self._set_station_state(get_ts(datetime.datetime.utcnow()), StationState.UNREACHABLE)
+						if self.radio_last_receive is not None:
+							msg_delta = (datetime.datetime.utcnow() - self.radio_last_receive)
+							if msg_delta.total_seconds() > MAX_NO_RECEIVE_SECONDS:
+								self.logger.critical(
+									'Station has become unreachable. Last message received at: %s. Current datetime: %s.',
+									str(self.radio_last_receive),
+									str(datetime.datetime.utcnow())
+								)
+								self._set_station_state(get_ts(datetime.datetime.utcnow()), StationState.UNREACHABLE)
 					for packet in radio.get_packets():
 						self.radio_last_receive = packet.received
 
-						# Back online baby.
-						if station_state == StationState.UNREACHABLE:
+						# Back online baby (we received a packet after being unreachable, or sleeping, although unusual).
+						if station_state == StationState.UNREACHABLE or station_state == StationState.SLEEPING:
 							self.logger.critical(
 								'Station has come back online after being unreachable. Current datetime: %s.',
 								str(datetime.datetime.utcnow())
@@ -406,29 +431,37 @@ class RadioDaemon():
 							messages_collected.clear() # Make sure we clear messages now that we have parsed them.
 							if len(parsed_messages) > 0:
 								self._handle_messages(parsed_messages)
-				elif station_state == StationState.PENDING_RESTART:
+
+				# Requested restart, so we try to send the restart command to the station.
+				elif station_state == StationState.RESTART_REQUESTED:
 					self.logger.info('Sending restart request to station.')
 					success = radio.send(RADIO_STATION_NODE_ID, str(RadioCommands.RESTART.value))
 					self.logger.info('Restart request %s.', 'successful' if success else 'unsuccessful')
 					if success:
-						self._set_station_state(get_ts(datetime.datetime.utcnow()), StationState.ONLINE)
-				elif station_state == StationState.PENDING_SLEEP:
+						self._set_station_state(get_ts(datetime.datetime.utcnow()), StationState.RESTARTING)
+
+				# Requested sleep, so we try to send the sleep command to the station.
+				elif station_state == StationState.SLEEP_REQUESTED:
 					self.logger.info('Sending sleep request to station.')
 					success = radio.send(RADIO_STATION_NODE_ID, str(RadioCommands.SLEEP.value))
 					self.logger.info('Sleep request %s.', 'successful' if success else 'unsuccessful')
 					if success:					
 						self._set_station_state(get_ts(datetime.datetime.utcnow()), StationState.SLEEPING)
-				elif station_state == StationState.PENDING_WAKE:
+
+				# Requested wake, so we try to send the wake command to the station.
+				elif station_state == StationState.WAKE_REQUESTED:
 					self.logger.info('Sending wake request to station.')
 					success = radio.send(RADIO_STATION_NODE_ID, str(RadioCommands.WAKE.value))
 					self.logger.info('Wake request %s.', 'successful, setup should now begin' if success else 'unsuccessful')
 					if success:
 						self._set_station_state(get_ts(datetime.datetime.utcnow()), StationState.ONLINE)
+
 			except asyncio.CancelledError:
-				print('Radio transceiving cancelled.')
+				self.logger.info('Radio transceiving cancelled.')
 				raise
+
 			except Exception as e:
-				self.logger.info('An error occured...')
+				self.logger.info('Radio transceiving error.')
 				self.logger.info(sys.exc_info())
 
 			# Loop sleep.
@@ -474,14 +507,6 @@ class RadioDaemon():
 			# Get our async loop object.
 			loop = asyncio.get_event_loop()
 
-			# Get the db connection, if it was not passed in (i.e. testing).
-			close_db = False
-			if self.db_conn is None:
-				self.db_conn = connect_db(logger=self.logger)
-				close_db = True
-			
-			self._create_db_schema()
-
 			# Record station location estimate, based on our base station's IP address.
 			self.record_location()
 
@@ -511,11 +536,9 @@ class RadioDaemon():
 		except Exception:
 			e = sys.exc_info()
 			self.logger.info('An error occured: {0}'.format(str(e)))
-			self._stop_daemon(loop)
+			# self._stop_daemon(loop)
 
 		finally:
 			self.logger.info('Shutting down.')
-			if close_db and self.db_conn is not None:
-				self.db_conn.close()
-			if loop is not None:
-				loop.close()
+			#if loop is not None:
+			#	loop.close()

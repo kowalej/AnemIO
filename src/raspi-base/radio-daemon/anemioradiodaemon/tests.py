@@ -28,37 +28,43 @@ class TestingRadio(Radio):
         pass
 
 packet_index = -1
-def packet_gen(packets: list):
+def packet_gen(packets: [Packet]):
     global packet_index
     packet_index += 1
     try:
         packet = packets[packet_index]
+        packet.received = datetime.datetime.utcnow()
         return [packet]
     except IndexError:
         raise CancelledError
 
 class TestAnemioRadioDaemon(unittest.TestCase):
     def setUp(self):
+        global packet_index
+        packet_index = -1
         logging.basicConfig(level=logging.INFO, format='%(message)s')
         logger = logging.getLogger('anemio-test')
         logger.setLevel(logging.INFO)
         # Get our database.
         self.db_conn = connect_db(logger=logger, db_name='anemio-test.db')
 
-    def run_daemon(self, packet_gen = None, send_return = True):
+    def run_daemon(self, packet_gen = None, send_return = True, is_initial = True):
         radio = TestingRadio(FREQ_915MHZ, 1, 1)
         radio.get_packets = MagicMock(side_effect=packet_gen)
         radio.send = MagicMock(return_value=send_return)
-        radio_daemon = RadioDaemon(self.db_conn, radio, receive_sleep_sec = 0.5)
-        radio_daemon.run()
+        if is_initial:
+            self.radio_daemon = RadioDaemon(self.db_conn, radio, receive_sleep_sec = 0.5)
+        else:
+            self.radio_daemon.radio = radio
+        self.radio_daemon.run()
 
     def test_startup(self):
         # Send a series of startup packets.
         packets = [
-            Packet(1, 1, 1, list(bytearray(b'[1]T:13432 - Setup starting.'))),
+            Packet(1, 1, 1, list(bytearray(b'[1]I:1 - Setup starting.'))),
             Packet(1, 1, 1, list(bytearray(b'[2]D:0O:1 - AMBIENT_LIGHT setup was successful.'))),
             Packet(1, 1, 1, list(bytearray(b'[2]D:1O:0 - COMPASS_ACCELEROMETER setup was unsuccessful.'))),
-            Packet(1, 1, 1, list(bytearray(b'[3]O:1F:1 - setup complete with 0 devices offline.')))
+            Packet(1, 1, 1, list(bytearray(b'[3]O:1F:1 - setup complete with 1 devices offline.')))
         ]
 
         def packet_gen_local():
@@ -85,7 +91,7 @@ class TestAnemioRadioDaemon(unittest.TestCase):
         station_state = c.fetchall()
         self.assertGreaterEqual(station_state[0][0], self.start_timestamp)
         self.assertLessEqual(station_state[0][0], self.end_timestamp)
-        self.assertEqual(station_state[1][1], StationState.SETTING_UP.value)
+        self.assertEqual(station_state[1][1], StationState.SETUP_BOOT.value)
         self.assertEqual(station_state[0][1], StationState.ONLINE.value)
 
         # Check the various device states.
@@ -97,19 +103,95 @@ class TestAnemioRadioDaemon(unittest.TestCase):
         self.assertEqual(eval(device_state[2]), [1])
         self.assertEqual(device_state[3], 1)
 
-    # def test_station_restart(self):
-    #     c = self.db_conn.cursor()
+    def test_station_restart(self):
+        global packet_index
 
-    #     # Write to DB to request restart.
-    #     c.execute(
-    #         'INSERT INTO station_state(timestamp, state) VALUES(?,?)', 
-    #         (get_ts(datetime.datetime.utcnow()), StationState.PENDING_RESTART.value)
-    #     )
-    #     self.db_conn.commit()
+        c = self.db_conn.cursor()
+        
+        # Send a series of startup packets.
+        packets = [
+            Packet(1, 1, 1, list(bytearray(b'[1]I:1 - Setup starting.'))),
+            Packet(1, 1, 1, list(bytearray(b'[2]D:0O:1 - AMBIENT_LIGHT setup was successful.'))),
+            Packet(1, 1, 1, list(bytearray(b'[3]O:1F:0 - setup complete with 0 devices offline.')))
+        ]
+        def packet_gen_local():
+            return packet_gen(packets)
+        self.run_daemon(packet_gen=packet_gen_local)
 
-    #     self.start_timestamp = get_ts(datetime.datetime.utcnow(), DEFAULT_RADIO_DELAY_MS)
-    #     self.run_daemon(send_return=True)
-    #     self.end_timestamp = get_ts(datetime.datetime.utcnow())
+        # Write to DB to request restart.
+        c.execute(
+            'INSERT INTO station_state(timestamp, state) VALUES(?,?)', 
+            (get_ts(datetime.datetime.utcnow()), StationState.RESTART_REQUESTED.value)
+        )
+        self.db_conn.commit()
+
+        self.run_daemon(packet_gen=packet_gen_local, send_return=True, is_initial=False)
+
+        # Check if in restarting state.
+        c.execute('SELECT * FROM station_state ORDER BY timestamp DESC, ROWID DESC LIMIT 1')
+        station_state = c.fetchone()
+        self.assertEqual(station_state[1], StationState.RESTARTING.value)
+
+        packet_index = -1
+        self.run_daemon(packet_gen=packet_gen_local, is_initial=False)
+
+        # Check if in it restarted (setup / online states).
+        c.execute('SELECT * FROM station_state ORDER BY timestamp DESC, ROWID DESC LIMIT 2')
+        station_state = c.fetchall()
+        self.assertEqual(station_state[1][1], StationState.SETUP_BOOT.value)
+        self.assertEqual(station_state[0][1], StationState.ONLINE.value)
+
+    def test_sleep_wake(self):
+        global packet_index
+
+        c = self.db_conn.cursor()
+        
+        # Send a series of startup packets.
+        packets = [
+            Packet(1, 1, 1, list(bytearray(b'[1]I:1 - Setup starting.'))),
+            Packet(1, 1, 1, list(bytearray(b'[2]D:0O:1 - AMBIENT_LIGHT setup was successful.'))),
+            Packet(1, 1, 1, list(bytearray(b'[3]O:1F:0 - setup complete with 0 devices offline.')))
+        ]
+        def packet_gen_local():
+            return packet_gen(packets)
+        self.run_daemon(packet_gen=packet_gen_local)
+
+        # Write to DB to request sleep.
+        c.execute(
+            'INSERT INTO station_state(timestamp, state) VALUES(?,?)', 
+            (get_ts(datetime.datetime.utcnow()), StationState.SLEEP_REQUESTED.value)
+        )
+        self.db_conn.commit()
+
+        self.run_daemon(packet_gen=packet_gen_local, send_return=True, is_initial=False)
+
+        # Check if in restarting state.
+        c.execute('SELECT * FROM station_state ORDER BY timestamp DESC, ROWID DESC LIMIT 1')
+        station_state = c.fetchone()
+        self.assertEqual(station_state[1], StationState.SLEEPING.value)
+
+        # Write to DB to request wake.
+        c.execute(
+            'INSERT INTO station_state(timestamp, state) VALUES(?,?)', 
+            (get_ts(datetime.datetime.utcnow()), StationState.WAKE_REQUESTED.value)
+        )
+        self.db_conn.commit()
+
+        packet_index = -1
+        packets = [
+            Packet(1, 1, 1, list(bytearray(b'[1]I:0 - Setup starting.'))),
+            Packet(1, 1, 1, list(bytearray(b'[2]D:0O:1 - AMBIENT_LIGHT setup was successful.'))),
+            Packet(1, 1, 1, list(bytearray(b'[3]O:1F:0 - setup complete with 0 devices offline.')))
+        ]
+        def packet_gen_local():
+            return packet_gen(packets)
+        self.run_daemon(packet_gen=packet_gen_local, is_initial=False)
+
+        # Check if station awakened (setup / online states).
+        c.execute('SELECT * FROM station_state ORDER BY timestamp DESC, ROWID DESC LIMIT 2')
+        station_state = c.fetchall()
+        self.assertEqual(station_state[1][1], StationState.SETUP_WAKE.value)
+        self.assertEqual(station_state[0][1], StationState.ONLINE.value)
 
     def tearDown(self):
         self.db_conn.close()

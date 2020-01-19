@@ -75,12 +75,15 @@ class RadioCommands(Enum):
     RESTART = 11
 
 class StationState(Enum):
-    SETTING_UP = 1  # Station is setting up (initial launch or waking from sleep mode).
+    UNKNOWN = -1  # Damemon started, cannot determine state.
+    OFFLINE = 0  # Station is off - intentionally in transit or otherwise.
+    SETUP_BOOT = 1  # Station is setting up (initial launch).
     ONLINE = 2  # Normal operation.
-    PENDING_RESTART = 3  # Restart requested, awaiting completion, will transition to online.
-    PENDING_SLEEP = 4  # Sleep mode requested, awaiting completion, will transition to sleeping.
-    SLEEPING = 5  # Save power - station will check for command once and awhile.
-    PENDING_WAKE = 6  # Wake requested, awaiting completion, will transition to online.
-    UNREACHABLE = 7 # No signal has been recieved for awhile.
-    OFFLINE = 8  # Station is off - intentionally in transit or otherwise.
+    RESTART_REQUESTED = 3  # Restart requested, awaiting completion, will transition to RESTARTING, then SETUP_BOOT / ONLINE.
+    RESTARTING = 4  # Station acknowledged restart request, now we are awaiting it.
+    SLEEP_REQUESTED = 5  # Sleep mode requested, awaiting completion, will transition to sleeping.
+    SLEEPING = 6  # Save power - station will check for command once and awhile.
+    WAKE_REQUESTED = 7  # Wake requested, awaiting completion, will transition to online.
+    SETUP_WAKE = 8  # Station is setting up (from boot).
+    UNREACHABLE = 9 # No signal has been recieved for awhile.
     
