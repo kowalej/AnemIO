@@ -10,7 +10,7 @@ from anemioradiodaemon.radiodaemon import RadioDaemon
 
 # Load environment vars.
 from dotenv import load_dotenv
-env_path = Path('.') / '.test.env'
+env_path = Path('.') / '.prod.env'
 load_dotenv(env_path, verbose=True)
 from .constants import *
 

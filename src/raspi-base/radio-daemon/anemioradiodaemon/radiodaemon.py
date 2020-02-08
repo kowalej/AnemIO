@@ -226,6 +226,7 @@ class RadioDaemon():
 				contents = message['contents']
 				timestamp = get_ts(message['received_timestamp'], self.average_radio_delay_ms)
 
+				# Station is starting or returning from wake (devices will be initialized).
 				if command == RadioCommands.SETUP_START:
 					m = re.match('I:([0,1])', contents)
 					if m is not None:
@@ -239,6 +240,7 @@ class RadioDaemon():
 					else:
 						log_bad_command_format(command, content)
 
+				# Device has initialized (successfully or not).
 				elif command == RadioCommands.REPORT_SETUP_STATE:
 					m = re.match('D:([0-9]+)O:([0,1])', contents)
 					if m is not None:
@@ -248,6 +250,7 @@ class RadioDaemon():
 					else:
 						log_bad_command_format(command, content)
 				
+				# Setup has finished, all devices should be reported as setup successful or unsuccessful.
 				elif command == RadioCommands.SETUP_FINISH:
 					# Parse device statuses to separate online from offline.
 					online_devices = []
@@ -284,6 +287,7 @@ class RadioDaemon():
 					else:
 						log_bad_command_format(command, content)
 				
+				# Device randomly comes online or offline.
 				elif command == RadioCommands.REPORT_ONLINE_STATE:
 					m = re.match('D:([0-9]+)O:([0,1])', contents)
 					if m is not None:
@@ -308,6 +312,7 @@ class RadioDaemon():
 					else:
 						log_bad_command_format(command, content)
 				
+				# A series of samples has started.
 				elif command == RadioCommands.SAMPLES_START:
 					self.current_sample_group = None
 					self.samples_start_timestamp = timestamp
@@ -317,6 +322,7 @@ class RadioDaemon():
 					else:
 						log_bad_command_format(command, content)
 
+				# New group of samples (series of readings from a device or some metric).
 				elif command == RadioCommands.SAMPLE_GROUP_DIVIDER:
 					end_sample_group()
 					m = re.match('S:([0-9]+)F:([A-Z,]+)N:([0-9]+)B:([0-9]+)R:([0-9]+(?:\.[0-9]+)?)', contents)
@@ -332,6 +338,7 @@ class RadioDaemon():
 						refine_average_radio_delay(float(m.groups(5)))
 						self.logger.info('Processing sample group: %s.')
 
+				# Single sample from device.
 				elif command == RadioCommands.SAMPLE_WRITE:
 					samples = contents.split('|')
 					self.current_sample_group_sample_count += len(samples)
@@ -355,6 +362,7 @@ class RadioDaemon():
 							e = sys.exc_info()
 							self.logger.error('Bad sample: %s, exception thrown during parsing: %s.', sample, e.msg)
 
+				# End of a series of samples.
 				elif command == RadioCommands.SAMPLES_FINISH:
 					end_sample_group()
 

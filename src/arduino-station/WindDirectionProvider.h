@@ -25,14 +25,14 @@ class WindDirectionProvider : public IDataProvider {
 		int getHeading();
 		// This gets the heading corrected for the station's compass heading.
 		int getCorrectedHeading(int windHeading, int compassHeading);
-		// Calibrates where the zero position is. This should be where the tip of the wind sock points in line with the compass X axis.
-		void calibrateZero();
 	
 	private:
 		AS5040 _enc;
 		int _numConsecutiveFaults = 0;
 		int _zeroPosition;
 		void checkFaults();
+		// Calibrates where the zero position is. This should be where the tip of the wind sock points in line with the compass X axis.
+		void calibrateZero();
 };
 
 #endif

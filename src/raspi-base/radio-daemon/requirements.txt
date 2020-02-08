@@ -5,3 +5,4 @@ aiohttp
 cchardet
 aiodns
 geocoder
+dotenv
