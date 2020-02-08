@@ -114,7 +114,7 @@ class RadioDaemon():
 
 			# Create ambient light state table.
 			c.execute('''CREATE TABLE IF NOT EXISTS ambient_light_state
-						(timestamp INTEGER, state TEXT)''')
+						(timestamp INTEGER, value TEXT)''')
 
 			# Create compass XYZ table.
 			c.execute('''CREATE TABLE IF NOT EXISTS compass_xyz
@@ -146,7 +146,7 @@ class RadioDaemon():
 
 			# Create rain state table.
 			c.execute('''CREATE TABLE IF NOT EXISTS rain_state
-						(timestamp INTEGER, state TEXT)''')
+						(timestamp INTEGER, value TEXT)''')
 
 			# Create temperature table.
 			c.execute('''CREATE TABLE IF NOT EXISTS temperature
@@ -191,7 +191,7 @@ class RadioDaemon():
 		parsed = []
 		breaks = [m.span() for m in re.finditer('\[[0-9]+\]', data)]
 		if len(breaks) < 1:
-			logging.error('No control characters found in messages (cannot determine message type). Msg: %s'.format(data))
+			logging.error('No control characters found in messages (cannot determine message type). Msg: %s', data)
 			return None
 		for i in range(0, len(breaks)):
 			radio_command = data[breaks[i][0]:breaks[i][1]].replace('[','').replace(']','')
@@ -328,18 +328,18 @@ class RadioDaemon():
 				# New group of samples (series of readings from a device or some metric).
 				elif command == RadioCommands.SAMPLE_GROUP_DIVIDER:
 					end_sample_group()
-					m = re.match('^S:([0-9]+)F:([A-Z,]+)N:([0-9]+)B:([0-9]+)R:((?:-1)|(?:[0-9]+(?:\.[0-9]+)?))$', contents)
+					m = re.match('^S:([0-9]+)F:([A-Z,]+)N:([0-9]+)B:([0-9]+)R:((?:-1|[0-9]+)(?:\.[0-9]+)?)$', contents)
 					if m is not None:
-						self.current_sample_group = Devices(int(m.group(1)))
-						self.current_sample_group_db_table = str(self.current_sample_group).lower().strip()
+						self.current_sample_group = SensorCategory(int(m.group(1)))
+						self.current_sample_group_db_table = self.current_sample_group.name.lower()
 						self.current_sample_group_format = m.group(2)
-						self.current_sample_group_db_format = self.current_sample_group_format.lower().replace('t', 'timestamp').replace('v', 'value')
+						self.current_sample_group_db_format = self.current_sample_group_format.lower().replace('t,', 'timestamp,').replace('v', 'value')
 						self.current_sample_group_db_value_specifier = ','.join(['?' for x in self.current_sample_group_format.split(',')])
 						self.current_sample_group_expected_count = int(m.group(3))
 						self.current_sample_group_sample_count = 0
 						self.current_sample_group_base_time_offset = int(m.group(4))
 						refine_average_radio_delay(float(m.group(5)))
-						self.logger.info('Processing sample group: %s.')
+						self.logger.info('Processing sample group: %s.', self.current_sample_group)
 					else:
 						log_bad_command_format(command, contents)
 

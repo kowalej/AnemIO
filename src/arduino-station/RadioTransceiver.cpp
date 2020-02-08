@@ -392,7 +392,7 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 #pragma endregion
 
 	// Tell base station we are ending samples and how many messages were sent successfully out of total.
-	snprintf(formatBuff, sizeof(formatBuff), "[%d]S:%d/%dT:%luR:%s", RadioCommands::SAMPLES_FINISH, (numSuccess + 1), (numSent + 1), millis(), String(roudtripAverage));
+	snprintf(formatBuff, sizeof(formatBuff), "[%d]S:%d/%dT:%luR:%s", RadioCommands::SAMPLES_FINISH, (numSuccess + 1), (numSent + 1), millis(), String(roudtripAverage, 2).c_str());
 	sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage, true);
 
 	// Put radio back to sleep to save power.
