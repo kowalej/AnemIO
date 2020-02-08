@@ -58,6 +58,7 @@ class RadioDaemon():
 		self.samples_start_timestamp = 0  # Real time.
 		self.samples_start_station_timestamp = 0  # Millis() on station.
 		# Current sample group values.
+		self.current_sample_group = None
 		self.current_sample_group_db_table = ''
 		self.current_sample_group_format = ''
 		self.current_sample_group_db_format = ''
@@ -185,13 +186,13 @@ class RadioDaemon():
 				received_timestamp = message['received_timestamp']
 				timestamps_lookup.append({ 'start': data_part_start_index, 'end': data_part_end_index, 'received_timestamp': received_timestamp })
 		if len(data) < 1:
-			pass
-			# TODO: log messages are empty.
+			logging.error('Trying to parse empty message.')
+			return None
 		parsed = []
 		breaks = [m.span() for m in re.finditer('\[[0-9]+\]', data)]
 		if len(breaks) < 1:
-			# TODO: log no control characters found in messages (cannot determine message type).
-			pass
+			logging.error('No control characters found in messages (cannot determine message type). Msg: %s'.format(data))
+			return None
 		for i in range(0, len(breaks)):
 			radio_command = data[breaks[i][0]:breaks[i][1]].replace('[','').replace(']','')
 			end_index = breaks[i+1][0] if i < len(breaks) - 1 else len(data)
@@ -214,7 +215,7 @@ class RadioDaemon():
 		def end_sample_group():
 			if(self.current_sample_group_sample_count != self.current_sample_group_expected_count):
 				self.logger.error(
-					'Expected samples in group: (%d) did not match actual samples in group: %d.',
+					'Expected samples in group: %d did not match actual samples in group: %d.',
 					self.current_sample_group_expected_count,
 					self.current_sample_group_sample_count
 				)
@@ -238,7 +239,7 @@ class RadioDaemon():
 						)
 						self.device_statuses.clear()
 					else:
-						log_bad_command_format(command, content)
+						log_bad_command_format(command, contents)
 
 				# Device has initialized (successfully or not).
 				elif command == RadioCommands.REPORT_SETUP_STATE:
@@ -248,7 +249,7 @@ class RadioDaemon():
 						self.logger.info('Device statuses:')
 						self.logger.info(self.device_statuses)
 					else:
-						log_bad_command_format(command, content)
+						log_bad_command_format(command, contents)
 				
 				# Setup has finished, all devices should be reported as setup successful or unsuccessful.
 				elif command == RadioCommands.SETUP_FINISH:
@@ -285,7 +286,7 @@ class RadioDaemon():
 							(timestamp, StationState.ONLINE.value)
 						)
 					else:
-						log_bad_command_format(command, content)
+						log_bad_command_format(command, contents)
 				
 				# Device randomly comes online or offline.
 				elif command == RadioCommands.REPORT_ONLINE_STATE:
@@ -310,7 +311,7 @@ class RadioDaemon():
 							(timestamp, repr(online_devices), repr(offline_devices), True)
 						)
 					else:
-						log_bad_command_format(command, content)
+						log_bad_command_format(command, contents)
 				
 				# A series of samples has started.
 				elif command == RadioCommands.SAMPLES_START:
@@ -320,7 +321,7 @@ class RadioDaemon():
 					if m is not None:
 						self.samples_start_station_timestamp = int(m.group(1))
 					else:
-						log_bad_command_format(command, content)
+						log_bad_command_format(command, contents)
 
 				# New group of samples (series of readings from a device or some metric).
 				elif command == RadioCommands.SAMPLE_GROUP_DIVIDER:
@@ -328,7 +329,7 @@ class RadioDaemon():
 					m = re.match('S:([0-9]+)F:([A-Z,]+)N:([0-9]+)B:([0-9]+)R:([0-9]+(?:\.[0-9]+)?)', contents)
 					if m is not None:
 						self.current_sample_group = RadioCommands(int(m.group(1)))
-						self.current_sample_group_db_table = str(current_sample_group).lower().strip()
+						self.current_sample_group_db_table = str(self.current_sample_group).lower().strip()
 						self.current_sample_group_format = m.group(2)
 						self.current_sample_group_db_format = self.current_sample_group_format.lower().replace('t', 'timestamp').replace('v', 'value')
 						self.current_sample_group_db_value_specifier = ','.join(['?' for x in self.current_sample_group_format.split(',')])
@@ -337,6 +338,8 @@ class RadioDaemon():
 						self.current_sample_group_base_time_offset = int(m.groups(4))
 						refine_average_radio_delay(float(m.groups(5)))
 						self.logger.info('Processing sample group: %s.')
+					else:
+						log_bad_command_format(command, contents)
 
 				# Single sample from device.
 				elif command == RadioCommands.SAMPLE_WRITE:
@@ -353,14 +356,13 @@ class RadioDaemon():
 										self.current_sample_group_db_format,
 										self.current_sample_group_db_value_specifier
 									),
-									(real_timestamp) + tuple(values[1:])
+									(real_timestamp,) + tuple(values[1:])
 								)
 								self.logger.info('Pushed sample %s to db table: %s.', sample, self.current_sample_group_db_table)
 							else:
 								self.logger.error('Bad sample: %s, does not match length for expected sample format: %s.', sample, self.current_sample_group_format)
 						except Exception:
-							e = sys.exc_info()
-							self.logger.error('Bad sample: %s, exception thrown during parsing: %s.', sample, e.msg)
+							self.logger.error('Bad sample: %s, exception thrown during parsing: %s.', sample, contents, exc_info=1)
 
 				# End of a series of samples.
 				elif command == RadioCommands.SAMPLES_FINISH:
@@ -469,8 +471,7 @@ class RadioDaemon():
 				raise
 
 			except Exception as e:
-				self.logger.info('Radio transceiving error.')
-				self.logger.info(sys.exc_info())
+				self.logger.info('Radio transceiving error', exc_info=1)
 
 			# Loop sleep.
 			await asyncio.sleep(self.transceive_sleep_sec)
@@ -542,11 +543,10 @@ class RadioDaemon():
 			self._stop_daemon(loop)
 
 		except Exception:
-			e = sys.exc_info()
-			self.logger.info('An error occured: {0}'.format(str(e)))
-			# self._stop_daemon(loop)
+			self.logger.info('An error occured: {0}.', exc_info=1)
+			self._stop_daemon(loop)
 
 		finally:
 			self.logger.info('Shutting down.')
-			#if loop is not None:
-			#	loop.close()
+			if loop is not None:
+				loop.close()

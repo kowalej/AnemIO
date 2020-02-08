@@ -195,6 +195,8 @@ class TestAnemioRadioDaemon(unittest.TestCase):
 
     def tearDown(self):
         self.db_conn.close()
+        self.db_conn.
+        os.remove()
 
 if __name__ == '__main__':
     unittest.main()

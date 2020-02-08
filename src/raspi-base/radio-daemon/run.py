@@ -2,6 +2,8 @@
 
 import logging
 import os
+import argparse
+from pathlib import Path
 from logging.handlers import RotatingFileHandler, SMTPHandler
 
 from dotenv import load_dotenv
@@ -12,9 +14,14 @@ from anemioradiodaemon.radiodaemon import RadioDaemon
 from dotenv import load_dotenv
 env_path = Path('.') / '.prod.env'
 load_dotenv(env_path, verbose=True)
-from .constants import *
+from anemioradiodaemon.constants import *
 
 load_dotenv()
+
+# Setup arguments.
+parser = argparse.ArgumentParser("anemio-daemon")
+parser.add_argument("--show-output", dest='showOutput', help="Show the output in the terminal.", type=bool, default=False, required=False)
+args = parser.parse_args()
 
 if __name__ == '__main__':
     # Try to set OS high priority.
@@ -22,6 +29,11 @@ if __name__ == '__main__':
 		os.nice(1)
 	except:
 		pass
+
+	if args.showOutput:
+		logging.basicConfig(level=logging.INFO, format='%(message)s')
+		logger = logging.getLogger('anemio-test')
+		logger.setLevel(logging.INFO)
 
 	# Log info to file, limited to 5MB in size.
 	log_formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s')
