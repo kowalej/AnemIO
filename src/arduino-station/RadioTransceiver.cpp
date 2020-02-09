@@ -143,7 +143,7 @@ void sampleMessage(unsigned long timestamp, const char* serializedValues, unsign
 	sprintf(formatBuff, "%lu,%s%s", getRelativeTimestamp(timestamp, baseTimestamp), serializedValues, !last ? "|" : "");
 }
 
-void sampleGroupDividerMessage(SensorCategory::SensorCategory sensorCategory, const char* headerFormat, size_t numElements, unsigned long sampleBaseTimestamp, unsigned long samplesStartTime, char* formatBuff, double roudtripAverage) {
+void sampleGroupDividerMessage(Readings::Readings sensorCategory, const char* headerFormat, size_t numElements, unsigned long sampleBaseTimestamp, unsigned long samplesStartTime, char* formatBuff, double roudtripAverage) {
 	// S: Sensor reading category.
 	// F: Header format (labels).
 	// N: Number of elements in upcoming series of samples.
@@ -170,224 +170,260 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 	sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
 
 #pragma region Ambient Light Values.
-	// Start ambient light samples.
-	sampleBaseTimestamp = sampleSet.ambientLightSamples.peek(0)->first();
-	sampleGroupDividerMessage(SensorCategory::AMBIENT_LIGHT_VALUES, "T,V", sampleSet.ambientLightSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
-	sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+	if (!sampleSet.ambientLightSamples.isEmpty()) {
+		// Start ambient light samples.
+		sampleBaseTimestamp = sampleSet.ambientLightSamples.peek(0)->first();
+		sampleGroupDividerMessage(Readings::Readings::AMBIENT_LIGHT_VALUES, "T,V", sampleSet.ambientLightSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
+		sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
 
-	// Samples.
-	while (!sampleSet.ambientLightSamples.isEmpty()) {
-		Pair<unsigned long, float> sample;
-		sampleSet.ambientLightSamples.pull(&sample);
-		sampleMessage(sample.first(), String(sample.second(), 2).c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.ambientLightSamples.isEmpty());
-		sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+		// Samples.
+		while (!sampleSet.ambientLightSamples.isEmpty()) {
+			Pair<unsigned long, float> sample;
+			sampleSet.ambientLightSamples.pull(&sample);
+			sampleMessage(sample.first(), String(sample.second(), 2).c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.ambientLightSamples.isEmpty());
+			sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+		}
 	}
 #pragma endregion
 
 #pragma region Ambient Light State
-	// Start ambient light state samples.
-	sampleBaseTimestamp = sampleSet.ambientLightStateSample.first();
-	sampleGroupDividerMessage(SensorCategory::AMBIENT_LIGHT_STATE, "T,V", 1, sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
-	sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+	if (!sampleSet.ambientLightStateSamples.isEmpty()) {
+		// Start ambient light state samples.
+		sampleBaseTimestamp = sampleSet.ambientLightStateSamples.peek(0)->first();
+		sampleGroupDividerMessage(Readings::Readings::AMBIENT_LIGHT_STATE, "T,V", sampleSet.ambientLightStateSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
+		sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
 
-	// Samples.
-	sampleMessage(sampleSet.ambientLightStateSample.first(), sampleSet.ambientLightStateSample.second().c_str(), sampleBaseTimestamp, sampleBuff, true);
-	sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+		// Samples.
+		while (!sampleSet.ambientLightStateSamples.isEmpty()) {
+			Pair<unsigned long, String> sample;
+			sampleSet.ambientLightStateSamples.pull(&sample);
+			sampleMessage(sample.first(), sample.second().c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.ambientLightStateSamples.isEmpty());
+			sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+		}
+	}
 #pragma endregion
 
 #pragma region Compass XYZ.
-	///* Disabling compass XYZ, since data is sort of useless.
-	// Start compass XYZ samples.
-	sampleBaseTimestamp = sampleSet.compassXYZSamples.peek(0)->first();
-	sampleGroupDividerMessage(SensorCategory::COMPASS_XYZ, "T,X,Y,Z", sampleSet.compassXYZSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
-	sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+	if (!sampleSet.compassXYZSamples.isEmpty()) {
+		// Start compass XYZ samples.
+		sampleBaseTimestamp = sampleSet.compassXYZSamples.peek(0)->first();
+		sampleGroupDividerMessage(Readings::Readings::COMPASS_XYZ, "T,X,Y,Z", sampleSet.compassXYZSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
+		sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
 
-	// Samples.
-	while (!sampleSet.compassXYZSamples.isEmpty()) {
-		Pair<unsigned long, coord> sample;
-		sampleSet.compassXYZSamples.pull(&sample);
-		snprintf(formatBuff, sizeof(formatBuff), "%s,%s,%s", String(sample.second().x, 2).c_str(), String(sample.second().y, 2).c_str(), String(sample.second().z, 2).c_str());
-		sampleMessage(sample.first(), formatBuff, sampleBaseTimestamp, sampleBuff, sampleSet.compassXYZSamples.isEmpty());
-		sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+		// Samples.
+		while (!sampleSet.compassXYZSamples.isEmpty()) {
+			Pair<unsigned long, coord> sample;
+			sampleSet.compassXYZSamples.pull(&sample);
+			snprintf(formatBuff, sizeof(formatBuff), "%s,%s,%s", String(sample.second().x, 2).c_str(), String(sample.second().y, 2).c_str(), String(sample.second().z, 2).c_str());
+			sampleMessage(sample.first(), formatBuff, sampleBaseTimestamp, sampleBuff, sampleSet.compassXYZSamples.isEmpty());
+			sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+		}
 	}
-	//*/
 #pragma endregion
 
 #pragma region Compass Heading.
-// Start compass heading samples.
-	sampleBaseTimestamp = sampleSet.compassHeadingSamples.peek(0)->first();
-	sampleGroupDividerMessage(SensorCategory::COMPASS_HEADING, "T,V", sampleSet.compassHeadingSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
-	sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+	if (!sampleSet.compassHeadingSamples.isEmpty()) {
+		// Start compass heading samples.
+		sampleBaseTimestamp = sampleSet.compassHeadingSamples.peek(0)->first();
+		sampleGroupDividerMessage(Readings::Readings::COMPASS_HEADING, "T,V", sampleSet.compassHeadingSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
+		sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
 
-	// Samples.
-	while (!sampleSet.compassHeadingSamples.isEmpty()) {
-		Pair<unsigned long, int> sample;
-		sampleSet.compassHeadingSamples.pull(&sample);
-		sampleMessage(sample.first(), String(sample.second()).c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.compassHeadingSamples.isEmpty());
-		sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+		// Samples.
+		while (!sampleSet.compassHeadingSamples.isEmpty()) {
+			Pair<unsigned long, int> sample;
+			sampleSet.compassHeadingSamples.pull(&sample);
+			sampleMessage(sample.first(), String(sample.second()).c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.compassHeadingSamples.isEmpty());
+			sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+		}
 	}
 #pragma endregion
 
 #pragma region Accelerometer XYZ.
-	// Start accelerometer XYZ samples.
-	sampleBaseTimestamp = sampleSet.accelerometerXYZSamples.peek(0)->first();
-	sampleGroupDividerMessage(SensorCategory::ACCELEROMETER_XYZ, "T,X,Y,Z", sampleSet.accelerometerXYZSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
-	sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+	if (!sampleSet.accelerometerXYZSamples.isEmpty()) {
+		// Start accelerometer XYZ samples.
+		sampleBaseTimestamp = sampleSet.accelerometerXYZSamples.peek(0)->first();
+		sampleGroupDividerMessage(Readings::Readings::ACCELEROMETER_XYZ, "T,X,Y,Z", sampleSet.accelerometerXYZSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
+		sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
 
-	// Samples.
-	while (!sampleSet.accelerometerXYZSamples.isEmpty()) {
-		Pair<unsigned long, coord> sample;
-		sampleSet.accelerometerXYZSamples.pull(&sample);
-		snprintf(formatBuff, sizeof(formatBuff), "%s,%s,%s", String(sample.second().x, 2).c_str(), String(sample.second().y, 2).c_str(), String(sample.second().z, 2).c_str());
-		sampleMessage(sample.first(), formatBuff, sampleBaseTimestamp, sampleBuff, sampleSet.accelerometerXYZSamples.isEmpty());
-		sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+		// Samples.
+		while (!sampleSet.accelerometerXYZSamples.isEmpty()) {
+			Pair<unsigned long, coord> sample;
+			sampleSet.accelerometerXYZSamples.pull(&sample);
+			snprintf(formatBuff, sizeof(formatBuff), "%s,%s,%s", String(sample.second().x, 2).c_str(), String(sample.second().y, 2).c_str(), String(sample.second().z, 2).c_str());
+			sampleMessage(sample.first(), formatBuff, sampleBaseTimestamp, sampleBuff, sampleSet.accelerometerXYZSamples.isEmpty());
+			sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+		}
 	}
 #pragma endregion
 
 #pragma region Pressure.
-	// Start pressure samples.
-	sampleBaseTimestamp = sampleSet.pressureSamples.peek(0)->first();
-	sampleGroupDividerMessage(SensorCategory::PRESSURE_PRESSURE, "T,V", sampleSet.pressureSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
-	sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+	if (!sampleSet.pressureSamples.isEmpty()) {
+		// Start pressure samples.
+		sampleBaseTimestamp = sampleSet.pressureSamples.peek(0)->first();
+		sampleGroupDividerMessage(Readings::Readings::PRESSURE_PRESSURE, "T,V", sampleSet.pressureSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
+		sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
 
-	// Samples.
-	while (!sampleSet.pressureSamples.isEmpty()) {
-		Pair<unsigned long, float> sample;
-		sampleSet.pressureSamples.pull(&sample);
-		sampleMessage(sample.first(), String(sample.second(), 2).c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.pressureSamples.isEmpty());
-		sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+		// Samples.
+		while (!sampleSet.pressureSamples.isEmpty()) {
+			Pair<unsigned long, float> sample;
+			sampleSet.pressureSamples.pull(&sample);
+			sampleMessage(sample.first(), String(sample.second(), 2).c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.pressureSamples.isEmpty());
+			sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+		}
 	}
 #pragma endregion
 
 #pragma region Pressure sensor temperature.
-	// Start pressure sensor temperature samples.
-	sampleBaseTimestamp = sampleSet.pressureTemperatureSamples.peek(0)->first();
-	sampleGroupDividerMessage(SensorCategory::PRESSURE_TEMPERATURE, "T,V", sampleSet.pressureTemperatureSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
-	sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+	if (!sampleSet.pressureTemperatureSamples.isEmpty()) {
+		// Start pressure sensor temperature samples.
+		sampleBaseTimestamp = sampleSet.pressureTemperatureSamples.peek(0)->first();
+		sampleGroupDividerMessage(Readings::Readings::PRESSURE_TEMPERATURE, "T,V", sampleSet.pressureTemperatureSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
+		sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
 
-	// Samples.
-	while (!sampleSet.pressureTemperatureSamples.isEmpty()) {
-		Pair<unsigned long, float> sample;
-		sampleSet.pressureTemperatureSamples.pull(&sample);
-		sampleMessage(sample.first(), String(sample.second(), 2).c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.pressureTemperatureSamples.isEmpty());
-		sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+		// Samples.
+		while (!sampleSet.pressureTemperatureSamples.isEmpty()) {
+			Pair<unsigned long, float> sample;
+			sampleSet.pressureTemperatureSamples.pull(&sample);
+			sampleMessage(sample.first(), String(sample.second(), 2).c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.pressureTemperatureSamples.isEmpty());
+			sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+		}
 	}
 #pragma endregion
 
 #pragma region Pressure altitude estimate.
-	// Start pressure altitude estimate samples.
-	sampleBaseTimestamp = sampleSet.pressureAltitudeSamples.peek(0)->first();
-	sampleGroupDividerMessage(SensorCategory::PRESSURE_ALTITUDE, "T,V", sampleSet.pressureAltitudeSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
-	sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+	if (!sampleSet.pressureAltitudeSamples.isEmpty()) {
+		// Start pressure altitude estimate samples.
+		sampleBaseTimestamp = sampleSet.pressureAltitudeSamples.peek(0)->first();
+		sampleGroupDividerMessage(Readings::Readings::PRESSURE_ALTITUDE, "T,V", sampleSet.pressureAltitudeSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
+		sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
 
-	// Samples.
-	while (!sampleSet.pressureAltitudeSamples.isEmpty()) {
-		Pair<unsigned long, float> sample;
-		sampleSet.pressureAltitudeSamples.pull(&sample);
-		sampleMessage(sample.first(), String(sample.second(), 2).c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.pressureAltitudeSamples.isEmpty());
-		sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+		// Samples.
+		while (!sampleSet.pressureAltitudeSamples.isEmpty()) {
+			Pair<unsigned long, float> sample;
+			sampleSet.pressureAltitudeSamples.pull(&sample);
+			sampleMessage(sample.first(), String(sample.second(), 2).c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.pressureAltitudeSamples.isEmpty());
+			sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+		}
 	}
 #pragma endregion
 
 #pragma region Rain.
-	// Start rain samples.
-	sampleBaseTimestamp = sampleSet.rainSamples.peek(0)->first();
-	sampleGroupDividerMessage(SensorCategory::RAIN_VALUES, "T,V", sampleSet.rainSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
-	sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+	if (!sampleSet.rainSamples.isEmpty()) {
+		// Start rain samples.
+		sampleBaseTimestamp = sampleSet.rainSamples.peek(0)->first();
+		sampleGroupDividerMessage(Readings::Readings::RAIN_VALUES, "T,V", sampleSet.rainSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
+		sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
 
-	// Samples.
-	while (!sampleSet.rainSamples.isEmpty()) {
-		Pair<unsigned long, float> sample;
-		sampleSet.rainSamples.pull(&sample);
-		sampleMessage(sample.first(), String(sample.second(), 2).c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.rainSamples.isEmpty());
-		sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+		// Samples.
+		while (!sampleSet.rainSamples.isEmpty()) {
+			Pair<unsigned long, float> sample;
+			sampleSet.rainSamples.pull(&sample);
+			sampleMessage(sample.first(), String(sample.second(), 2).c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.rainSamples.isEmpty());
+			sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+		}
 	}
 #pragma endregion
 
 #pragma region Rain state.
-	// Start rain state samples.
-	sampleBaseTimestamp = sampleSet.rainStateSample.first();
-	sampleGroupDividerMessage(SensorCategory::RAIN_STATE, "T,V", 1, sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
-	sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+	if (!sampleSet.rainStateSamples.isEmpty()) {
+		// Start rain state samples.
+		sampleBaseTimestamp = sampleSet.rainStateSamples.peek(0)->first();
+		sampleGroupDividerMessage(Readings::Readings::RAIN_STATE, "T,V", sampleSet.rainStateSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
+		sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
 
-	// Samples.
-	sampleMessage(sampleSet.rainStateSample.first(), sampleSet.rainStateSample.second().c_str(), sampleBaseTimestamp, sampleBuff, true);
-	sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+		// Samples.
+		while (!sampleSet.rainStateSamples.isEmpty()) {
+			Pair<unsigned long, String> sample;
+			sampleSet.rainStateSamples.pull(&sample);
+			sampleMessage(sample.first(), sample.second().c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.rainStateSamples.isEmpty());
+			sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+		}
+	}
 #pragma endregion
 
 #pragma region Temperature.
-	// Start temperature samples.
-	sampleBaseTimestamp = sampleSet.temperatureSamples.peek(0)->first();
-	sampleGroupDividerMessage(SensorCategory::TEMPERATURE, "T,V", sampleSet.temperatureSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
-	sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+	if (!sampleSet.temperatureSamples.isEmpty()) {
+		// Start temperature samples.
+		sampleBaseTimestamp = sampleSet.temperatureSamples.peek(0)->first();
+		sampleGroupDividerMessage(Readings::Readings::TEMPERATURE, "T,V", sampleSet.temperatureSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
+		sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
 
-	// Samples.
-	while (!sampleSet.temperatureSamples.isEmpty()) {
-		Pair<unsigned long, float> sample;
-		sampleSet.temperatureSamples.pull(&sample);
-		sampleMessage(sample.first(), String(sample.second(), 2).c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.temperatureSamples.isEmpty());
-		sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+		// Samples.
+		while (!sampleSet.temperatureSamples.isEmpty()) {
+			Pair<unsigned long, float> sample;
+			sampleSet.temperatureSamples.pull(&sample);
+			sampleMessage(sample.first(), String(sample.second(), 2).c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.temperatureSamples.isEmpty());
+			sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+		}
 	}
 #pragma endregion
 
 #pragma region Humidity.
-	// Start humidity samples.
-	sampleBaseTimestamp = sampleSet.humiditySamples.peek(0)->first();
-	sampleGroupDividerMessage(SensorCategory::HUMIDITY, "T,V", sampleSet.humiditySamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
-	sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+	if (!sampleSet.humiditySamples.isEmpty()) {
+		// Start humidity samples.
+		sampleBaseTimestamp = sampleSet.humiditySamples.peek(0)->first();
+		sampleGroupDividerMessage(Readings::Readings::HUMIDITY, "T,V", sampleSet.humiditySamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
+		sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
 
-	// Samples.
-	while (!sampleSet.humiditySamples.isEmpty()) {
-		Pair<unsigned long, float> sample;
-		sampleSet.humiditySamples.pull(&sample);
-		sampleMessage(sample.first(), String(sample.second(), 2).c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.humiditySamples.isEmpty());
-		sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+		// Samples.
+		while (!sampleSet.humiditySamples.isEmpty()) {
+			Pair<unsigned long, float> sample;
+			sampleSet.humiditySamples.pull(&sample);
+			sampleMessage(sample.first(), String(sample.second(), 2).c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.humiditySamples.isEmpty());
+			sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+		}
 	}
 #pragma endregion
 
 #pragma region Water temperature.
-	// Start waterTemperature samples.
-	sampleBaseTimestamp = sampleSet.waterTemperatureSamples.peek(0)->first();
-	sampleGroupDividerMessage(SensorCategory::WATER_TEMPERATURE, "T,V", sampleSet.waterTemperatureSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
-	sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+	if (!sampleSet.waterTemperatureSamples.isEmpty()) {
+		// Start waterTemperature samples.
+		sampleBaseTimestamp = sampleSet.waterTemperatureSamples.peek(0)->first();
+		sampleGroupDividerMessage(Readings::Readings::WATER_TEMPERATURE, "T,V", sampleSet.waterTemperatureSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
+		sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
 
-	// Samples.
-	while (!sampleSet.waterTemperatureSamples.isEmpty()) {
-		Pair<unsigned long, float> sample;
-		sampleSet.waterTemperatureSamples.pull(&sample);
-		sampleMessage(sample.first(), String(sample.second(), 2).c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.waterTemperatureSamples.isEmpty());
-		sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+		// Samples.
+		while (!sampleSet.waterTemperatureSamples.isEmpty()) {
+			Pair<unsigned long, float> sample;
+			sampleSet.waterTemperatureSamples.pull(&sample);
+			sampleMessage(sample.first(), String(sample.second(), 2).c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.waterTemperatureSamples.isEmpty());
+			sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+		}
 	}
 #pragma endregion
 
 #pragma region Wind direction.
-	// Start wind direction samples.
-	sampleBaseTimestamp = sampleSet.windDirectionSamples.peek(0)->first();
-	sampleGroupDividerMessage(SensorCategory::WIND_DIRECTION, "T,V", sampleSet.windDirectionSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
-	sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+	if (!sampleSet.windDirectionSamples.isEmpty()) {
+		// Start wind direction samples.
+		sampleBaseTimestamp = sampleSet.windDirectionSamples.peek(0)->first();
+		sampleGroupDividerMessage(Readings::Readings::WIND_DIRECTION, "T,V", sampleSet.windDirectionSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
+		sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
 
-	// Samples.
-	while (!sampleSet.windDirectionSamples.isEmpty()) {
-		Pair<unsigned long, int> sample;
-		sampleSet.windDirectionSamples.pull(&sample);
-		sampleMessage(sample.first(), String(sample.second()).c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.windDirectionSamples.isEmpty());
-		sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+		// Samples.
+		while (!sampleSet.windDirectionSamples.isEmpty()) {
+			Pair<unsigned long, int> sample;
+			sampleSet.windDirectionSamples.pull(&sample);
+			sampleMessage(sample.first(), String(sample.second()).c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.windDirectionSamples.isEmpty());
+			sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+		}
 	}
 #pragma endregion
 
 #pragma region Wind speed.
-	// Start wind speed samples.
-	sampleBaseTimestamp = sampleSet.windSpeedSamples.peek(0)->first();
-	sampleGroupDividerMessage(SensorCategory::WIND_SPEED, "T,V,TC", sampleSet.windSpeedSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
-	sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+	if (!sampleSet.windSpeedSamples.isEmpty()) {
+		// Start wind speed samples.
+		sampleBaseTimestamp = sampleSet.windSpeedSamples.peek(0)->first();
+		sampleGroupDividerMessage(Readings::Readings::WIND_SPEED, "T,V,TC", sampleSet.windSpeedSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
+		sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
 
-	// Samples.
-	while (!sampleSet.windSpeedSamples.isEmpty()) {
-		Pair<unsigned long, windspeedpoint> sample;
-		sampleSet.windSpeedSamples.pull(&sample);
-		snprintf(formatBuff, sizeof(formatBuff), "%s,%s", String(sample.second().speedCorrected, 2).c_str(), String(sample.second().sensorTemperature, 2).c_str());
-		sampleMessage(sample.first(), formatBuff, sampleBaseTimestamp, sampleBuff, sampleSet.windSpeedSamples.isEmpty());
-		sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+		// Samples.
+		while (!sampleSet.windSpeedSamples.isEmpty()) {
+			Pair<unsigned long, windspeedpoint> sample;
+			sampleSet.windSpeedSamples.pull(&sample);
+			snprintf(formatBuff, sizeof(formatBuff), "%s,%s", String(sample.second().speedCorrected, 2).c_str(), String(sample.second().sensorTemperature, 2).c_str());
+			sampleMessage(sample.first(), formatBuff, sampleBaseTimestamp, sampleBuff, sampleSet.windSpeedSamples.isEmpty());
+			sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+		}
 	}
 #pragma endregion
 

@@ -56,7 +56,7 @@ class AnemioStation {
 		RadioTransceiver _radioTransceiver;
 
 		bool _online[Devices::TOTAL];
-		unsigned long _lastCheck[Devices::TOTAL];
+		unsigned long _lastCheck[ReadingChecks::ReadingChecks::TOTAL];
 		unsigned long _radioLastTransmit;
 		unsigned long _radioLastReceive;
 

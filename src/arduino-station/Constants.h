@@ -23,6 +23,7 @@ namespace {
 
 	// Ambient light sensor.
 	const uint8_t AMBIENT_LIGHT_UPDATE_RATE_HZ = 1; // Update rate of light sensor.
+	constexpr float AMBIENT_LIGHT_STATE_UPDATE_RATE_HZ = 0.2; // Update rate of the ambient light state. (aggregated value).
 	const uint8_t AMBIENT_LIGHT_ANALOG_READ_SAMPLE_COUNT = 50; // Number of times we should do an analog read from the ambient light sensor (we will average the samples).
 	const uint8_t AMBIENT_LIGHT_SENSOR_INPUT_PIN = A2;
 	const uint32_t AMBIENT_LIGHT_SENSOR_RESISTANCE_OHM = 100000; // This is the value of the internal resistor in the sensor.
@@ -36,6 +37,7 @@ namespace {
 
 	// Rain sensor.
 	const uint8_t RAIN_UPDATE_RATE_HZ = 2; // Update rate of rain sensor.
+	constexpr float RAIN_STATE_UPDATE_RATE_HZ = 0.2; // Update rate of the rain state (aggregated value).
 	const uint8_t RAIN_ANALOG_READ_SAMPLE_COUNT = 50; // Number of times we should do an analog read from the rain sensor (we will average the samples).
 	const uint8_t RAIN_SENSOR_INPUT_PIN = A1; // Analog input pin for the rain sensor.
 
@@ -89,6 +91,7 @@ namespace {
 	
 	const int EEPROM_WIND_DIRECTION_ZERO = 0;
 
+	// Actual physical peripherals.
 	enum Devices {
 		AMBIENT_LIGHT = 0,
 		COMPASS_ACCELEROMETER = 1,
@@ -101,6 +104,7 @@ namespace {
 		TOTAL = 8
 	};
 
+	// Names of the physical peripherals (for reporting).
 	const char* DeviceNames[] = {
 		"AMBIENT_LIGHT",
 		"COMPASS_ACCELEROMETER",
@@ -112,8 +116,26 @@ namespace {
 		"WIND_SPEED"
 	};
 
-	namespace SensorCategory {
-		enum SensorCategory {
+	// Reading check categories (for controlling update rates).
+	namespace ReadingChecks {
+		enum ReadingChecks {
+			AMBIENT_LIGHT = 0,
+			AMBIENT_LIGHT_STATE = 1,
+			COMPASS_ACCELEROMETER = 2,
+			PRESSURE = 3,
+			RAIN = 4,
+			RAIN_STATE = 5,
+			TEMPERATURE_HUMIDITY = 6,
+			WATER_TEMPERATURE = 7,
+			WIND_DIRECTION = 8,
+			WIND_SPEED = 9,
+			TOTAL = 10
+		};
+	}
+
+	// Individual sensors readings (some devices have multiple sensors and can measure different things).
+	namespace Readings {
+		enum Readings {
 			AMBIENT_LIGHT_VALUES = 0,
 			AMBIENT_LIGHT_STATE = 1,
 			COMPASS_XYZ = 2,
@@ -132,6 +154,7 @@ namespace {
 		};
 	}
 
+	// Commands over the radio.
 	enum RadioCommands {
 		SETUP_START = 1,
 		REPORT_SETUP_STATE = 2,

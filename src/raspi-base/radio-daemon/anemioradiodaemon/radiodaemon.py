@@ -6,6 +6,7 @@ import re
 import sqlite3
 import sys
 import time
+from datetime import timezone, datetime
 from contextlib import closing
 from sqlite3 import Connection
 from urllib.request import pathname2url
@@ -36,7 +37,7 @@ def connect_db(db_name = DEFAULT_DB_NAME, logger=logging.getLogger()):
 
 # Gets a Unix epoch millisecond timestamp with optional offset based on radio transmittion time.
 def get_ts(timestamp, offset_ms = 0):
-	unix_ts = (timestamp - datetime.datetime(1970, 1, 1)).total_seconds()
+	unix_ts = (timestamp - datetime(1970, 1, 1, tzinfo=timezone.utc)).total_seconds()
 	return int((unix_ts - (offset_ms / 1000)) * 1000)
 
 class RadioDaemon():
@@ -81,7 +82,7 @@ class RadioDaemon():
 		
 		self._create_db_schema()
 
-		self._set_station_state(get_ts(datetime.datetime.utcnow()), StationState.UNKNOWN)
+		self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.UNKNOWN)
 
 	def __del__(self):
 		if self.close_db and self.db_conn is not None:
@@ -227,7 +228,7 @@ class RadioDaemon():
 			for message in parsed_messages:
 				command = message['radio_command']
 				contents = message['contents']
-				timestamp = get_ts(message['received_timestamp'], self.average_radio_delay_ms)
+				timestamp = get_ts(message['received_timestamp'].replace(tzinfo=timezone.utc), self.average_radio_delay_ms)
 
 				# Station is starting or returning from wake (devices will be initialized).
 				if command == RadioCommands.SETUP_START:
@@ -404,14 +405,14 @@ class RadioDaemon():
 					if station_state not in [StationState.UNREACHABLE, StationState.SLEEPING, StationState.UNKNOWN]:
 						# Check for no signal timeout.
 						if self.radio_last_receive is not None:
-							msg_delta = (datetime.datetime.utcnow() - self.radio_last_receive)
+							msg_delta = (datetime.now(timezone.utc) - self.radio_last_receive)
 							if msg_delta.total_seconds() > MAX_NO_RECEIVE_SECONDS:
 								self.logger.critical(
 									'Station has become unreachable. Last message received at: %s. Current datetime: %s.',
 									str(self.radio_last_receive),
-									str(datetime.datetime.utcnow())
+									datetime.now(timezone.utc).strftime()
 								)
-								self._set_station_state(get_ts(datetime.datetime.utcnow()), StationState.UNREACHABLE)
+								self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.UNREACHABLE)
 					for packet in radio.get_packets():
 						self.radio_last_receive = packet.received
 
@@ -419,7 +420,7 @@ class RadioDaemon():
 						if station_state == StationState.UNREACHABLE or station_state == StationState.SLEEPING:
 							self.logger.critical(
 								'Station has come back online after being unreachable. Current datetime: %s.',
-								str(datetime.datetime.utcnow())
+								datetime.now(timezone.utc).strftime()
 							)
 							self._set_station_state(get_ts(packet.received, self.average_radio_delay_ms), StationState.ONLINE)
 
@@ -450,7 +451,7 @@ class RadioDaemon():
 					success = radio.send(RADIO_STATION_NODE_ID, str(RadioCommands.RESTART.value))
 					self.logger.info('Restart request %s.', 'successful' if success else 'unsuccessful')
 					if success:
-						self._set_station_state(get_ts(datetime.datetime.utcnow()), StationState.RESTARTING)
+						self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.RESTARTING)
 
 				# Requested sleep, so we try to send the sleep command to the station.
 				elif station_state == StationState.SLEEP_REQUESTED:
@@ -458,7 +459,7 @@ class RadioDaemon():
 					success = radio.send(RADIO_STATION_NODE_ID, str(RadioCommands.SLEEP.value))
 					self.logger.info('Sleep request %s.', 'successful' if success else 'unsuccessful')
 					if success:					
-						self._set_station_state(get_ts(datetime.datetime.utcnow()), StationState.SLEEPING)
+						self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.SLEEPING)
 
 				# Requested wake, so we try to send the wake command to the station.
 				elif station_state == StationState.WAKE_REQUESTED:
@@ -466,7 +467,7 @@ class RadioDaemon():
 					success = radio.send(RADIO_STATION_NODE_ID, str(RadioCommands.WAKE.value))
 					self.logger.info('Wake request %s.', 'successful, setup should now begin' if success else 'unsuccessful')
 					if success:
-						self._set_station_state(get_ts(datetime.datetime.utcnow()), StationState.ONLINE)
+						self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.ONLINE)
 
 			except asyncio.CancelledError:
 				self.logger.info('Radio transceiving cancelled.')
@@ -505,7 +506,7 @@ class RadioDaemon():
 			with closing(self.db_conn.cursor()) as c:
 				c.execute('INSERT INTO station_location(timestamp, lat, lon, is_actual) VALUES(?,?,?,?)', 
 					(
-						get_ts(datetime.datetime.utcnow()),
+						get_ts(datetime.now(timezone.utc)),
 						latlng[0],
 						latlng[1],
 						0

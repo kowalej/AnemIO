@@ -92,9 +92,6 @@
     <ClCompile Include="TemperatureHumidityProvider.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="SampleSet.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="WindSpeedProvider.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
