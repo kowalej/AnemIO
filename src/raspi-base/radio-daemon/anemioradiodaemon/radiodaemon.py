@@ -228,7 +228,7 @@ class RadioDaemon():
 			for message in parsed_messages:
 				command = message['radio_command']
 				contents = message['contents']
-				timestamp = get_ts(message['received_timestamp'].replace(tzinfo=timezone.utc), self.average_radio_delay_ms)
+				timestamp = get_ts(message['received_timestamp'], self.average_radio_delay_ms)
 
 				# Station is starting or returning from wake (devices will be initialized).
 				if command == RadioCommands.SETUP_START:
@@ -414,6 +414,7 @@ class RadioDaemon():
 								)
 								self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.UNREACHABLE)
 					for packet in radio.get_packets():
+						packet.received = packet.received.replace(tzinfo=timezone.utc)
 						self.radio_last_receive = packet.received
 
 						# Back online baby (we received a packet after being unreachable, or sleeping, although unusual).
@@ -442,7 +443,7 @@ class RadioDaemon():
 						if not compact_collecting:
 							parsed_messages = self._parse_messages(messages_collected)
 							messages_collected.clear() # Make sure we clear messages now that we have parsed them.
-							if len(parsed_messages) > 0:
+							if parsed_messages and len(parsed_messages) > 0:
 								self._handle_messages(parsed_messages)
 
 				# Requested restart, so we try to send the restart command to the station.
