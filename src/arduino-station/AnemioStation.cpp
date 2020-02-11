@@ -139,11 +139,12 @@ void AnemioStation::loop() {
 	// Station is in "sleep" low power mode. This would be for night hour operation and is controlled by the ground station.
 	if (_sleeping)
 	{
-#ifndef DEBUG_DISABLED
-		delay(1000); // Let serial finish.
-#endif
+		#ifndef DEBUG_DISABLED
+			delay(1000); // Let serial finish.
+		#endif
 		sleep.pwrDownMode();
 		sleep.sleepDelay(SLEEP_MODE_SLEEP_TIME_MS);
+
 		// Need to setup the radio each time, since we went into deep sleep mode.
 		_radioTransceiver.setup();
 		String receivedValue = _radioTransceiver.receive(RADIO_SLEEP_MODE_RECEIVE_WAIT_MS);
@@ -365,11 +366,11 @@ void AnemioStation::loop() {
 		}
 
 		// Loop sleep.
-#ifndef DEBUG_DISABLED
-		delay(15);
-#else
-		sleep.idleMode();
-		sleep.sleepDelay(15);
-#endif
+		#ifndef DEBUG_DISABLED
+			delay(15);
+		#else
+			sleep.idleMode();
+			sleep.sleepDelay(15);
+		#endif
 	}
 }
