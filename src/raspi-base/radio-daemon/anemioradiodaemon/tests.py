@@ -43,7 +43,7 @@ class TestAnemioRadioDaemon(unittest.TestCase):
         global packet_index
         packet_index = -1
         logging.basicConfig(level=logging.INFO, format='%(message)s')
-        logger = logging.getLogger('anemio-test')
+        logger = logging.getLogger('anemio-debug')
         logger.setLevel(logging.INFO)
         # Get our database.
         self.db_conn = connect_db(logger=logger, db_name='anemio-test.db')

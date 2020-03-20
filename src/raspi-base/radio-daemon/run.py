@@ -30,16 +30,19 @@ if __name__ == '__main__':
 	except:
 		pass
 
+	# If showing output (console output) we will provide a logger named 'anemio-debug'.
 	if args.showOutput:
 		logging.basicConfig(level=logging.INFO, format='%(message)s')
-		logger = logging.getLogger('anemio-test')
+		logger = logging.getLogger('anemio-debug')
 		logger.setLevel(logging.INFO)
 
 	# Log info to file, limited to 5MB in size.
 	log_formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s')
 	logFile = 'anemio.log'
-	file_handler = RotatingFileHandler(logFile, mode='a', maxBytes=5*1024*1024, 
-									backupCount=2, encoding=None, delay=0)
+	# We will log to files with a max size of 5MB, of which there are up to 2 (i.e. backupCount).
+	# This means there is a maximum log size of 10MB on disk.
+	file_handler = RotatingFileHandler(logFile, mode='a', maxBytes=LOG_FILE_MAX_SIZE_MB*1024*1024, 
+									backupCount=LOG_FILE_BACKUP_COUNT, encoding=None, delay=0)
 	file_handler.setFormatter(log_formatter)
 	file_handler.setLevel(logging.INFO)
 

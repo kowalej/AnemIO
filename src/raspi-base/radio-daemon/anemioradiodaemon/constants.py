@@ -14,7 +14,11 @@ RADIO_BASE_NODE_ID = 87 # Base station node number.
 NET = 223 # Radio network.
 ENCRYPT_KEY= os.getenv('ANEMIO_ENCRYPT_KEY', 'J53Y25U5D8CE79NO') # tries to get from environment first.
 
-# Email parameters
+# File log parameters.
+LOG_FILE_MAX_SIZE_MB = os.getenv('ANEMIO_LOG_FILE_MAX_SIZE_MB', 5)
+LOG_FILE_BACKUP_COUNT = os.getenv('ANEMIO_LOG_FILE_BACKUP_COUNT', 2)
+
+# Email parameters.
 EMAIL_FROM = os.getenv('ANEMIO_EMAIL_FROM', '')
 EMAIL_TO = os.getenv('ANEMIO_EMAIL_TO', '')
 EMAIL_HOST = os.getenv('ANEMIO_EMAIL_HOST', '')
