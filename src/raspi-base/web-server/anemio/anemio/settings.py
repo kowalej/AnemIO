@@ -28,6 +28,15 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 
+# Constance settings (for global config)
+
+CONSTANCE_BACKEND = 'constance.backends.database.DatabaseBackend'
+
+CONSTANCE_CONFIG = {
+    'STATION_DATA_API_KEY': ('', 'Station data API key, '
+                       'API key used to post data to Open Weather Maps'),
+}
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -38,6 +47,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'constance.backends.database',
+    'constance',
+    'django_celery_results',
+    'django_celery_beat',
     'station'
 ]
 
@@ -139,3 +152,19 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
     ]
 }
+
+# Caches
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+        'LOCATION': '127.0.0.1:11211',
+    }
+}
+CONSTANCE_DATABASE_CACHE_BACKEND = 'default'
+CELERY_CACHE_BACKEND = 'default'
+
+# Celery (task queue / scheduling)
+
+CELERY_BROKER_URL = 'cache+memcached:127.0.0.1:11211'
+CELERY_RESULT_BACKEND = 'django-cache'
