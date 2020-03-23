@@ -1,7 +1,10 @@
 from django.db import models
+from .fields import UnixDateTimeField
+import pytz
 
 class AccelerometerXyz(models.Model):
-    timestamp = models.IntegerField(blank=True, null=True)
+    id = models.IntegerField(primary_key=True, name='ROWID')
+    timestamp = UnixDateTimeField(assume_milliseconds=True, blank=False, null=False)
     x = models.FloatField(blank=True, null=True)
     y = models.FloatField(blank=True, null=True)
     z = models.FloatField(blank=True, null=True)
@@ -12,7 +15,8 @@ class AccelerometerXyz(models.Model):
 
 
 class AmbientLightState(models.Model):
-    timestamp = models.IntegerField(blank=True, null=True)
+    id = models.IntegerField(primary_key=True, name='ROWID')
+    timestamp = UnixDateTimeField(assume_milliseconds=True, blank=False, null=False)
     state = models.TextField(blank=True, null=True)
 
     class Meta:
@@ -21,7 +25,8 @@ class AmbientLightState(models.Model):
 
 
 class AmbientLightValues(models.Model):
-    timestamp = models.IntegerField(blank=True, null=True)
+    id = models.IntegerField(primary_key=True, name='ROWID')
+    timestamp = UnixDateTimeField(assume_milliseconds=True, blank=False, null=False)
     value = models.FloatField(blank=True, null=True)
 
     class Meta:
@@ -30,7 +35,8 @@ class AmbientLightValues(models.Model):
 
 
 class CompassHeading(models.Model):
-    timestamp = models.IntegerField(blank=True, null=True)
+    id = models.IntegerField(primary_key=True, name='ROWID')
+    timestamp = UnixDateTimeField(assume_milliseconds=True, blank=False, null=False)
     heading = models.IntegerField(blank=True, null=True)
 
     class Meta:
@@ -39,7 +45,8 @@ class CompassHeading(models.Model):
 
 
 class CompassXyz(models.Model):
-    timestamp = models.IntegerField(blank=True, null=True)
+    id = models.IntegerField(primary_key=True, name='ROWID')
+    timestamp = UnixDateTimeField(assume_milliseconds=True, blank=False, null=False)
     x = models.FloatField(blank=True, null=True)
     y = models.FloatField(blank=True, null=True)
     z = models.FloatField(blank=True, null=True)
@@ -50,7 +57,8 @@ class CompassXyz(models.Model):
 
 
 class DeviceState(models.Model):
-    timestamp = models.IntegerField(blank=True, null=True)
+    id = models.IntegerField(primary_key=True, name='ROWID')
+    timestamp = UnixDateTimeField(assume_milliseconds=True, blank=False, null=False)
     online_devices = models.TextField(blank=True, null=True)
     offline_devices = models.TextField(blank=True, null=True)
     is_setup = models.IntegerField(blank=True, null=True)
@@ -61,7 +69,8 @@ class DeviceState(models.Model):
 
 
 class Humidity(models.Model):
-    timestamp = models.IntegerField(blank=True, null=True)
+    id = models.IntegerField(primary_key=True, name='ROWID')
+    timestamp = UnixDateTimeField(assume_milliseconds=True, blank=False, null=False)
     value = models.FloatField(blank=True, null=True)
 
     class Meta:
@@ -70,7 +79,8 @@ class Humidity(models.Model):
 
 
 class PressureAltitude(models.Model):
-    timestamp = models.IntegerField(blank=True, null=True)
+    id = models.IntegerField(primary_key=True, name='ROWID')
+    timestamp = UnixDateTimeField(assume_milliseconds=True, blank=False, null=False)
     value = models.FloatField(blank=True, null=True)
 
     class Meta:
@@ -79,7 +89,8 @@ class PressureAltitude(models.Model):
 
 
 class PressurePressure(models.Model):
-    timestamp = models.IntegerField(blank=True, null=True)
+    id = models.IntegerField(primary_key=True, name='ROWID')
+    timestamp = UnixDateTimeField(assume_milliseconds=True, blank=False, null=False)
     value = models.FloatField(blank=True, null=True)
 
     class Meta:
@@ -88,7 +99,8 @@ class PressurePressure(models.Model):
 
 
 class PressureTemperature(models.Model):
-    timestamp = models.IntegerField(blank=True, null=True)
+    id = models.IntegerField(primary_key=True, name='ROWID')
+    timestamp = UnixDateTimeField(assume_milliseconds=True, blank=False, null=False)
     value = models.FloatField(blank=True, null=True)
 
     class Meta:
@@ -97,7 +109,8 @@ class PressureTemperature(models.Model):
 
 
 class PressureValues(models.Model):
-    timestamp = models.IntegerField(blank=True, null=True)
+    id = models.IntegerField(primary_key=True, name='ROWID')
+    timestamp = UnixDateTimeField(assume_milliseconds=True, blank=False, null=False)
     value = models.FloatField(blank=True, null=True)
 
     class Meta:
@@ -106,7 +119,8 @@ class PressureValues(models.Model):
 
 
 class RainState(models.Model):
-    timestamp = models.IntegerField(blank=True, null=True)
+    id = models.IntegerField(primary_key=True, name='ROWID')
+    timestamp = UnixDateTimeField(assume_milliseconds=True, blank=False, null=False)
     state = models.TextField(blank=True, null=True)
 
     class Meta:
@@ -115,7 +129,8 @@ class RainState(models.Model):
 
 
 class RainValues(models.Model):
-    timestamp = models.IntegerField(blank=True, null=True)
+    id = models.IntegerField(primary_key=True, name='ROWID')
+    timestamp = UnixDateTimeField(assume_milliseconds=True, blank=False, null=False)
     value = models.FloatField(blank=True, null=True)
 
     class Meta:
@@ -124,7 +139,8 @@ class RainValues(models.Model):
 
 
 class StationLocation(models.Model):
-    timestamp = models.IntegerField(blank=True, null=True)
+    id = models.IntegerField(primary_key=True, name='ROWID')
+    timestamp = UnixDateTimeField(assume_milliseconds=True, blank=False, null=False)
     lat = models.FloatField(blank=True, null=True)
     lon = models.FloatField(blank=True, null=True)
     is_actual = models.IntegerField(blank=True, null=True)
@@ -135,7 +151,8 @@ class StationLocation(models.Model):
 
 
 class StationState(models.Model):
-    timestamp = models.IntegerField(blank=True, null=True)
+    id = models.IntegerField(primary_key=True, name='ROWID')
+    timestamp = UnixDateTimeField(assume_milliseconds=True, blank=False, null=False)
     state = models.IntegerField(blank=True, null=True)
 
     class Meta:
@@ -144,7 +161,8 @@ class StationState(models.Model):
 
 
 class Temperature(models.Model):
-    timestamp = models.IntegerField(blank=True, null=True)
+    id = models.IntegerField(primary_key=True, name='ROWID')
+    timestamp = UnixDateTimeField(assume_milliseconds=True, blank=False, null=False)
     value = models.FloatField(blank=True, null=True)
 
     class Meta:
@@ -153,7 +171,8 @@ class Temperature(models.Model):
 
 
 class WaterTemperature(models.Model):
-    timestamp = models.IntegerField(blank=True, null=True)
+    id = models.IntegerField(primary_key=True, name='ROWID')
+    timestamp = UnixDateTimeField(assume_milliseconds=True, blank=False, null=False)
     value = models.FloatField(blank=True, null=True)
 
     class Meta:
@@ -162,7 +181,8 @@ class WaterTemperature(models.Model):
 
 
 class WindDirection(models.Model):
-    timestamp = models.IntegerField(blank=True, null=True)
+    id = models.IntegerField(primary_key=True, name='ROWID')
+    timestamp = UnixDateTimeField(assume_milliseconds=True, blank=False, null=False)
     value = models.IntegerField(blank=True, null=True)
 
     class Meta:
@@ -171,7 +191,8 @@ class WindDirection(models.Model):
 
 
 class WindSpeed(models.Model):
-    timestamp = models.IntegerField(blank=True, null=True)
+    id = models.IntegerField(primary_key=True, name='ROWID')
+    timestamp = UnixDateTimeField(assume_milliseconds=True, blank=False, null=False)
     value = models.FloatField(blank=True, null=True)
     temperature = models.FloatField(blank=True, null=True)
 

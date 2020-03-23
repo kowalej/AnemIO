@@ -17,10 +17,11 @@ from django.contrib import admin
 from django.urls import path
 from rest_framework import routers
 from django.conf.urls import include, url
+from station import views
 
 # Routers provide an easy way of automatically determining the URL conf.
 router = routers.DefaultRouter()
-#outer.register(r'station/control', UserViewSet)
+router.register(r'telemetry/accelerometerxyz', views.AccelerometerXyzViewSet)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
