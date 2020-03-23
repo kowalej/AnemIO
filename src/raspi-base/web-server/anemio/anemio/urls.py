@@ -21,7 +21,27 @@ from station import views
 
 # Routers provide an easy way of automatically determining the URL conf.
 router = routers.DefaultRouter()
-router.register(r'telemetry/accelerometerxyz', views.AccelerometerXyzViewSet)
+
+router.register(r'station/state', views.StationStateViewSet)
+router.register(r'station/location', views.StationLocationViewSet)
+
+router.register(r'sensors/state', views.DeviceStateViewSet)
+
+router.register(r'telemetry/accelerometer/xyz', views.AccelerometerXyzViewSet)
+router.register(r'telemetry/ambientlight/state', views.AmbientLightStateViewSet)
+router.register(r'telemetry/ambientlight/values', views.AmbientLightValuesViewSet)
+router.register(r'telemetry/compass/heading', views.CompassHeadingViewSet)
+router.register(r'telemetry/compass/xyz', views.CompassXyzViewSet)
+router.register(r'telemetry/humidty', views.HumidityViewSet)
+router.register(r'telemetry/pressure/altitude', views.PressureAltitudeViewSet)
+router.register(r'telemetry/pressure/values', views.PressurePressureViewSet)
+router.register(r'telemetry/pressure/temperature', views.PressureTemperatureViewSet)
+router.register(r'telemetry/rain/state', views.RainStateViewSet)
+router.register(r'telemetry/rain/values', views.RainValuesViewSet)
+router.register(r'telemetry/temperature', views.TemperatureViewSet)
+router.register(r'telemetry/watertemperature', views.WaterTemperatureViewSet)
+router.register(r'telemetry/wind/direction', views.WindDirectionViewSet)
+router.register(r'telemetry/wind/speed', views.WindSpeedViewSet)
 
 urlpatterns = [
     path('admin/', admin.site.urls),

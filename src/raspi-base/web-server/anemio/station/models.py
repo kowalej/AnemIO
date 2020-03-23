@@ -1,6 +1,7 @@
 from django.db import models
 from .fields import UnixDateTimeField
 import pytz
+from . import constants
 
 class AccelerometerXyz(models.Model):
     id = models.IntegerField(primary_key=True, name='ROWID')
@@ -108,16 +109,6 @@ class PressureTemperature(models.Model):
         db_table = 'pressure_temperature'
 
 
-class PressureValues(models.Model):
-    id = models.IntegerField(primary_key=True, name='ROWID')
-    timestamp = UnixDateTimeField(assume_milliseconds=True, blank=False, null=False)
-    value = models.FloatField(blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = 'pressure_values'
-
-
 class RainState(models.Model):
     id = models.IntegerField(primary_key=True, name='ROWID')
     timestamp = UnixDateTimeField(assume_milliseconds=True, blank=False, null=False)
@@ -153,7 +144,7 @@ class StationLocation(models.Model):
 class StationState(models.Model):
     id = models.IntegerField(primary_key=True, name='ROWID')
     timestamp = UnixDateTimeField(assume_milliseconds=True, blank=False, null=False)
-    state = models.IntegerField(blank=True, null=True)
+    state = models.IntegerField(blank=True, null=True, choices=[(tag, tag.value) for tag in constants.StationState])
 
     class Meta:
         managed = False
