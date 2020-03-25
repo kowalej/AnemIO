@@ -22,6 +22,15 @@ from station import views
 # Routers provide an easy way of automatically determining the URL conf.
 router = routers.DefaultRouter()
 
+router.get_api_root_view().cls.__name__ = "Anemio Documentation"
+router.get_api_root_view().cls.__doc__ = "The following are the various APIs available on the station."
+
+# Health check and control commands.
+# url(r'station/health', views.StationHealthView),
+router.register(r'station/control/restart', views.StationControlRestartViewSet, basename='')
+router.register(r'station/control/sleep', views.StationControlSleepViewSet, basename='')
+router.register(r'station/control/wake', views.StationControlWakeViewSet, basename='')
+
 # Raw station / sensor info.
 router.register(r'station/state', views.StationStateViewSet)
 router.register(r'station/location', views.StationLocationViewSet)
@@ -44,13 +53,9 @@ router.register(r'telemetry/watertemperature', views.WaterTemperatureViewSet)
 router.register(r'telemetry/wind/direction', views.WindDirectionViewSet)
 router.register(r'telemetry/wind/speed', views.WindSpeedViewSet)
 
+
 urlpatterns = [
     path('admin/', admin.site.urls),
-    # Commands and health check.
-    url(r'^station/restart', views.station_restart),
-    url(r'^station/sleep', views.station_sleep),
-    url(r'^station/wake', views.station_wake),
-    # url(r'station/health', views.StationHealthView),
     url(r'^', include(router.urls)),
     url(r'^api-auth/', include('rest_framework.urls'))
 ]   
