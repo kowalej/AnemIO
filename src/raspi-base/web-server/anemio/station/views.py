@@ -1,163 +1,240 @@
 from rest_framework import status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework import permissions
 from rest_framework.filters import OrderingFilter
-from .models import *
-from .serializers import *
-from .filters import *
+import station.models as models
+import station.serializers as serializers
+import station.filters as filters
 from django_filters.rest_framework.backends import DjangoFilterBackend
+import datetime
+from station import constants
+
 
 # Create your views here.
 f = permissions.DjangoModelPermissions
 
+
 class AccelerometerXyzViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = AccelerometerXyz.objects.all()
-    serializer_class = AccelerometerXyzSerializer
-    filterset_class = AccelerometerXyzFilterSet
+    queryset = models.AccelerometerXyz.objects.all()
+    serializer_class = serializers.AccelerometerXyzSerializer
+    filterset_class = filters.AccelerometerXyzFilterSet
 
 
 class AmbientLightStateViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = AmbientLightState.objects.all()
-    serializer_class = AmbientLightStateSerializer
-    filterset_class = AmbientLightStateFilterSet
+    queryset = models.AmbientLightState.objects.all()
+    serializer_class = serializers.AmbientLightStateSerializer
+    filterset_class = filters.AmbientLightStateFilterSet
 
 
 class AmbientLightValuesViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = AmbientLightValues.objects.all()
-    serializer_class = AmbientLightValuesSerializer
-    filterset_class = AmbientLightValuesFilterSet
+    queryset = models.AmbientLightValues.objects.all()
+    serializer_class = serializers.AmbientLightValuesSerializer
+    filterset_class = filters.AmbientLightValuesFilterSet
 
 
 class CompassHeadingViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = CompassHeading.objects.all()
-    serializer_class = CompassHeadingSerializer
-    filterset_class = CompassHeadingFilterSet
+    queryset = models.CompassHeading.objects.all()
+    serializer_class = serializers.CompassHeadingSerializer
+    filterset_class = filters.CompassHeadingFilterSet
 
 
 class CompassXyzViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = CompassXyz.objects.all()
-    serializer_class = CompassXyzSerializer
-    filterset_class = CompassXyzFilterSet
+    queryset = models.CompassXyz.objects.all()
+    serializer_class = serializers.CompassXyzSerializer
+    filterset_class = filters.CompassXyzFilterSet
     filter_backends = [OrderingFilter, DjangoFilterBackend]
     ordering_fields = ['timestamp']
     ordering = ['-timestamp']
 
 
 class DeviceStateViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = DeviceState.objects.all()
-    serializer_class = DeviceStateSerializer
-    filterset_class = DeviceStateFilterSet
+    queryset = models.DeviceState.objects.all()
+    serializer_class = serializers.DeviceStateSerializer
+    filterset_class = filters.DeviceStateFilterSet
     filter_backends = [OrderingFilter, DjangoFilterBackend]
     ordering_fields = ['timestamp']
     ordering = ['-timestamp']
 
 
 class HumidityViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Humidity.objects.all()
-    serializer_class = HumiditySerializer
-    filterset_class = HumidityFilterSet
+    queryset = models.Humidity.objects.all()
+    serializer_class = serializers.HumiditySerializer
+    filterset_class = filters.HumidityFilterSet
     filter_backends = [OrderingFilter, DjangoFilterBackend]
     ordering_fields = ['timestamp']
     ordering = ['-timestamp']
 
 
 class PressureAltitudeViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = PressureAltitude.objects.all()
-    serializer_class = PressureAltitudeSerializer
-    filterset_class = PressureAltitudeFilterSet
+    queryset = models.PressureAltitude.objects.all()
+    serializer_class = serializers.PressureAltitudeSerializer
+    filterset_class = filters.PressureAltitudeFilterSet
     filter_backends = [OrderingFilter, DjangoFilterBackend]
     ordering_fields = ['timestamp']
     ordering = ['-timestamp']
 
 
 class PressurePressureViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = PressurePressure.objects.all()
-    serializer_class = PressurePressureSerializer
-    filterset_class = PressurePressureFilterSet
+    queryset = models.PressurePressure.objects.all()
+    serializer_class = serializers.PressurePressureSerializer
+    filterset_class = filters.PressurePressureFilterSet
     filter_backends = [OrderingFilter, DjangoFilterBackend]
     ordering_fields = ['timestamp']
     ordering = ['-timestamp']
 
 
 class PressureTemperatureViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = PressureTemperature.objects.all()
-    serializer_class = PressureTemperatureSerializer
-    filterset_class = PressureTemperatureFilterSet
+    queryset = models.PressureTemperature.objects.all()
+    serializer_class = serializers.PressureTemperatureSerializer
+    filterset_class = filters.PressureTemperatureFilterSet
     filter_backends = [OrderingFilter, DjangoFilterBackend]
     ordering_fields = ['timestamp']
     ordering = ['-timestamp']
 
 
 class RainStateViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = RainState.objects.all()
-    serializer_class = RainStateSerializer
-    filterset_class = RainStateFilterSet
+    queryset = models.RainState.objects.all()
+    serializer_class = serializers.RainStateSerializer
+    filterset_class = filters.RainStateFilterSet
     filter_backends = [OrderingFilter, DjangoFilterBackend]
     ordering_fields = ['timestamp']
     ordering = ['-timestamp']
 
 
 class RainValuesViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = RainValues.objects.all()
-    serializer_class = RainValuesSerializer
-    filterset_class = RainValuesFilterSet
+    queryset = models.RainValues.objects.all()
+    serializer_class = serializers.RainValuesSerializer
+    filterset_class = filters.RainValuesFilterSet
     filter_backends = [OrderingFilter, DjangoFilterBackend]
     ordering_fields = ['timestamp']
     ordering = ['-timestamp']
 
 
 class StationLocationViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = StationLocation.objects.all()
-    serializer_class = StationLocationSerializer
-    filterset_class = StationLocationFilterSet
+    queryset = models.StationLocation.objects.all()
+    serializer_class = serializers.StationLocationSerializer
+    filterset_class = filters.StationLocationFilterSet
     filter_backends = [OrderingFilter, DjangoFilterBackend]
     ordering_fields = ['timestamp']
     ordering = ['-timestamp']
 
 
 class StationStateViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = StationState.objects.all()
-    serializer_class = StationStateSerializer
-    filterset_class = StationStateFilterSet
+    queryset = models.StationState.objects.all()
+    serializer_class = serializers.StationStateSerializer
+    filterset_class = filters.StationStateFilterSet
     filter_backends = [OrderingFilter, DjangoFilterBackend]
     ordering_fields = ['timestamp']
     ordering = ['-timestamp']
 
 
 class TemperatureViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Temperature.objects.all()
-    serializer_class = TemperatureSerializer
-    filterset_class = TemperatureFilterSet
+    queryset = models.Temperature.objects.all()
+    serializer_class = serializers.TemperatureSerializer
+    filterset_class = filters.TemperatureFilterSet
     filter_backends = [OrderingFilter, DjangoFilterBackend]
     ordering_fields = ['timestamp']
     ordering = ['-timestamp']
 
 
 class WaterTemperatureViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = WaterTemperature.objects.all()
-    serializer_class = WaterTemperatureSerializer
-    filterset_class = WaterTemperatureFilterSet
+    queryset = models.WaterTemperature.objects.all()
+    serializer_class = serializers.WaterTemperatureSerializer
+    filterset_class = filters.WaterTemperatureFilterSet
     filter_backends = [OrderingFilter, DjangoFilterBackend]
     ordering_fields = ['timestamp']
     ordering = ['-timestamp']
 
 
 class WindDirectionViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = WindDirection.objects.all()
-    serializer_class = WindDirectionSerializer
-    filterset_class = WindDirectionFilterSet
+    queryset = models.WindDirection.objects.all()
+    serializer_class = serializers.WindDirectionSerializer
+    filterset_class = filters.WindDirectionFilterSet
     filter_backends = [OrderingFilter, DjangoFilterBackend]
     ordering_fields = ['timestamp']
     ordering = ['-timestamp']
 
 
 class WindSpeedViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = WindSpeed.objects.all()
-    serializer_class = WindSpeedSerializer
-    filterset_class = WindSpeedFilterSet
+    queryset = models.WindSpeed.objects.all()
+    serializer_class = serializers.WindSpeedSerializer
+    filterset_class = filters.WindSpeedFilterSet
     filter_backends = [OrderingFilter, DjangoFilterBackend]
     ordering_fields = ['timestamp']
     ordering = ['-timestamp']
 
+
+@api_view(['POST'])
+@permission_classes((permissions.AllowAny,))
+def station_restart(request):
+    try:
+        models.StationState.objects.create(
+            timestamp=datetime.datetime.utcnow(),
+            state=constants.StationState.RESTART_REQUESTED.value
+        )
+    except Exception as e:
+        print(e)
+        return Response(
+            {
+                'success': False,
+                'error': '''Could not request station restart, an error was encountered when writing RESTART_REQUESTED state.'''
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+    return Response(
+        {
+            'success': True,
+            'message': ' Station will be restarted within ~30 seconds.'
+        },
+        status=status.HTTP_200_OK
+    )
+
+
+@api_view(['GET'])
+def station_sleep(request):
+    try:
+        models.StationState.objects.create(
+            timestamp=datetime.datetime.utcnow(),
+            state=constants.StationState.SLEEP_REQUESTED
+        )
+    except Exception:
+        return Response(
+            {
+                'success': False,
+                'error': '''Could not request station sleep, an error was encountered when writing SLEEP_REQUESTED state.'''
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+    return Response(
+        {
+            'success': True,
+            'message': ' Station will go to sleep within ~30 seconds.'
+        },
+        status=status.HTTP_200_OK
+    )
+
+
+@api_view(['GET'])
+def station_wake(request):
+    try:
+        models.StationState.objects.create(
+            timestamp=datetime.datetime.utcnow(),
+            state=constants.StationState.WAKE_REQUESTED
+        )
+    except Exception:
+        return Response(
+            {
+                'success': False,
+                'error': '''Could not request station wake, an error was encountered when writing WAKE_REQUESTED state.'''
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+    return Response(
+        {
+            'success': True,
+            'message': ' Station will be awoken within ~30 seconds.'
+        },
+        status=status.HTTP_200_OK
+    )

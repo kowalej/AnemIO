@@ -1,7 +1,7 @@
 from django.db import models
 from .fields import UnixDateTimeField
-import pytz
 from . import constants
+
 
 class AccelerometerXyz(models.Model):
     id = models.IntegerField(primary_key=True, name='ROWID')
@@ -142,7 +142,7 @@ class StationLocation(models.Model):
 
 
 class StationState(models.Model):
-    id = models.IntegerField(primary_key=True, name='ROWID')
+    id = models.IntegerField(primary_key=True, name='ROWID', null=False, blank=True)
     timestamp = UnixDateTimeField(assume_milliseconds=True, blank=False, null=False)
     state = models.IntegerField(blank=True, null=True, choices=[(tag, tag.value) for tag in constants.StationState])
 

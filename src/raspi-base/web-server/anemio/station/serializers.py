@@ -1,25 +1,27 @@
 from rest_framework import serializers
-from .models import *
-from .serializerfields import UnixDateTimeField
-import pytz
+import station.models as models
+from station.serializerfields import UnixDateTimeField
+
 
 timestamp_serializer = UnixDateTimeField(assume_milliseconds=True)
 timestamp_dt_serialize = serializers.DateTimeField(source='timestamp')
+
 
 class AccelerometerXyzSerializer(serializers.ModelSerializer):
     timestamp = timestamp_serializer
     timestamp_dt = timestamp_dt_serialize
 
     class Meta:
-        model = AccelerometerXyz
+        model = models.AccelerometerXyz
         fields = '__all__'
+
 
 class AmbientLightStateSerializer(serializers.ModelSerializer):
     timestamp = timestamp_serializer
     timestamp_dt = timestamp_dt_serialize
 
     class Meta:
-        model = AmbientLightState
+        model = models.AmbientLightState
         fields = '__all__'
 
 
@@ -28,7 +30,7 @@ class AmbientLightValuesSerializer(serializers.ModelSerializer):
     timestamp_dt = timestamp_dt_serialize
 
     class Meta:
-        model = AmbientLightValues
+        model = models.AmbientLightValues
         fields = '__all__'
 
 
@@ -37,7 +39,7 @@ class CompassHeadingSerializer(serializers.ModelSerializer):
     timestamp_dt = timestamp_dt_serialize
 
     class Meta:
-        model = CompassHeading
+        model = models.CompassHeading
         fields = '__all__'
 
 
@@ -46,7 +48,7 @@ class CompassXyzSerializer(serializers.ModelSerializer):
     timestamp_dt = timestamp_dt_serialize
 
     class Meta:
-        model = CompassXyz
+        model = models.CompassXyz
         fields = '__all__'
 
 
@@ -66,7 +68,7 @@ class DeviceStateSerializer(serializers.ModelSerializer):
     #     return online_devices
 
     class Meta:
-        model = DeviceState
+        model = models.DeviceState
         fields = '__all__'
 
 
@@ -75,7 +77,7 @@ class HumiditySerializer(serializers.ModelSerializer):
     timestamp_dt = timestamp_dt_serialize
 
     class Meta:
-        model = Humidity
+        model = models.Humidity
         fields = '__all__'
 
 
@@ -84,7 +86,7 @@ class PressureAltitudeSerializer(serializers.ModelSerializer):
     timestamp_dt = timestamp_dt_serialize
 
     class Meta:
-        model = PressureAltitude
+        model = models.PressureAltitude
         fields = '__all__'
 
 
@@ -93,7 +95,7 @@ class PressurePressureSerializer(serializers.ModelSerializer):
     timestamp_dt = timestamp_dt_serialize
 
     class Meta:
-        model = PressurePressure
+        model = models.PressurePressure
         fields = '__all__'
 
 
@@ -102,7 +104,7 @@ class PressureTemperatureSerializer(serializers.ModelSerializer):
     timestamp_dt = timestamp_dt_serialize
 
     class Meta:
-        model = PressureTemperature
+        model = models.PressureTemperature
         fields = '__all__'
 
 
@@ -111,7 +113,7 @@ class RainStateSerializer(serializers.ModelSerializer):
     timestamp_dt = timestamp_dt_serialize
 
     class Meta:
-        model = RainState
+        model = models.RainState
         fields = '__all__'
 
 
@@ -120,7 +122,7 @@ class RainValuesSerializer(serializers.ModelSerializer):
     timestamp_dt = timestamp_dt_serialize
 
     class Meta:
-        model = RainValues
+        model = models.RainValues
         fields = '__all__'
 
 
@@ -129,7 +131,7 @@ class StationLocationSerializer(serializers.ModelSerializer):
     timestamp_dt = timestamp_dt_serialize
 
     class Meta:
-        model = StationLocation
+        model = models.StationLocation
         fields = '__all__'
 
 
@@ -138,7 +140,7 @@ class StationStateSerializer(serializers.ModelSerializer):
     timestamp_dt = timestamp_dt_serialize
 
     class Meta:
-        model = StationState
+        model = models.StationState
         fields = '__all__'
 
 
@@ -147,7 +149,7 @@ class TemperatureSerializer(serializers.ModelSerializer):
     timestamp_dt = timestamp_dt_serialize
 
     class Meta:
-        model = Temperature
+        model = models.Temperature
         fields = '__all__'
 
 
@@ -156,7 +158,7 @@ class WaterTemperatureSerializer(serializers.ModelSerializer):
     timestamp_dt = timestamp_dt_serialize
 
     class Meta:
-        model = WaterTemperature
+        model = models.WaterTemperature
         fields = '__all__'
 
 
@@ -165,7 +167,7 @@ class WindDirectionSerializer(serializers.ModelSerializer):
     timestamp_dt = timestamp_dt_serialize
 
     class Meta:
-        model = WindDirection
+        model = models.WindDirection
         fields = '__all__'
 
 
@@ -174,5 +176,5 @@ class WindSpeedSerializer(serializers.ModelSerializer):
     timestamp_dt = timestamp_dt_serialize
 
     class Meta:
-        model = WindSpeed
+        model = models.WindSpeed
         fields = '__all__'

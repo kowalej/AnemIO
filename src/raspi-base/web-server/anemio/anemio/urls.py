@@ -22,11 +22,12 @@ from station import views
 # Routers provide an easy way of automatically determining the URL conf.
 router = routers.DefaultRouter()
 
+# Raw station / sensor info.
 router.register(r'station/state', views.StationStateViewSet)
 router.register(r'station/location', views.StationLocationViewSet)
-
 router.register(r'sensors/state', views.DeviceStateViewSet)
 
+# Raw data.
 router.register(r'telemetry/accelerometer/xyz', views.AccelerometerXyzViewSet)
 router.register(r'telemetry/ambientlight/state', views.AmbientLightStateViewSet)
 router.register(r'telemetry/ambientlight/values', views.AmbientLightValuesViewSet)
@@ -45,6 +46,11 @@ router.register(r'telemetry/wind/speed', views.WindSpeedViewSet)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    # Commands and health check.
+    url(r'^station/restart', views.station_restart),
+    url(r'^station/sleep', views.station_sleep),
+    url(r'^station/wake', views.station_wake),
+    # url(r'station/health', views.StationHealthView),
     url(r'^', include(router.urls)),
     url(r'^api-auth/', include('rest_framework.urls'))
 ]   

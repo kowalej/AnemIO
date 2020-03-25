@@ -33,8 +33,7 @@ ALLOWED_HOSTS = []
 CONSTANCE_BACKEND = 'constance.backends.database.DatabaseBackend'
 
 CONSTANCE_CONFIG = {
-    'STATION_DATA_API_KEY': ('', 'Station data API key, '
-                       'API key used to post data to Open Weather Maps'),
+    'STATION_DATA_API_KEY': ('', 'Station data API key, ', 'API key used to post data to Open Weather Maps'),
 }
 
 # Application definition
@@ -150,7 +149,7 @@ REST_FRAMEWORK = {
     # Use Django's standard `django.contrib.auth` permissions,
     # or allow read-only access for unauthenticated users.
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
+        'rest_framework.permissions.DjangoModelPermissions'
     ],
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
