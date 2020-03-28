@@ -10,10 +10,14 @@ import station.filters as filters
 from django_filters.rest_framework.backends import DjangoFilterBackend
 import datetime
 from station import constants
+import logging
+import django.utils as utils
+import pytz
 
 
 # Create your views here.
 f = permissions.DjangoModelPermissions
+logger = logging.getLogger(__name__)
 
 
 class AccelerometerXyzViewSet(viewsets.ReadOnlyModelViewSet):
@@ -167,6 +171,47 @@ class WindSpeedViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 @permission_classes((permissions.IsAdminUser,))
+class StationHealthViewSet(viewsets.ViewSet):
+    def list(self, request, format=None):
+        try:
+            state = models.StationState.objects.latest('timestamp').state
+            device_status = models.DeviceState.objects.latest('timestamp')
+            cold_boot = models.StationState.objects.filter(
+                state=constants.StationState.SETUP_BOOT.value
+            ).latest('timestamp')
+            now = utils.timezone.make_aware(datetime.datetime.utcnow(), timezone=pytz.utc)
+            if cold_boot is not None:
+                uptime = now - cold_boot.timestamp
+            else:
+                uptime = datetime.timedelta(0, 0, 0)
+        except Exception as e:
+            print(e)
+            logger.error('Exception during health check.')
+            return Response(
+                {
+                    'success': False,
+                    'error': '''Could not perform health check, an error was encountered when processing values.'''
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        online_devices = [int(x) for x in device_status.online_devices.replace('[', '').replace(']', '').split(',') if len(x) > 0]
+        offline_devices = [int(x) for x in device_status.offline_devices.replace('[', '').replace(']', '').split(',') if len(x) > 0]
+        return Response(
+            {
+                'state': str(constants.StationState(state)),
+                'online_device_names': [str(constants.StationState(x)) for x in online_devices],
+                'offline_device_names': [str(constants.StationState(x)) for x in offline_devices],
+                'uptime': str(uptime),
+
+                'state_raw': state,
+                'online_devices_raw': online_devices,
+                'offline_devices_raw': offline_devices
+            },
+            status=status.HTTP_200_OK
+        )
+
+
+@permission_classes((permissions.IsAdminUser,))
 class StationControlRestartViewSet(viewsets.ViewSet):
     def list(self, request, format=None):
         try:
@@ -174,8 +219,8 @@ class StationControlRestartViewSet(viewsets.ViewSet):
                 timestamp=datetime.datetime.utcnow(),
                 state=constants.StationState.RESTART_REQUESTED.value
             )
-        except Exception as e:
-            print(e)
+        except Exception:
+            logger.error('Exception during request station restart.')
             return Response(
                 {
                     'success': False,
@@ -198,9 +243,10 @@ class StationControlSleepViewSet(viewsets.ViewSet):
         try:
             models.StationState.objects.create(
                 timestamp=datetime.datetime.utcnow(),
-                state=constants.StationState.SLEEP_REQUESTED
+                state=constants.StationState.SLEEP_REQUESTED.value
             )
         except Exception:
+            logger.error('Exception during request station sleep.')
             return Response(
                 {
                     'success': False,
@@ -223,9 +269,10 @@ class StationControlWakeViewSet(viewsets.ViewSet):
         try:
             models.StationState.objects.create(
                 timestamp=datetime.datetime.utcnow(),
-                state=constants.StationState.WAKE_REQUESTED
+                state=constants.StationState.WAKE_REQUESTED.value
             )
         except Exception:
+            logger.error('Exception during request station wake.')
             return Response(
                 {
                     'success': False,

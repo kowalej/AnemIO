@@ -1,10 +1,10 @@
 import datetime
-import time
 
 import django.conf as conf
 import django.db.models as models
 import django.utils as utils
 import pytz
+
 
 class UnixDateTimeField(models.DateTimeField):
     description = "Unix timestamp integer to datetime object"
@@ -27,7 +27,7 @@ class UnixDateTimeField(models.DateTimeField):
         try:
             if isinstance(val, unicode):  # Python 2.7 compatibility support
                 return True
-        except:
+        except Exception:
             pass
         return isinstance(val, str)
 
@@ -41,7 +41,7 @@ class UnixDateTimeField(models.DateTimeField):
         else:
             milliseconds = 0
             val = str(val)
-            if self.assume_milliseconds == True and len(val) == 13:
+            if self.assume_milliseconds is True and len(val) == 13:
                 milliseconds = int(val[-3:])
                 unix_timestamp = float(val[0:-3])
             else:
@@ -56,7 +56,8 @@ class UnixDateTimeField(models.DateTimeField):
 
     def get_db_prep_value(self, val, *args, **kwargs):
         if val is None:
-            if self.default == models.fields.NOT_PROVIDED: return None
+            if self.default == models.fields.NOT_PROVIDED:
+                return None
             return self.default
         epoch = datetime.datetime.utcfromtimestamp(0)
         if val.tzinfo is not None:

@@ -26,10 +26,10 @@ router.get_api_root_view().cls.__name__ = "Anemio Documentation"
 router.get_api_root_view().cls.__doc__ = "The following are the various APIs available on the station."
 
 # Health check and control commands.
-# url(r'station/health', views.StationHealthView),
-router.register(r'station/control/restart', views.StationControlRestartViewSet, basename='')
-router.register(r'station/control/sleep', views.StationControlSleepViewSet, basename='')
-router.register(r'station/control/wake', views.StationControlWakeViewSet, basename='')
+router.register(r'station/health', views.StationHealthViewSet, basename='station/health')
+router.register(r'station/control/restart', views.StationControlRestartViewSet, basename='station/control/restart')
+router.register(r'station/control/sleep', views.StationControlSleepViewSet, basename='station/control/sleep')
+router.register(r'station/control/wake', views.StationControlWakeViewSet, basename='station/control/wake')
 
 # Raw station / sensor info.
 router.register(r'station/state', views.StationStateViewSet)
@@ -58,4 +58,4 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     url(r'^', include(router.urls)),
     url(r'^api-auth/', include('rest_framework.urls'))
-]   
+]

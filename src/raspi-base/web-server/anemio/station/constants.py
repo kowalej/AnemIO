@@ -56,4 +56,3 @@ class StationState(Enum):
     WAKE_REQUESTED = 7  # Wake requested, awaiting completion, will transition to online.
     SETUP_WAKE = 8  # Station is setting up (from boot).
     UNREACHABLE = 9 # No signal has been recieved for awhile.
-    

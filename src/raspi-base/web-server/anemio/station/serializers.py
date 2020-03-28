@@ -1,6 +1,7 @@
 from rest_framework import serializers
 import station.models as models
 from station.serializerfields import UnixDateTimeField
+from station import constants
 
 
 timestamp_serializer = UnixDateTimeField(assume_milliseconds=True)
@@ -55,17 +56,16 @@ class CompassXyzSerializer(serializers.ModelSerializer):
 class DeviceStateSerializer(serializers.ModelSerializer):
     timestamp = timestamp_serializer
     timestamp_dt = timestamp_dt_serialize
-    # online_devices = serializers.SerializerMethodField()
+    online_devices = serializers.SerializerMethodField('get_online_devices')
+    offline_devices = serializers.SerializerMethodField('get_offline_devices')
 
-    # def get_online_devices(self, obj):
-    #     online_devices = obj.online_devices
-    #     if online_devices is not None:
-    #         devices_typed = []
-    #         online_devices = online_devices.replace('[','').replace(']','').split(',')
-    #         for device in online_devices:
-    #             devices_typed.append(str(constants.Devices(int(device))))
-    #         return devices_typed
-    #     return online_devices
+    def get_online_devices(self, obj):
+        online_devices = [int(x) for x in obj.online_devices.replace('[', '').replace(']', '').split(',') if len(x) > 0]
+        return online_devices
+
+    def get_offline_devices(self, obj):
+        offline_devices = [int(x) for x in obj.offline_devices.replace('[', '').replace(']', '').split(',') if len(x) > 0]
+        return offline_devices
 
     class Meta:
         model = models.DeviceState
