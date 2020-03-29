@@ -78,6 +78,9 @@
     <ClInclude Include="RadioTransceiver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="BatteryInfoProvider.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AnemioStation.cpp">
@@ -111,6 +114,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="SampleSet.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BatteryInfoProvider.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -28,6 +28,11 @@ namespace {
 	const uint8_t AMBIENT_LIGHT_SENSOR_INPUT_PIN = A2;
 	const uint32_t AMBIENT_LIGHT_SENSOR_RESISTANCE_OHM = 100000; // This is the value of the internal resistor in the sensor.
 
+	// Battery info (percent charge).
+	constexpr uint8_t BATTERY_INFO_UPDATE_RATE_HZ = 0.1666f; // Update rate of battery level.
+	const uint8_t BATTERY_INFO_INPUT_PIN = A6; // Battery voltage divider pin.
+	const uint8_t BATTERY_LEVEL_FAULT_MAX = 25; // Consecutive read faults, before taking offline.
+
 	// Compass / accelerometer sensor.
 	const uint8_t COMPASS_ACCELEROMETER_UPDATE_RATE_HZ = 2; // Update rate of compass / accelerometer sensor.
 
@@ -71,7 +76,7 @@ namespace {
 	const uint16_t WATER_TEMP_THERMISTOR_NOMINAL_OHMS = 10000; // The nominal resistance at the nominal temperature of the thermistor (temperature probe).
 	const uint16_t WATER_TEMP_THERMISTOR_NOMINAL_TEMPERATURE = 25; // The nominal temperature for the probe.
 	const uint16_t WATER_TEMP_THERMISTOR_BETA_COEFFICIENT = 3950; // This is the beta coefficient used for the Steinhart calculation.
-	
+
 	// Radio settings.
 	const uint8_t RADIO_CS_SLAVE_SELECT_PIN = 53; // Chip select CS (aka SS - slave select).
 	const uint8_t RADIO_INTERRUPT_PIN = 2;
@@ -94,19 +99,21 @@ namespace {
 	// Actual physical peripherals.
 	enum Devices {
 		AMBIENT_LIGHT = 0,
-		COMPASS_ACCELEROMETER = 1,
-		PRESSURE = 2,
-		RAIN = 3,
-		TEMPERATURE_HUMIDITY = 4,
-		WATER_TEMPERATURE = 5,
-		WIND_DIRECTION = 6,
-		WIND_SPEED = 7,
-		TOTAL = 8
+		BATTERY_INFO = 1,
+		COMPASS_ACCELEROMETER = 2,
+		PRESSURE = 3,
+		RAIN = 4,
+		TEMPERATURE_HUMIDITY = 5,
+		WATER_TEMPERATURE = 6,
+		WIND_DIRECTION = 7,
+		WIND_SPEED = 8,
+		TOTAL = 9
 	};
 
 	// Names of the physical peripherals (for reporting).
 	const char* DeviceNames[] = {
 		"AMBIENT_LIGHT",
+		"BATTERY_INFO",
 		"COMPASS_ACCELEROMETER",
 		"PRESSURE",
 		"RAIN",
@@ -120,16 +127,17 @@ namespace {
 	namespace ReadingChecks {
 		enum ReadingChecks {
 			AMBIENT_LIGHT = 0,
-			AMBIENT_LIGHT_STATE = 1,
-			COMPASS_ACCELEROMETER = 2,
-			PRESSURE = 3,
-			RAIN = 4,
-			RAIN_STATE = 5,
-			TEMPERATURE_HUMIDITY = 6,
-			WATER_TEMPERATURE = 7,
-			WIND_DIRECTION = 8,
-			WIND_SPEED = 9,
-			TOTAL = 10
+			BATTERY_INFO = 1,
+			AMBIENT_LIGHT_STATE = 2,
+			COMPASS_ACCELEROMETER = 3,
+			PRESSURE = 4,
+			RAIN = 5,
+			RAIN_STATE = 6,
+			TEMPERATURE_HUMIDITY = 7,
+			WATER_TEMPERATURE = 8,
+			WIND_DIRECTION = 9,
+			WIND_SPEED = 10,
+			TOTAL = 11
 		};
 	}
 
@@ -138,19 +146,21 @@ namespace {
 		enum Readings {
 			AMBIENT_LIGHT_VALUES = 0,
 			AMBIENT_LIGHT_STATE = 1,
-			COMPASS_XYZ = 2,
-			COMPASS_HEADING = 3,
-			ACCELEROMETER_XYZ = 4,
-			PRESSURE_PRESSURE = 5,
-			PRESSURE_TEMPERATURE = 6,
-			PRESSURE_ALTITUDE = 7,
-			RAIN_VALUES = 8,
-			RAIN_STATE = 9,
-			TEMPERATURE = 10,
-			HUMIDITY = 11,
-			WATER_TEMPERATURE = 12,
-			WIND_DIRECTION = 13,
-			WIND_SPEED = 14
+			BATTERY_LEVEL = 2,
+			COMPASS_XYZ = 3,
+			COMPASS_HEADING = 4,
+			ACCELEROMETER_XYZ = 5,
+			PRESSURE_PRESSURE = 6,
+			PRESSURE_TEMPERATURE = 7,
+			PRESSURE_ALTITUDE = 8,
+			RAIN_VALUES = 9,
+			RAIN_STATE = 10,
+			TEMPERATURE = 11,
+			HUMIDITY = 12,
+			WATER_TEMPERATURE = 13,
+			WIND_DIRECTION = 14,
+			WIND_SPEED = 15,
+			TOTAL = 16
 		};
 	}
 

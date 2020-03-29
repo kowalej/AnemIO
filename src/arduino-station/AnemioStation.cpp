@@ -48,6 +48,8 @@ bool AnemioStation::checkDeviceOnline_(Devices device) {
 	switch (device) {
 	case Devices::AMBIENT_LIGHT:
 		return _ambientLightProvider.isOnline();
+	case Devices::BATTERY_INFO:
+		return _batteryInfoProvider.isOnline();
 	case Devices::COMPASS_ACCELEROMETER:
 		return _compassAccelerometerProvider.isOnline();
 	case Devices::PRESSURE:
@@ -69,6 +71,8 @@ bool AnemioStation::setupDevice_(Devices device) {
 	switch (device) {
 	case Devices::AMBIENT_LIGHT:
 		return _ambientLightProvider.setup();
+	case Devices::BATTERY_INFO:
+		return _batteryInfoProvider.setup();
 	case Devices::COMPASS_ACCELEROMETER:
 		return _compassAccelerometerProvider.setup();
 	case Devices::PRESSURE:
@@ -341,6 +345,20 @@ void AnemioStation::loop() {
 			_lastCheck[ReadingChecks::ReadingChecks::WIND_SPEED] = millis();
 
 			debugD("Wind speed / temperature check end: %lu\n", millis());
+		}
+
+		if (_online[Devices::BATTERY_INFO] && (TIME_DELTA(_lastCheck[ReadingChecks::ReadingChecks::BATTERY_INFO]) >= UPDATE_RATE_MS(BATTERY_INFO_UPDATE_RATE_HZ))) {
+			debugD("----------------------");
+			debugD("Battery info check start: %lu\n", millis());
+
+			float batteryLevel = _batteryInfoProvider.getBatteryLevel();
+			_sampleSet.batteryLevel.add(Pair<unsigned long, float>(millis(), batteryLevel, false);
+
+			debugD("Battery (%%) %s", String(batteryLevel * 100).c_str());
+
+			_lastCheck[ReadingChecks::ReadingChecks::BATTERY_INFO] = millis();
+
+			debugD("Battery info check end: %lu\n", millis());
 		}
 
 		// Transmit data to "ground" station.

@@ -45,6 +45,7 @@ class AnemioStation {
 		SampleSet _sampleSet; // Stores the sampling information from all sensors.
 
 		AmbientLightProvider _ambientLightProvider;
+		BatteryInfoProvider _batteryInfoProvider;
 		CompassAccelerometerProvider _compassAccelerometerProvider;
 		PressureProvider _pressureProvider;
 		RainProvider _rainProvider;

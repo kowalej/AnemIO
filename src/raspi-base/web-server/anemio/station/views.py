@@ -176,6 +176,9 @@ class StationHealthViewSet(viewsets.ViewSet):
         try:
             state = models.StationState.objects.latest('timestamp').state
             device_status = models.DeviceState.objects.latest('timestamp')
+            battery_level = models.BatteryLevel.objects.latest('timestamp')
+
+            # Get uptime.
             cold_boot = models.StationState.objects.filter(
                 state=constants.StationState.SETUP_BOOT.value
             ).latest('timestamp')
@@ -184,6 +187,14 @@ class StationHealthViewSet(viewsets.ViewSet):
                 uptime = now - cold_boot.timestamp
             else:
                 uptime = datetime.timedelta(0, 0, 0)
+
+            # Check what devices went offline since boot.
+            any_offline_since_boot = models.DeviceState.objects.filter(timestamp__gt=cold_boot.timestamp).exclude(offline_devices='[]')
+            any_offline_since_boot_devices = []
+            for device in any_offline_since_boot:
+                offline_devices = [int(x) for x in device.offline_devices.replace('[', '').replace(']', '').split(',') if len(x) > 0]
+                any_offline_since_boot_devices.extend(offline_devices)
+            any_offline_since_boot_devices = set(any_offline_since_boot_devices)
         except Exception as e:
             print(e)
             logger.error('Exception during health check.')
@@ -199,13 +210,16 @@ class StationHealthViewSet(viewsets.ViewSet):
         return Response(
             {
                 'state': str(constants.StationState(state)),
-                'online_device_names': [str(constants.StationState(x)) for x in online_devices],
-                'offline_device_names': [str(constants.StationState(x)) for x in offline_devices],
                 'uptime': str(uptime),
-
+                'booted_at': cold_boot.timestamp,
+                'battery_percent': battery_percent,
+                'online_devices': [str(constants.Devices(x)) for x in online_devices],
+                'offline_devices': [str(constants.Devices(x)) for x in offline_devices],
+                'went_offline_since_boot_devices': [str(constants.Devices(x)) for x in any_offline_since_boot_devices],
                 'state_raw': state,
                 'online_devices_raw': online_devices,
-                'offline_devices_raw': offline_devices
+                'offline_devices_raw': offline_devices,
+                'went_offline_since_boot_devices_raw': any_offline_since_boot_devices
             },
             status=status.HTTP_200_OK
         )

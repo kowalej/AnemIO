@@ -34,7 +34,7 @@ router.register(r'station/control/wake', views.StationControlWakeViewSet, basena
 # Raw station / sensor info.
 router.register(r'station/state', views.StationStateViewSet)
 router.register(r'station/location', views.StationLocationViewSet)
-router.register(r'sensors/state', views.DeviceStateViewSet)
+router.register(r'devices/state', views.DeviceStateViewSet)
 
 # Raw data.
 router.register(r'telemetry/accelerometer/xyz', views.AccelerometerXyzViewSet)

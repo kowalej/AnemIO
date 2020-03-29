@@ -37,33 +37,38 @@ COMPACT_MESSAGES_END = "$$"
 # Maximum allowed time to receive no radio messages, until reporting that we are in unreachable state.
 MAX_NO_RECEIVE_SECONDS = 5
 
+
 class Devices(Enum):
     AMBIENT_LIGHT = 0
-    COMPASS_ACCELEROMETER = 1
-    PRESSURE = 2
-    RAIN = 3
-    TEMPERATURE_HUMIDITY = 4
-    WATER_TEMPERATURE = 5
-    WIND_DIRECTION = 6
-    WIND_SPEED = 7
-    TOTAL = 8
+    BATTERY_INFO = 1
+    COMPASS_ACCELEROMETER = 2
+    PRESSURE = 3
+    RAIN = 4
+    TEMPERATURE_HUMIDITY = 5
+    WATER_TEMPERATURE = 6
+    WIND_DIRECTION = 7
+    WIND_SPEED = 8
+    TOTAL = 9
+
 
 class SensorCategory(Enum):
     AMBIENT_LIGHT_VALUES = 0
     AMBIENT_LIGHT_STATE = 1
-    COMPASS_XYZ = 2
-    COMPASS_HEADING = 3
-    ACCELEROMETER_XYZ = 4
-    PRESSURE_PRESSURE = 5
-    PRESSURE_TEMPERATURE = 6
-    PRESSURE_ALTITUDE = 7
-    RAIN_VALUES = 8
-    RAIN_STATE = 9
-    TEMPERATURE = 10
-    HUMIDITY = 11
-    WATER_TEMPERATURE = 12
-    WIND_DIRECTION = 13
-    WIND_SPEED = 14
+    BATTERY_LEVEL = 2
+    COMPASS_XYZ = 3
+    COMPASS_HEADING = 4
+    ACCELEROMETER_XYZ = 5
+    PRESSURE_PRESSURE = 6
+    PRESSURE_TEMPERATURE = 7
+    PRESSURE_ALTITUDE = 8
+    RAIN_VALUES = 9
+    RAIN_STATE = 10
+    TEMPERATURE = 11
+    HUMIDITY = 12
+    WATER_TEMPERATURE = 13
+    WIND_DIRECTION = 14
+    WIND_SPEED = 15
+
 
 class RadioCommands(Enum):
     SETUP_START = 1
@@ -77,6 +82,8 @@ class RadioCommands(Enum):
     SLEEP = 9
     WAKE = 10
     RESTART = 11
+    TOTAL = 12
+
 
 class StationState(Enum):
     UNKNOWN = -1  # Damemon started, cannot determine state.
