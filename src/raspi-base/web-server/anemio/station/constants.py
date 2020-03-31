@@ -66,8 +66,10 @@ class StationState(Enum):
     ONLINE = 2  # Normal operation.
     RESTART_REQUESTED = 3  # Restart requested, awaiting completion, will transition to RESTARTING, then SETUP_BOOT / ONLINE.
     RESTARTING = 4  # Station acknowledged restart request, now we are awaiting it.
-    SLEEP_REQUESTED = 5  # Sleep mode requested, awaiting completion, will transition to sleeping.
+    SLEEP_REQUESTED = 5  # Sleep mode requested, awaiting completion, will transition to SLEEPING.
     SLEEPING = 6  # Save power - station will check for command once and awhile.
-    WAKE_REQUESTED = 7  # Wake requested, awaiting completion, will transition to online.
+    WAKE_REQUESTED = 7  # Wake requested, awaiting completion, will transition to ONLINE.
     SETUP_WAKE = 8  # Station is setting up (from boot).
-    UNREACHABLE = 9 # No signal has been recieved for awhile.
+    CALIBRATE_REQUESTED = 9  # Calibrate mode requested, awaiting completion, will transition to CALIBRATING.
+    CALIBRATING = 10,  # Station acknowledged calibration requested, now it is calibrating.
+    UNREACHABLE = 11  # No signal has been recieved for awhile.

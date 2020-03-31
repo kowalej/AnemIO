@@ -30,7 +30,7 @@ namespace {
 
 	// Battery info (percent charge).
 	constexpr uint8_t BATTERY_INFO_UPDATE_RATE_HZ = 0.1666f; // Update rate of battery level.
-	const uint8_t BATTERY_INFO_INPUT_PIN = A6; // Battery voltage divider pin.
+	const uint8_t BATTERY_LEVEL_INPUT_PIN = A6; // Battery voltage divider pin.
 	const uint8_t BATTERY_LEVEL_FAULT_MAX = 25; // Consecutive read faults, before taking offline.
 
 	// Compass / accelerometer sensor.
@@ -176,7 +176,9 @@ namespace {
 		SAMPLES_FINISH = 8,
 		SLEEP = 9,
 		WAKE = 10,
-		RESTART = 11
+		RESTART = 11,
+		CALIBRATE = 12,
+		TOTAL = 13
 	};
 }
 

@@ -109,6 +109,14 @@ class RadioDaemon():
 					)'''
 			)
 
+			# Create accelerometer XYZ table.
+			c.execute('''CREATE TABLE IF NOT EXISTS accelerometer_xyz
+						(timestamp INTEGER, x REAL, y REAL, z REAL)''')
+
+			# Create battery level table.
+			c.execute('''CREATE TABLE IF NOT EXISTS battery_level
+						(timestamp INTEGER, value REAL)''')
+
 			# Create ambient light values table.
 			c.execute('''CREATE TABLE IF NOT EXISTS ambient_light_values
 						(timestamp INTEGER, value REAL)''')
@@ -124,10 +132,6 @@ class RadioDaemon():
 			# Create compass heading table.
 			c.execute('''CREATE TABLE IF NOT EXISTS compass_heading
 						(timestamp INTEGER, value INTEGER)''')
-
-			# Create accelerometer XYZ table.
-			c.execute('''CREATE TABLE IF NOT EXISTS accelerometer_xyz
-						(timestamp INTEGER, x REAL, y REAL, z REAL)''')
 
 			# Create pressure values table.
 			c.execute('''CREATE TABLE IF NOT EXISTS pressure_pressure
@@ -205,6 +209,9 @@ class RadioDaemon():
 
 	# Apply logic to parsed messages (save to DB, push data, etc).
 	def _handle_messages(self, parsed_messages):
+
+		# Local functions.
+		# ----------------
 		def log_bad_command_format(command, contents):
 			self.logger.error('Bad command message format when executing %s command. Contents: %s.', str(command), contents)
 
@@ -223,7 +230,9 @@ class RadioDaemon():
 					self.current_sample_group_sample_count
 				)
 			self.logger.info('Done processing sample group: %s.', str(self.current_sample_group))
+		# End local functions.
 
+		# Command handling routing.
 		with closing(self.db_conn.cursor()) as c:
 			for message in parsed_messages:
 				command = message['radio_command']
@@ -371,6 +380,14 @@ class RadioDaemon():
 				elif command == RadioCommands.SAMPLES_FINISH:
 					end_sample_group()
 
+				# Station is done calibrating, so set it back online.
+				elif command == RadioCommands.CALIBRATION_FINISHED:
+					# Station is back online.
+					c.execute(
+						'INSERT INTO station_state(timestamp, state) VALUES (?,?)',
+						(timestamp, StationState.ONLINE.value)
+					)
+
 			# Save changes.
 			self.db_conn.commit()
 
@@ -401,7 +418,16 @@ class RadioDaemon():
 				station_state = self._get_station_state()
 
 				# If we are in online, setting up, or unreachable state, we will check for packets.
-				if station_state in [StationState.UNKNOWN, StationState.ONLINE, StationState.SETUP_BOOT, StationState.SETUP_WAKE, StationState.RESTARTING, StationState.SLEEPING, StationState.UNREACHABLE]:
+				if station_state in [
+					StationState.UNKNOWN,
+					StationState.ONLINE,
+					StationState.SETUP_BOOT,
+					StationState.SETUP_WAKE,
+					StationState.RESTARTING,
+					StationState.SLEEPING,
+					StationState.UNREACHABLE,
+					StationState.CALIBRATING
+				]:
 					if station_state not in [StationState.UNREACHABLE, StationState.SLEEPING, StationState.UNKNOWN]:
 						# Check for no signal timeout.
 						if self.radio_last_receive is not None:
@@ -469,6 +495,14 @@ class RadioDaemon():
 					self.logger.info('Wake request %s.', 'successful, setup should now begin' if success else 'unsuccessful')
 					if success:
 						self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.ONLINE)
+
+				# Requested calibration, so we try to send the calibrate command to the station.
+				elif station_state == StationState.CALIBRATE_REQUESTED:
+					self.logger.info('Sending calibrate request to station.')
+					success = radio.send(RADIO_STATION_NODE_ID, str(RadioCommands.CALIBRATE.value))
+					self.logger.info('Calibrate request %s.', 'successful, setup should now begin' if success else 'unsuccessful')
+					if success:
+						self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.CALIBRATING)
 
 			except asyncio.CancelledError:
 				self.logger.info('Radio transceiving cancelled.')

@@ -203,6 +203,23 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 	}
 #pragma endregion
 
+#pragma region Battery Level
+	if (!sampleSet.ambientLightStateSamples.isEmpty()) {
+		// Start battery levelsamples.
+		sampleBaseTimestamp = sampleSet.batteryLevelSamples.peek(0)->first();
+		sampleGroupDividerMessage(Readings::Readings::BATTERY_LEVEL, "T,V", sampleSet.batteryLevelSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
+		sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+
+		// Samples.
+		while (!sampleSet.batteryLevelSamples.isEmpty()) {
+			Pair<unsigned long, String> sample;
+			sampleSet.batteryLevelSamples.pull(&sample);
+			sampleMessage(sample.first(), sample.second().c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.batteryLevelSamples.isEmpty());
+			sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+		}
+	}
+#pragma endregion
+
 #pragma region Compass XYZ.
 	if (!sampleSet.compassXYZSamples.isEmpty()) {
 		// Start compass XYZ samples.

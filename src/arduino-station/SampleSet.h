@@ -10,18 +10,6 @@
 #include "Coord.h"
 #include "WindSpeedPoint.h"
 
-enum SampleCategories {
-	AMBIENT_LIGHT = 0,
-	COMPASS_ACCELEROMETER = 1,
-	PRESSURE = 2,
-	RAIN = 3,
-	TEMPERATURE_HUMIDITY = 4,
-	WATER_TEMPERATURE = 5,
-	WIND_DIRECTION = 6,
-	WIND_SPEED = 7,
-	TOTAL = 8
-};
-
 class SampleSet {
 	public:
 		SampleSet();
@@ -29,6 +17,9 @@ class SampleSet {
 		// Ambient Light.
 		RingBufCPP<Pair<unsigned long, float>, GET_BUFFER_SIZE(AMBIENT_LIGHT_UPDATE_RATE_HZ, RADIO_SEND_INTERVAL_MS)> ambientLightSamples;
 		RingBufCPP<Pair<unsigned long, String>, GET_BUFFER_SIZE(AMBIENT_LIGHT_STATE_UPDATE_RATE_HZ, RADIO_SEND_INTERVAL_MS)> ambientLightStateSamples; // Ambient light state (aggregated).
+
+		// Battery Level.
+		RingBufCPP<Pair<unsigned long, float>, GET_BUFFER_SIZE(BATTERY_INFO_UPDATE_RATE_HZ, RADIO_SEND_INTERVAL_MS)> batteryLevelSamples;
 
 		// Compass / Accelerometer.
 		RingBufCPP<Pair<unsigned long, coord>, GET_BUFFER_SIZE(COMPASS_ACCELEROMETER_UPDATE_RATE_HZ, RADIO_SEND_INTERVAL_MS)> compassXYZSamples;

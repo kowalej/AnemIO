@@ -19,6 +19,9 @@ from RFM69 import FREQ_915MHZ, Packet, Radio
 from .constants import *
 from .radiodaemon import RadioDaemon, connect_db, get_ts
 
+
+test_db_name = 'anemio-test.db'
+
 # Fake radio (based on actual Radio), we override some initialization methods.
 class TestingRadio(Radio):
     def __init__(self, freqBand, nodeID, networkID=100, **kwargs):
@@ -46,7 +49,7 @@ class TestAnemioRadioDaemon(unittest.TestCase):
         logger = logging.getLogger('anemio-debug')
         logger.setLevel(logging.INFO)
         # Get our database.
-        self.db_conn = connect_db(logger=logger, db_name='anemio-test.db')
+        self.db_conn = connect_db(logger=logger, db_name=test_db_name)
 
     def run_daemon(self, packet_gen = None, send_return = True, is_initial = True):
         radio = TestingRadio(FREQ_915MHZ, 1, 1)
@@ -193,10 +196,47 @@ class TestAnemioRadioDaemon(unittest.TestCase):
         self.assertEqual(station_state[1][1], StationState.SETUP_WAKE.value)
         self.assertEqual(station_state[0][1], StationState.ONLINE.value)
 
+    def test_station_calibrate(self):
+        global packet_index
+
+        c = self.db_conn.cursor()
+        
+        # Send a series of startup packets.
+        packets = [
+            Packet(1, 1, 1, list(bytearray(b'[1]I:1 - Setup starting.'))),
+            Packet(1, 1, 1, list(bytearray(b'[2]D:0O:1 - AMBIENT_LIGHT setup was successful.'))),
+            Packet(1, 1, 1, list(bytearray(b'[3]O:1F:0 - setup complete with 0 devices offline.')))
+        ]
+        def packet_gen_local():
+            return packet_gen(packets)
+        self.run_daemon(packet_gen=packet_gen_local)
+
+        # Write to DB to request restart.
+        c.execute(
+            'INSERT INTO station_state(timestamp, state) VALUES(?,?)', 
+            (get_ts(datetime.datetime.utcnow()), StationState.CALIBRATE_REQUESTED.value)
+        )
+        self.db_conn.commit()
+
+        self.run_daemon(packet_gen=packet_gen_local, send_return=True, is_initial=False)
+
+        # Check if in calibrating state.
+        c.execute('SELECT * FROM station_state ORDER BY timestamp DESC, ROWID DESC LIMIT 1')
+        station_state = c.fetchone()
+        self.assertEqual(station_state[1], StationState.CALIBRATING.value)
+
+        packet_index = -1
+        self.run_daemon(packet_gen=packet_gen_local, is_initial=False)
+
+        # Check if we're done calibrating (back online).
+        c.execute('SELECT * FROM station_state ORDER BY timestamp DESC, ROWID DESC LIMIT 2')
+        station_state = c.fetchall()
+        self.assertEqual(station_state[0][1], StationState.ONLINE.value)
+
     def tearDown(self):
         self.db_conn.close()
-        self.db_conn.
-        os.remove()
+        try:
+            os.remove(test_db_name)
 
 if __name__ == '__main__':
     unittest.main()

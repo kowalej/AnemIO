@@ -38,6 +38,12 @@ class AmbientLightValuesViewSet(viewsets.ReadOnlyModelViewSet):
     filterset_class = filters.AmbientLightValuesFilterSet
 
 
+class BatteryLevel(viewsets.ReadOnlyModelViewSet):
+    queryset = models.BatteryLevel.objects.all()
+    serializer_class = serializers.BatteryLevelSerializer
+    filterset_class = filters.BatteryLevelFilterSet
+
+
 class CompassHeadingViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = models.CompassHeading.objects.all()
     serializer_class = serializers.CompassHeadingSerializer

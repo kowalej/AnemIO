@@ -7,18 +7,13 @@ bool WindDirectionProvider::setup() {
 		debugE("Setup failed, cannot find valid AS5040 magnetometer. Check wiring and your AS5040.");
 		return false;
 	}
-
-	if (true) {
-		calibrateZero();
+	
+	// Get the zero position that is stored in EEPROM.
+	_zeroPosition = EEPROM.readInt(EEPROM_WIND_DIRECTION_ZERO);
+	if (_zeroPosition == -1) {
+		_zeroPosition = 0; // Never calibrated, default to zero.
 	}
 
-	else {
-		// Get the zero position that is stored in EEPROM.
-		_zeroPosition = EEPROM.readInt(EEPROM_WIND_DIRECTION_ZERO);
-		if (_zeroPosition == -1) {
-			_zeroPosition = 0; // Never calibrated, default to zero.
-		}
-	}
 	debugI("Raw zero position of wind direction sensor (AS5040) is %d.", _zeroPosition);
 	return true;
 }

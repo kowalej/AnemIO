@@ -23,14 +23,14 @@ float BatteryInfoProvider::getBatteryLevel() {
 	checkFaults();
 
 	// Read temperature as Celsius (the default).
-	float t = // ANALOG READ
+	float t = analogRead(BATTERY_LEVEL_INPUT_PIN); // ANALOG READ
 
 	// Check if any reads failed and exit early (to try again).
-	if (// check if outside of 12v range) {
-		printW("Failed to read battery level, voltage reading is out of 12V range!");
-		_numConsecutiveBatteryLevelFaults += 1;
-		return NAN;
-	}
+	//if (// check if outside of 12v range) {
+	//	printW("Failed to read battery level, voltage reading is out of 12V range!");
+	//	_numConsecutiveBatteryLevelFaults += 1;
+	//	return NAN;
+	//}
 
 	// Good read, reset faults and return value.
 	_numConsecutiveBatteryLevelFaults = 0;

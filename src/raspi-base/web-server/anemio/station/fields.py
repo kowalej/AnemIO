@@ -16,7 +16,7 @@ class UnixDateTimeField(models.DateTimeField):
     def deconstruct(self):
         name, path, args, kwargs = super().deconstruct()
         # Only include kwarg if it's not the default
-        if self.assume_milliseconds != False:
+        if self.assume_milliseconds is not False:
             kwargs['assume_milliseconds'] = self.assume_milliseconds
         return name, path, args, kwargs
 

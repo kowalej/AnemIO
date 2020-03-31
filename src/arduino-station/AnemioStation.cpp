@@ -352,9 +352,9 @@ void AnemioStation::loop() {
 			debugD("Battery info check start: %lu\n", millis());
 
 			float batteryLevel = _batteryInfoProvider.getBatteryLevel();
-			_sampleSet.batteryLevel.add(Pair<unsigned long, float>(millis(), batteryLevel, false);
+			_sampleSet.batteryLevelSamples.add(Pair<unsigned long, float>(millis(), batteryLevel), false);
 
-			debugD("Battery (%%) %s", String(batteryLevel * 100).c_str());
+			debugD("Battery level %s%%", String(batteryLevel * 100).c_str());
 
 			_lastCheck[ReadingChecks::ReadingChecks::BATTERY_INFO] = millis();
 
@@ -375,10 +375,17 @@ void AnemioStation::loop() {
 		if (TIME_DELTA(_radioLastReceive) >= RADIO_RECEIVE_INTERVAL_MS) {
 			debugD("Radio receive start: %lu\n", millis());
 			String receivedValue = _radioTransceiver.receive(RADIO_RECEIVE_WAIT_MS);
-			// Put into sleep mode.
-			if (receivedValue == "[" + String(RadioCommands::SLEEP) + "]") _sleeping = true;
+			// Put into sleep mode (note, that sleep mode has a different routing for getting commands above).
+			if (receivedValue == "[" + String(RadioCommands::SLEEP) + "]") {
+				_sleeping = true;
+			}
 			// Restart the device.
-			else if (receivedValue == "[" + String(RadioCommands::RESTART) + "]") soft_restart();
+			else if (receivedValue == "[" + String(RadioCommands::RESTART) + "]") {
+				soft_restart();
+			}
+			else if (receivedValue == "[" + String(RadioCommands::CALIBRATE) + "]") {
+				_windDirectionProvider.calibrateZero();
+			}
 			_radioLastReceive = millis();
 			debugD("Radio receive end: %lu\n", _radioLastTransmit);
 		}

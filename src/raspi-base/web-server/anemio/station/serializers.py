@@ -1,7 +1,6 @@
 from rest_framework import serializers
 import station.models as models
 from station.serializerfields import UnixDateTimeField
-from station import constants
 
 
 timestamp_serializer = UnixDateTimeField(assume_milliseconds=True)
