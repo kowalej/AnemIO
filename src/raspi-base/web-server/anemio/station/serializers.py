@@ -34,6 +34,15 @@ class AmbientLightValuesSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class BatteryLevelSerializer(serializers.ModelSerializer):
+    timestamp = timestamp_serializer
+    timestamp_dt = timestamp_dt_serialize
+
+    class Meta:
+        model = models.BatteryLevel
+        fields = '__all__'
+
+
 class CompassHeadingSerializer(serializers.ModelSerializer):
     timestamp = timestamp_serializer
     timestamp_dt = timestamp_dt_serialize

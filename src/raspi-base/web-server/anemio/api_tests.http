@@ -1,0 +1,5 @@
+### Get station health.
+GET http://127.0.0.1:8000/station/health
+Authorization: Api-Key 6rhrDF0k.4xmUC8Cqr670COcHuBmi28HBMHZSUPa6
+
+###

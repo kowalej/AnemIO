@@ -22,11 +22,12 @@ from station import views
 # Routers provide an easy way of automatically determining the URL conf.
 router = routers.DefaultRouter()
 
-router.get_api_root_view().cls.__name__ = "Anemio Documentation"
+router.get_api_root_view().cls.__name__ = "Station Documentation"
 router.get_api_root_view().cls.__doc__ = "The following are the various APIs available on the station."
 
 # Health check and control commands.
 router.register(r'station/health', views.StationHealthViewSet, basename='station/health')
+router.register(r'station/control/calibrate', views.StationControlCalibrateViewSet, basename='station/control/calibrate')
 router.register(r'station/control/restart', views.StationControlRestartViewSet, basename='station/control/restart')
 router.register(r'station/control/sleep', views.StationControlSleepViewSet, basename='station/control/sleep')
 router.register(r'station/control/wake', views.StationControlWakeViewSet, basename='station/control/wake')

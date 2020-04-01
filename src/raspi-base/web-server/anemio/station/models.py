@@ -35,6 +35,16 @@ class AmbientLightValues(models.Model):
         db_table = 'ambient_light_values'
 
 
+class BatteryLevel(models.Model):
+    id = models.IntegerField(primary_key=True, name='ROWID')
+    timestamp = UnixDateTimeField(assume_milliseconds=True, blank=False, null=False)
+    value = models.FloatField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'battery_level'
+
+
 class CompassHeading(models.Model):
     id = models.IntegerField(primary_key=True, name='ROWID')
     timestamp = UnixDateTimeField(assume_milliseconds=True, blank=False, null=False)

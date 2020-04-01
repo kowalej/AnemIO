@@ -92,86 +92,87 @@ class RadioDaemon():
 	def _create_db_schema(self):
 		with closing(self.db_conn.cursor()) as c:
 			# Create station location table.
-			c.execute('''CREATE TABLE IF NOT EXISTS station_location
-						(timestamp INTEGER, lat REAL, lon REAL, is_actual INTEGER)''')
+			c.execute('''CREATE TABLE IF NOT EXISTS station_location (timestamp INTEGER NOT NULL, lat REAL, lon REAL, is_actual INTEGER)''')
+			c.execute('''CREATE INDEX IF NOT EXISTS station_location_index ON station_location (timestamp)''')
 
 			# Create station state table.
-			c.execute('''CREATE TABLE IF NOT EXISTS station_state
-						(timestamp INTEGER, state INTEGER)''')
+			c.execute('''CREATE TABLE IF NOT EXISTS station_state (timestamp INTEGER NOT NULL, state INTEGER)''')
+			c.execute('''CREATE INDEX IF NOT EXISTS station_state_index ON station_state (timestamp)''')
 
 			# Create station device state table.
-			c.execute(
-					'''CREATE TABLE IF NOT EXISTS device_state
-						(timestamp INTEGER, 
+			c.execute('''CREATE TABLE IF NOT EXISTS device_state
+					(
+						timestamp INTEGER NOT NULL, 
 						online_devices TEXT,
 						offline_devices TEXT,
 						is_setup INTEGER
 					)'''
 			)
+			c.execute('''CREATE INDEX IF NOT EXISTS device_state_index ON device_state (timestamp)''')
 
 			# Create accelerometer XYZ table.
-			c.execute('''CREATE TABLE IF NOT EXISTS accelerometer_xyz
-						(timestamp INTEGER, x REAL, y REAL, z REAL)''')
+			c.execute('''CREATE TABLE IF NOT EXISTS accelerometer_xyz (timestamp INTEGER NOT NULL, x REAL, y REAL, z REAL)''')
+			c.execute('''CREATE INDEX IF NOT EXISTS accelerometer_xyz_index ON accelerometer_xyz(timestamp)''')
 
 			# Create battery level table.
-			c.execute('''CREATE TABLE IF NOT EXISTS battery_level
-						(timestamp INTEGER, value REAL)''')
+			c.execute('''CREATE TABLE IF NOT EXISTS battery_level (timestamp INTEGER NOT NULL, value REAL)''')
+			c.execute('''CREATE INDEX IF NOT EXISTS battery_level_index ON battery_level (timestamp)''')
 
 			# Create ambient light values table.
-			c.execute('''CREATE TABLE IF NOT EXISTS ambient_light_values
-						(timestamp INTEGER, value REAL)''')
+			c.execute('''CREATE TABLE IF NOT EXISTS ambient_light_values (timestamp INTEGER NOT NULL, value REAL)''')
+			c.execute('''CREATE INDEX IF NOT EXISTS ambient_light_values_index ON ambient_light_values (timestamp)''')
 
 			# Create ambient light state table.
-			c.execute('''CREATE TABLE IF NOT EXISTS ambient_light_state
-						(timestamp INTEGER, value TEXT)''')
+			c.execute('''CREATE TABLE IF NOT EXISTS ambient_light_state (timestamp INTEGER NOT NULL, value TEXT)''')
+			c.execute('''CREATE INDEX IF NOT EXISTS ambient_light_state_index ON ambient_light_state (timestamp)''')
 
 			# Create compass XYZ table.
-			c.execute('''CREATE TABLE IF NOT EXISTS compass_xyz
-						(timestamp INTEGER, x REAL, y REAL, z REAL)''')
+			c.execute('''CREATE TABLE IF NOT EXISTS compass_xyz (timestamp INTEGER NOT NULL, x REAL, y REAL, z REAL)''')
+			c.execute('''CREATE INDEX IF NOT EXISTS compass_xyz_index ON compass_xyz (timestamp)''')
 
 			# Create compass heading table.
-			c.execute('''CREATE TABLE IF NOT EXISTS compass_heading
-						(timestamp INTEGER, value INTEGER)''')
+			c.execute('''CREATE TABLE IF NOT EXISTS compass_heading (timestamp INTEGER NOT NULL, value INTEGER)''')
+			c.execute('''CREATE INDEX IF NOT EXISTS compass_heading_index ON compass_heading (timestamp)''')
 
 			# Create pressure values table.
-			c.execute('''CREATE TABLE IF NOT EXISTS pressure_pressure
-						(timestamp INTEGER, value REAL)''')
+			c.execute('''CREATE TABLE IF NOT EXISTS pressure_pressure (timestamp INTEGER NOT NULL, value REAL)''')
+			c.execute('''CREATE INDEX IF NOT EXISTS pressure_pressure_index ON pressure_pressure(timestamp)''')
 
 			# Create pressure temperature table.
-			c.execute('''CREATE TABLE IF NOT EXISTS pressure_temperature
-						(timestamp INTEGER, value REAL)''')
+			c.execute('''CREATE TABLE IF NOT EXISTS pressure_temperature (timestamp INTEGER NOT NULL, value REAL)''')
+			c.execute('''CREATE INDEX IF NOT EXISTS pressure_temperature_index ON pressure_temperature (timestamp)''')
 
 			# Create pressure altitude table.
-			c.execute('''CREATE TABLE IF NOT EXISTS pressure_altitude
-						(timestamp INTEGER, value REAL)''')
+			c.execute('''CREATE TABLE IF NOT EXISTS pressure_altitude (timestamp INTEGER NOT NULL, value REAL)''')
+			c.execute('''CREATE INDEX IF NOT EXISTS pressure_altitude_index ON pressure_altitude (timestamp)''')
 
-			# Create rain values table.
-			c.execute('''CREATE TABLE IF NOT EXISTS rain_values
-						(timestamp INTEGER, value REAL)''')
+			# Create rain values table (for onboard rain sensor which can detect raindrops).
+			c.execute('''CREATE TABLE IF NOT EXISTS rain_values (timestamp INTEGER NOT NULL, value REAL)''')
+			c.execute('''CREATE INDEX IF NOT EXISTS rain_values_index ON rain_values (timestamp)''')
 
-			# Create rain state table.
-			c.execute('''CREATE TABLE IF NOT EXISTS rain_state
-						(timestamp INTEGER, value TEXT)''')
+			# Create rain state table (for state estimated onboard by rain sensor values).
+			c.execute('''CREATE TABLE IF NOT EXISTS rain_state (timestamp INTEGER NOT NULL, value TEXT)''')
+			c.execute('''CREATE INDEX IF NOT EXISTS rain_state_index ON rain_state (timestamp)''')
 
 			# Create temperature table.
-			c.execute('''CREATE TABLE IF NOT EXISTS temperature
-						(timestamp INTEGER, value REAL)''')
+			c.execute('''CREATE TABLE IF NOT EXISTS temperature (timestamp INTEGER NOT NULL, value REAL)''')
+			c.execute('''CREATE INDEX IF NOT EXISTS temperature_index ON temperature (timestamp)''')
 
 			# Create humidity table.
-			c.execute('''CREATE TABLE IF NOT EXISTS humidity
-						(timestamp INTEGER, value REAL)''')
+			c.execute('''CREATE TABLE IF NOT EXISTS humidity (timestamp INTEGER NOT NULL, value REAL)''')
+			c.execute('''CREATE INDEX IF NOT EXISTS humidity_index ON humidity (timestamp)''')
 
 			# Create water temperature table.
-			c.execute('''CREATE TABLE IF NOT EXISTS water_temperature
-						(timestamp INTEGER, value REAL)''')
+			c.execute('''CREATE TABLE IF NOT EXISTS water_temperature (timestamp INTEGER NOT NULL, value REAL)''')
+			c.execute('''CREATE INDEX IF NOT EXISTS water_temperature_index ON water_temperature (timestamp)''')
 
 			# Create wind direction table.
-			c.execute('''CREATE TABLE IF NOT EXISTS wind_direction
-						(timestamp INTEGER, value INTEGER)''')
+			c.execute('''CREATE TABLE IF NOT EXISTS wind_direction (timestamp INTEGER NOT NULL, value INTEGER)''')
+			c.execute('''CREATE INDEX IF NOT EXISTS wind_direction_index ON wind_direction (timestamp)''')
 
 			# Create wind speed table.
-			c.execute('''CREATE TABLE IF NOT EXISTS wind_speed
-						(timestamp INTEGER, value REAL, tc REAL)''')
+			c.execute('''CREATE TABLE IF NOT EXISTS wind_speed (timestamp INTEGER NOT NULL, value REAL, tc REAL)''')
+			c.execute('''CREATE INDEX IF NOT EXISTS wind_speed_index ON wind_speed (timestamp)''')
 
 			# Save changes.
 			self.db_conn.commit()

@@ -2,7 +2,9 @@ import django_filters
 from .models import *
 from . import constants
 
+
 timestamp_dt_filter = django_filters.IsoDateTimeFromToRangeFilter(label='Timestamp Date and Time (ISO8601)',)
+
 
 class AccelerometerXyzFilterSet(django_filters.FilterSet):
     timestamp = timestamp_dt_filter
@@ -30,6 +32,15 @@ class AmbientLightValuesFilterSet(django_filters.FilterSet):
 
     class Meta:
         model = AmbientLightValues
+        fields = ['timestamp', 'value']
+
+
+class BatteryLevelFilterSet(django_filters.FilterSet):
+    timestamp = timestamp_dt_filter
+    value = django_filters.RangeFilter()
+
+    class Meta:
+        model = BatteryLevel
         fields = ['timestamp', 'value']
 
 

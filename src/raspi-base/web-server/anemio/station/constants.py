@@ -71,5 +71,5 @@ class StationState(Enum):
     WAKE_REQUESTED = 7  # Wake requested, awaiting completion, will transition to ONLINE.
     SETUP_WAKE = 8  # Station is setting up (from boot).
     CALIBRATE_REQUESTED = 9  # Calibrate mode requested, awaiting completion, will transition to CALIBRATING.
-    CALIBRATING = 10,  # Station acknowledged calibration requested, now it is calibrating.
+    CALIBRATING = 10  # Station acknowledged calibration requested, now it is calibrating.
     UNREACHABLE = 11  # No signal has been recieved for awhile.

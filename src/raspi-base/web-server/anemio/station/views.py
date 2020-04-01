@@ -1,5 +1,5 @@
 from rest_framework import status
-from rest_framework.decorators import api_view, action, permission_classes
+from rest_framework.decorators import permission_classes
 from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework import permissions
@@ -13,6 +13,7 @@ from station import constants
 import logging
 import django.utils as utils
 import pytz
+from rest_framework_api_key import permissions as api_permissions
 
 
 # Create your views here.
@@ -176,8 +177,9 @@ class WindSpeedViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ['-timestamp']
 
 
-@permission_classes((permissions.IsAdminUser,))
+#@permission_classes(( | ))
 class StationHealthViewSet(viewsets.ViewSet):
+    permission_classes = (permissions.IsAdminUser | api_permissions.HasAPIKey,)
     def list(self, request, format=None):
         try:
             state = models.StationState.objects.latest('timestamp').state
@@ -218,7 +220,7 @@ class StationHealthViewSet(viewsets.ViewSet):
                 'state': str(constants.StationState(state)),
                 'uptime': str(uptime),
                 'booted_at': cold_boot.timestamp,
-                'battery_percent': battery_percent,
+                'battery_level': battery_level,
                 'online_devices': [str(constants.Devices(x)) for x in online_devices],
                 'offline_devices': [str(constants.Devices(x)) for x in offline_devices],
                 'went_offline_since_boot_devices': [str(constants.Devices(x)) for x in any_offline_since_boot_devices],
@@ -226,6 +228,32 @@ class StationHealthViewSet(viewsets.ViewSet):
                 'online_devices_raw': online_devices,
                 'offline_devices_raw': offline_devices,
                 'went_offline_since_boot_devices_raw': any_offline_since_boot_devices
+            },
+            status=status.HTTP_200_OK
+        )
+
+
+@permission_classes((permissions.IsAdminUser,))
+class StationControlCalibrateViewSet(viewsets.ViewSet):
+    def list(self, request, format=None):
+        try:
+            models.StationState.objects.create(
+                timestamp=datetime.datetime.utcnow(),
+                state=constants.StationState.CALIBRATE_REQUESTED.value
+            )
+        except Exception:
+            logger.error('Exception during request station calibrate.')
+            return Response(
+                {
+                    'success': False,
+                    'error': '''Could not request station calibrate, an error was encountered when writing CALIBRATE_REQUESTED state.'''
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        return Response(
+            {
+                'success': True,
+                'message': ' Station will start calibrating within ~30 seconds (calibration will take ~5 seconds).'
             },
             status=status.HTTP_200_OK
         )
