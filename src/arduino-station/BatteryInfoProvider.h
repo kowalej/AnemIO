@@ -5,6 +5,7 @@
 
 #include "IDataProvider.h"
 #include "Constants.h"
+#include <Battery.h>
 
 class BatteryInfoProvider : public IDataProvider
 {
@@ -15,8 +16,7 @@ public:
 	float getBatteryLevel();
 
 private:
-	int _numConsecutiveBatteryLevelFaults = 0;
-	void checkFaults();
+	Battery batteryLevel = Battery(BATTERY_DISCHARGED_MILLIVOLTS, BATTERY_FULLCHARGED_MILLIVOLTS, BATTERY_LEVEL_INPUT_PIN);
 };
 
 #endif

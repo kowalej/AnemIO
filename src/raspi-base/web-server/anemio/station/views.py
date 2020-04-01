@@ -177,14 +177,22 @@ class WindSpeedViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ['-timestamp']
 
 
-#@permission_classes(( | ))
+@permission_classes((permissions.IsAdminUser | api_permissions.HasAPIKey,))
 class StationHealthViewSet(viewsets.ViewSet):
-    permission_classes = (permissions.IsAdminUser | api_permissions.HasAPIKey,)
     def list(self, request, format=None):
         try:
-            state = models.StationState.objects.latest('timestamp').state
-            device_status = models.DeviceState.objects.latest('timestamp')
-            battery_level = models.BatteryLevel.objects.latest('timestamp')
+            try:
+                state = models.StationState.objects.latest('timestamp').state
+            except models.StationState.DoesNotExist:
+                state = None
+            try:
+                device_status = models.DeviceState.objects.latest('timestamp')
+            except models.DeviceState.DoesNotExist:
+                device_status = None
+            try:
+                battery_level = models.BatteryLevel.objects.latest('timestamp').value
+            except models.BatteryLevel.DoesNotExist:
+                battery_level = None
 
             # Get uptime.
             cold_boot = models.StationState.objects.filter(
@@ -213,8 +221,13 @@ class StationHealthViewSet(viewsets.ViewSet):
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-        online_devices = [int(x) for x in device_status.online_devices.replace('[', '').replace(']', '').split(',') if len(x) > 0]
-        offline_devices = [int(x) for x in device_status.offline_devices.replace('[', '').replace(']', '').split(',') if len(x) > 0]
+        online_devices = []
+        offline_devices = []
+        if device_status is not None:
+            if device_status.online_devices is not None:
+                online_devices = [int(x) for x in device_status.online_devices.replace('[', '').replace(']', '').split(',') if len(x) > 0]
+            if device_status.offline_devices is not None:
+                offline_devices = [int(x) for x in device_status.offline_devices.replace('[', '').replace(']', '').split(',') if len(x) > 0]
         return Response(
             {
                 'state': str(constants.StationState(state)),

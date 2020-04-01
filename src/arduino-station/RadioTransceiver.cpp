@@ -169,6 +169,24 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 	sprintf(formatBuff, "[%d]T:%lu", RadioCommands::SAMPLES_START, samplesStartTime);
 	sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
 
+#pragma region Accelerometer XYZ.
+	if (!sampleSet.accelerometerXYZSamples.isEmpty()) {
+		// Start accelerometer XYZ samples.
+		sampleBaseTimestamp = sampleSet.accelerometerXYZSamples.peek(0)->first();
+		sampleGroupDividerMessage(Readings::Readings::ACCELEROMETER_XYZ, "T,X,Y,Z", sampleSet.accelerometerXYZSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
+		sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+
+		// Samples.
+		while (!sampleSet.accelerometerXYZSamples.isEmpty()) {
+			Pair<unsigned long, coord> sample;
+			sampleSet.accelerometerXYZSamples.pull(&sample);
+			snprintf(formatBuff, sizeof(formatBuff), "%s,%s,%s", String(sample.second().x, 2).c_str(), String(sample.second().y, 2).c_str(), String(sample.second().z, 2).c_str());
+			sampleMessage(sample.first(), formatBuff, sampleBaseTimestamp, sampleBuff, sampleSet.accelerometerXYZSamples.isEmpty());
+			sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
+		}
+	}
+#pragma endregion
+
 #pragma region Ambient Light Values.
 	if (!sampleSet.ambientLightSamples.isEmpty()) {
 		// Start ambient light samples.
@@ -250,24 +268,6 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 			Pair<unsigned long, int> sample;
 			sampleSet.compassHeadingSamples.pull(&sample);
 			sampleMessage(sample.first(), String(sample.second()).c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.compassHeadingSamples.isEmpty());
-			sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
-		}
-	}
-#pragma endregion
-
-#pragma region Accelerometer XYZ.
-	if (!sampleSet.accelerometerXYZSamples.isEmpty()) {
-		// Start accelerometer XYZ samples.
-		sampleBaseTimestamp = sampleSet.accelerometerXYZSamples.peek(0)->first();
-		sampleGroupDividerMessage(Readings::Readings::ACCELEROMETER_XYZ, "T,X,Y,Z", sampleSet.accelerometerXYZSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
-		sendMessageCompact(formatBuff, messageBuff, numSent, numSuccess, roudtripAverage);
-
-		// Samples.
-		while (!sampleSet.accelerometerXYZSamples.isEmpty()) {
-			Pair<unsigned long, coord> sample;
-			sampleSet.accelerometerXYZSamples.pull(&sample);
-			snprintf(formatBuff, sizeof(formatBuff), "%s,%s,%s", String(sample.second().x, 2).c_str(), String(sample.second().y, 2).c_str(), String(sample.second().z, 2).c_str());
-			sampleMessage(sample.first(), formatBuff, sampleBaseTimestamp, sampleBuff, sampleSet.accelerometerXYZSamples.isEmpty());
 			sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
 		}
 	}

@@ -119,6 +119,16 @@ class PressureTemperature(models.Model):
         db_table = 'pressure_temperature'
 
 
+class RainGauge(models.Model):
+    id = models.IntegerField(primary_key=True, name='ROWID')
+    timestamp = UnixDateTimeField(assume_milliseconds=True, blank=False, null=False)
+    value = models.FloatField(blank=True, null=True)
+
+    class Meta:
+        managed = True
+        db_table = 'rain_gauge'
+
+
 class RainState(models.Model):
     id = models.IntegerField(primary_key=True, name='ROWID')
     timestamp = UnixDateTimeField(assume_milliseconds=True, blank=False, null=False)

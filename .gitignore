@@ -264,3 +264,4 @@ venv
 .vscode
 
 RFM69/
+src/raspi-base/web-server/anemio/django.db

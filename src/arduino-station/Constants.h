@@ -14,6 +14,8 @@
 #define GET_BUFFER_SIZE(sensorRateHz, maxSendMs) (size_t(maxSendMs/1000 * sensorRateHz)) 
 
 namespace {
+	const uint8_t MCU_VOLTAGE = 5;
+
 	const uint16_t RADIO_SEND_INTERVAL_MS = 5000; // Maximum time between transmitting consecutive sample sets over the radio.
 	const uint16_t RADIO_RECEIVE_INTERVAL_MS = 15000; // Maximum time between receiving commands over the radio.
 	const uint16_t RADIO_RECEIVE_WAIT_MS = 500; // Default time to wait for command from base station.
@@ -31,7 +33,10 @@ namespace {
 	// Battery info (percent charge).
 	constexpr uint8_t BATTERY_INFO_UPDATE_RATE_HZ = 0.1666f; // Update rate of battery level.
 	const uint8_t BATTERY_LEVEL_INPUT_PIN = A6; // Battery voltage divider pin.
-	const uint8_t BATTERY_LEVEL_FAULT_MAX = 25; // Consecutive read faults, before taking offline.
+	const uint16_t BATTERY_LEVEL_R1_OHMS = 22000; // Impedence of "R1" for voltage divider.
+	const uint16_t BATTERY_LEVEL_R2_OHMS = 10000; // Impedence of "R2" for voltage divider.
+	const uint16_t BATTERY_DISCHARGED_MILLIVOLTS = 6200; // Voltage of battery when we consider it discharged (0%).
+	const uint16_t BATTERY_FULLCHARGED_MILLIVOLTS = 12600; // Voltage of battery when it is considered fully charged (100%).
 
 	// Compass / accelerometer sensor.
 	const uint8_t COMPASS_ACCELEROMETER_UPDATE_RATE_HZ = 2; // Update rate of compass / accelerometer sensor.

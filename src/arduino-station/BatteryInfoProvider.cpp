@@ -2,37 +2,18 @@
 
 BatteryInfoProvider::BatteryInfoProvider() { }
 
+// Voltage divider ratio for battery sense must be (R1 + R2) / R2 - see https://github.com/rlogiacco/BatterySense.
+const float VOLTAGE_DIV_RATIO = (BATTERY_LEVEL_R1_OHMS + BATTERY_LEVEL_R2_OHMS) / BATTERY_LEVEL_R2_OHMS;
+
 bool BatteryInfoProvider::setup()
 {
-	pinMode(WATER_TEMP_SENSOR_INPUT_PIN, INPUT);
-
-	// Note we will only power the thermistor when reading the temperature to avoid generating heat and wasting power.
-	pinMode(WATER_TEMP_SENSOR_TRIGGER_PIN, OUTPUT);
-	digitalWrite(WATER_TEMP_SENSOR_TRIGGER_PIN, LOW);
+	// We will use the sigmoidal function that the battery sense library offers, since it is the most accurate and we have the processing power.
+	batteryLevel.begin(MCU_VOLTAGE * 1000, VOLTAGE_DIV_RATIO, &sigmoidal);
 	_isOnline = true;
 	return _isOnline;
 }
 
-void BatteryInfoProvider::checkFaults() {
-	if (_numConsecutiveBatteryLevelFaults > BATTERY_LEVEL_FAULT_MAX) {
-		_isOnline = false;
-	}
-}
-
 float BatteryInfoProvider::getBatteryLevel() {
-	checkFaults();
-
-	// Read temperature as Celsius (the default).
-	float t = analogRead(BATTERY_LEVEL_INPUT_PIN); // ANALOG READ
-
-	// Check if any reads failed and exit early (to try again).
-	//if (// check if outside of 12v range) {
-	//	printW("Failed to read battery level, voltage reading is out of 12V range!");
-	//	_numConsecutiveBatteryLevelFaults += 1;
-	//	return NAN;
-	//}
-
-	// Good read, reset faults and return value.
-	_numConsecutiveBatteryLevelFaults = 0;
-	return t;
+	debugI("Battery voltage: %d.", batteryLevel.voltage());
+	return batteryLevel.level();
 }
