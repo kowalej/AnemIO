@@ -16,7 +16,7 @@ bool RadioTransceiver::setup() {
 	// Set modes / calibrate.
 	_radio.setHighPower(); // Set to high power since we are using RFM69HCW.
 	_radio.rcCalibration(); // Perform this calibration to optimize for temperature variability.
-	_radio.promiscuous(false); // Don't sniff all packets on network, since we are only ever sending messages anyways.
+	_radio.spyMode(false); // Don't sniff all packets on network, since we are only ever sending messages anyways.
 	_radio.setPowerLevel((int)(0.85f * 31)); // 85% (of 31).
 
 	// Encryption.
@@ -222,7 +222,7 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 #pragma endregion
 
 #pragma region Battery Level
-	if (!sampleSet.ambientLightStateSamples.isEmpty()) {
+	if (!sampleSet.batteryLevelSamples.isEmpty()) {
 		// Start battery levelsamples.
 		sampleBaseTimestamp = sampleSet.batteryLevelSamples.peek(0)->first();
 		sampleGroupDividerMessage(Readings::Readings::BATTERY_LEVEL, "T,V", sampleSet.batteryLevelSamples.numElements(), sampleBaseTimestamp, samplesStartTime, formatBuff, roudtripAverage);
@@ -230,9 +230,9 @@ Pair<int, int> RadioTransceiver::sendSamples(SampleSet& sampleSet) {
 
 		// Samples.
 		while (!sampleSet.batteryLevelSamples.isEmpty()) {
-			Pair<unsigned long, String> sample;
+			Pair<unsigned long, float> sample;
 			sampleSet.batteryLevelSamples.pull(&sample);
-			sampleMessage(sample.first(), sample.second().c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.batteryLevelSamples.isEmpty());
+			sampleMessage(sample.first(), String(sample.second()).c_str(), sampleBaseTimestamp, sampleBuff, sampleSet.batteryLevelSamples.isEmpty());
 			sendMessageCompact(sampleBuff, messageBuff, numSent, numSuccess, roudtripAverage);
 		}
 	}

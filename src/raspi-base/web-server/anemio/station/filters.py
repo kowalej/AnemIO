@@ -109,6 +109,15 @@ class PressureTemperatureFilterSet(django_filters.FilterSet):
         fields = ['timestamp', 'value']
 
 
+class RainGaugeFilterSet(django_filters.FilterSet):
+    timestamp = timestamp_dt_filter
+    state = django_filters.CharFilter(lookup_expr='in')
+
+    class Meta:
+        model = RainGauge
+        fields = ['timestamp', 'value']
+
+
 class RainStateFilterSet(django_filters.FilterSet):
     timestamp = timestamp_dt_filter
     state = django_filters.CharFilter(lookup_expr='in')

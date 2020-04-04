@@ -182,8 +182,7 @@ namespace {
 		SLEEP = 9,
 		WAKE = 10,
 		RESTART = 11,
-		CALIBRATE = 12,
-		TOTAL = 13
+		CALIBRATE = 12
 	};
 }
 

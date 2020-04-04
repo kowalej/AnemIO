@@ -6,6 +6,7 @@
 #include "IDataProvider.h"
 #include "Constants.h"
 #include <Battery.h>
+#include <SerialDebug.h>
 
 class BatteryInfoProvider : public IDataProvider
 {

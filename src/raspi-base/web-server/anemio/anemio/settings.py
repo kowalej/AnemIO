@@ -12,9 +12,13 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 
 import os
 
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# Basic settings
+# ------------------------------------
+# Full filesystem path to the project.
+PROJECT_APP_PATH = os.path.dirname(os.path.abspath(__file__))
+PROJECT_APP = os.path.basename(PROJECT_APP_PATH)
+PROJECT_ROOT = BASE_DIR = os.path.dirname(PROJECT_APP_PATH)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
@@ -28,16 +32,8 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 
-# Constance settings (for global config)
-
-CONSTANCE_BACKEND = 'constance.backends.database.DatabaseBackend'
-
-CONSTANCE_CONFIG = {
-    'STATION_DATA_API_KEY': ('', 'Station data API key, ', 'API key used to post data to Open Weather Maps'),
-}
-
 # Application definition
-
+# ------------------------------------
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -83,12 +79,33 @@ TEMPLATES = [
     },
 ]
 
+
+# Static Files
+# ------------------------------------
+# URL prefix for static files.
+# Example: 'http://media.lawrence.com/static/'
+STATIC_URL = '/static/'
+
+# Absolute path to the directory static files should be collected to.
+# Don't put anything in this directory yourself; store your static files
+# in apps' 'static/' subdirectories and in STATICFILES_DIRS.
+# Example: '/home/media/media.lawrence.com/static/'
+STATIC_ROOT = os.path.join(PROJECT_ROOT, 'staticfiles')
+
+# Extra places for collectstatic to find static files.
+STATICFILES_DIRS = (
+    os.path.join(BASE_DIR, 'static'),
+)
+
+
+# WSGI
+# ------------------------------------
 WSGI_APPLICATION = 'anemio.wsgi.application'
 
 
 # Database
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
-
+# ------------------------------------
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -103,12 +120,13 @@ DATABASES = {
 
 # Database routers
 # https://docs.djangoproject.com/en/3.0/topics/db/multi-db/
+# ------------------------------------
 DATABASE_ROUTERS = ['anemio.dbrouters.StationRouter', 'anemio.dbrouters.DefaultRouter']
 
 
 # Password validation
 # https://docs.djangoproject.com/en/3.0/ref/settings/#auth-password-validators
-
+# ------------------------------------
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -127,7 +145,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Internationalization
 # https://docs.djangoproject.com/en/3.0/topics/i18n/
-
+# ------------------------------------
 LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'EST'
@@ -139,13 +157,8 @@ USE_L10N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/3.0/howto/static-files/
-
-STATIC_URL = '/static/'
-
 # Rest framework
-
+# ------------------------------------
 REST_FRAMEWORK = {
     # Use Django's standard `django.contrib.auth` permissions,
     # or allow read-only access for unauthenticated users.
@@ -166,17 +179,29 @@ REST_FRAMEWORK = {
 }
 
 # Caches
-
+# ------------------------------------
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
         'LOCATION': '127.0.0.1:11211',
     }
 }
-CONSTANCE_DATABASE_CACHE_BACKEND = 'default'
-CELERY_CACHE_BACKEND = 'default'
+
 
 # Celery (task queue / scheduling)
+# ------------------------------------
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'django-db'
+CELERY_CACHE_BACKEND = 'default'  # Uses django "default" (memcached) cache.
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+CELERY_RESULT_EXPIRES = CELERY_TASK_RESULT_EXPIRES = 14400  # 4 hours - this value is expressed as the time in seconds that we save results for.
 
-CELERY_BROKER_URL = 'cache+memcached:127.0.0.1:11211'
-CELERY_RESULT_BACKEND = 'django-cache'
+
+# Constance settings (for global config)
+# ------------------------------------
+CONSTANCE_BACKEND = 'constance.backends.database.DatabaseBackend'
+CONSTANCE_DATABASE_CACHE_BACKEND = 'default'
+CONSTANCE_CONFIG = {
+     'PWS_API_KEY': ('test', 'Personal weather station (PWS.com) API key for posting the station data., '
+                     'PWS API Key'),
+}

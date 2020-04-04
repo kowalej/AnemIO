@@ -15,6 +15,7 @@ multidict==4.5.2
 pycares==3.0.0
 pycparser==2.19
 python-apt==1.8.4
+python-daemon==2.2.4
 python-dotenv==0.11.0
 python-http-client==3.2.4
 ratelim==0.1.6

@@ -116,6 +116,15 @@ class PressureTemperatureSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class RainGaugeSerializer(serializers.ModelSerializer):
+    timestamp = timestamp_serializer
+    timestamp_dt = timestamp_dt_serialize
+
+    class Meta:
+        model = models.RainGauge
+        fields = '__all__'
+
+
 class RainStateSerializer(serializers.ModelSerializer):
     timestamp = timestamp_serializer
     timestamp_dt = timestamp_dt_serialize

@@ -21,36 +21,42 @@ f = permissions.DjangoModelPermissions
 logger = logging.getLogger(__name__)
 
 
+@permission_classes((permissions.IsAdminUser | api_permissions.HasAPIKey,))
 class AccelerometerXyzViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = models.AccelerometerXyz.objects.all()
     serializer_class = serializers.AccelerometerXyzSerializer
     filterset_class = filters.AccelerometerXyzFilterSet
 
 
+@permission_classes((permissions.IsAdminUser | api_permissions.HasAPIKey,))
 class AmbientLightStateViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = models.AmbientLightState.objects.all()
     serializer_class = serializers.AmbientLightStateSerializer
     filterset_class = filters.AmbientLightStateFilterSet
 
 
+@permission_classes((permissions.IsAdminUser | api_permissions.HasAPIKey,))
 class AmbientLightValuesViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = models.AmbientLightValues.objects.all()
     serializer_class = serializers.AmbientLightValuesSerializer
     filterset_class = filters.AmbientLightValuesFilterSet
 
 
+@permission_classes((permissions.IsAdminUser | api_permissions.HasAPIKey,))
 class BatteryLevel(viewsets.ReadOnlyModelViewSet):
     queryset = models.BatteryLevel.objects.all()
     serializer_class = serializers.BatteryLevelSerializer
     filterset_class = filters.BatteryLevelFilterSet
 
 
+@permission_classes((permissions.IsAdminUser | api_permissions.HasAPIKey,))
 class CompassHeadingViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = models.CompassHeading.objects.all()
     serializer_class = serializers.CompassHeadingSerializer
     filterset_class = filters.CompassHeadingFilterSet
 
 
+@permission_classes((permissions.IsAdminUser | api_permissions.HasAPIKey,))
 class CompassXyzViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = models.CompassXyz.objects.all()
     serializer_class = serializers.CompassXyzSerializer
@@ -60,6 +66,7 @@ class CompassXyzViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ['-timestamp']
 
 
+@permission_classes((permissions.IsAdminUser | api_permissions.HasAPIKey,))
 class DeviceStateViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = models.DeviceState.objects.all()
     serializer_class = serializers.DeviceStateSerializer
@@ -69,6 +76,7 @@ class DeviceStateViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ['-timestamp']
 
 
+@permission_classes((permissions.IsAdminUser | api_permissions.HasAPIKey,))
 class HumidityViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = models.Humidity.objects.all()
     serializer_class = serializers.HumiditySerializer
@@ -78,6 +86,7 @@ class HumidityViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ['-timestamp']
 
 
+@permission_classes((permissions.IsAdminUser | api_permissions.HasAPIKey,))
 class PressureAltitudeViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = models.PressureAltitude.objects.all()
     serializer_class = serializers.PressureAltitudeSerializer
@@ -87,6 +96,7 @@ class PressureAltitudeViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ['-timestamp']
 
 
+@permission_classes((permissions.IsAdminUser | api_permissions.HasAPIKey,))
 class PressurePressureViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = models.PressurePressure.objects.all()
     serializer_class = serializers.PressurePressureSerializer
@@ -96,6 +106,7 @@ class PressurePressureViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ['-timestamp']
 
 
+@permission_classes((permissions.IsAdminUser | api_permissions.HasAPIKey,))
 class PressureTemperatureViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = models.PressureTemperature.objects.all()
     serializer_class = serializers.PressureTemperatureSerializer
@@ -105,6 +116,17 @@ class PressureTemperatureViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ['-timestamp']
 
 
+@permission_classes((permissions.IsAdminUser | api_permissions.HasAPIKey,))
+class RainGaugeViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = models.RainGauge.objects.all()
+    serializer_class = serializers.RainGaugeSerializer
+    filterset_class = filters.RainGaugeFilterSet
+    filter_backends = [OrderingFilter, DjangoFilterBackend]
+    ordering_fields = ['timestamp']
+    ordering = ['-timestamp']
+
+
+@permission_classes((permissions.IsAdminUser | api_permissions.HasAPIKey,))
 class RainStateViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = models.RainState.objects.all()
     serializer_class = serializers.RainStateSerializer
@@ -114,6 +136,7 @@ class RainStateViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ['-timestamp']
 
 
+@permission_classes((permissions.IsAdminUser | api_permissions.HasAPIKey,))
 class RainValuesViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = models.RainValues.objects.all()
     serializer_class = serializers.RainValuesSerializer
@@ -123,6 +146,7 @@ class RainValuesViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ['-timestamp']
 
 
+@permission_classes((permissions.IsAdminUser | api_permissions.HasAPIKey,))
 class StationLocationViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = models.StationLocation.objects.all()
     serializer_class = serializers.StationLocationSerializer
@@ -132,6 +156,7 @@ class StationLocationViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ['-timestamp']
 
 
+@permission_classes((permissions.IsAdminUser | api_permissions.HasAPIKey,))
 class StationStateViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = models.StationState.objects.all()
     serializer_class = serializers.StationStateSerializer
@@ -141,6 +166,7 @@ class StationStateViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ['-timestamp']
 
 
+@permission_classes((permissions.IsAdminUser | api_permissions.HasAPIKey,))
 class TemperatureViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = models.Temperature.objects.all()
     serializer_class = serializers.TemperatureSerializer
@@ -150,6 +176,7 @@ class TemperatureViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ['-timestamp']
 
 
+@permission_classes((permissions.IsAdminUser | api_permissions.HasAPIKey,))
 class WaterTemperatureViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = models.WaterTemperature.objects.all()
     serializer_class = serializers.WaterTemperatureSerializer
@@ -159,6 +186,7 @@ class WaterTemperatureViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ['-timestamp']
 
 
+@permission_classes((permissions.IsAdminUser | api_permissions.HasAPIKey,))
 class WindDirectionViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = models.WindDirection.objects.all()
     serializer_class = serializers.WindDirectionSerializer
@@ -168,6 +196,7 @@ class WindDirectionViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ['-timestamp']
 
 
+@permission_classes((permissions.IsAdminUser | api_permissions.HasAPIKey,))
 class WindSpeedViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = models.WindSpeed.objects.all()
     serializer_class = serializers.WindSpeedSerializer

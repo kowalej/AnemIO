@@ -188,6 +188,20 @@ void AnemioStation::loop() {
 			_lastCheck[ReadingChecks::ReadingChecks::AMBIENT_LIGHT_STATE] = millis();
 		}
 
+		if (_online[Devices::BATTERY_INFO] && (TIME_DELTA(_lastCheck[ReadingChecks::ReadingChecks::BATTERY_INFO]) >= UPDATE_RATE_MS(BATTERY_INFO_UPDATE_RATE_HZ))) {
+			debugD("----------------------");
+			debugD("Battery info check start: %lu\n", millis());
+
+			float batteryLevel = _batteryInfoProvider.getBatteryLevel();
+			_sampleSet.batteryLevelSamples.add(Pair<unsigned long, float>(millis(), batteryLevel), false);
+
+			debugD("Battery level %s%%", String(batteryLevel * 100).c_str());
+
+			_lastCheck[ReadingChecks::ReadingChecks::BATTERY_INFO] = millis();
+
+			debugD("Battery info check end: %lu\n", millis());
+		}
+
 		// Compass / Accelerometer.
 		if (_online[Devices::COMPASS_ACCELEROMETER] && (TIME_DELTA(_lastCheck[ReadingChecks::ReadingChecks::COMPASS_ACCELEROMETER]) >= UPDATE_RATE_MS(COMPASS_ACCELEROMETER_UPDATE_RATE_HZ))) {
 			debugD("----------------------");
@@ -347,26 +361,12 @@ void AnemioStation::loop() {
 			debugD("Wind speed / temperature check end: %lu\n", millis());
 		}
 
-		if (_online[Devices::BATTERY_INFO] && (TIME_DELTA(_lastCheck[ReadingChecks::ReadingChecks::BATTERY_INFO]) >= UPDATE_RATE_MS(BATTERY_INFO_UPDATE_RATE_HZ))) {
-			debugD("----------------------");
-			debugD("Battery info check start: %lu\n", millis());
-
-			float batteryLevel = _batteryInfoProvider.getBatteryLevel();
-			_sampleSet.batteryLevelSamples.add(Pair<unsigned long, float>(millis(), batteryLevel), false);
-
-			debugD("Battery level %s%%", String(batteryLevel * 100).c_str());
-
-			_lastCheck[ReadingChecks::ReadingChecks::BATTERY_INFO] = millis();
-
-			debugD("Battery info check end: %lu\n", millis());
-		}
-
 		// Transmit data to "ground" station.
 		if (TIME_DELTA(_radioLastTransmit) >= RADIO_SEND_INTERVAL_MS) {
 			// Send data over radio.
 			debugD("Radio transmit start: %lu\n", millis());
 			Pair<int, int> sentResults = _radioTransceiver.sendSamples(_sampleSet);
-			debugD("Radio sent %d/%d messages. Percent success: %f.", sentResults.first(), sentResults.second(), (static_cast<double>(sentResults.first()) / static_cast<double>(sentResults.second())));
+			debugD("Radio sent %d/%d messages. Percent success: %s.", sentResults.first(), sentResults.second(), String(sentResults.first() / sentResults.second() * 100).c_str());
 			_radioLastTransmit = millis();
 			debugD("Radio transmit end: %lu\n", _radioLastTransmit);
 		}

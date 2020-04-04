@@ -11,6 +11,7 @@
 
 #include <Wire.h>
 #include "AmbientLightProvider.h"
+#include "BatteryInfoProvider.h"
 #include "CompassAccelerometerProvider.h"
 #include "PressureProvider.h"
 #include "RainProvider.h"
