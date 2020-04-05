@@ -1,4 +1,7 @@
-## Software Information:
+﻿## Running the Software
+The software consists of a "radio-daemon" and webserver, all written in Python. These libraries are meant to run on a Raspberry Pi, using Docker. To get started you will need the Raspberry Pi setup with the Raspbian image flashed. See https://www.raspberrypi.org/documentation/installation/installing-images/README.md for instruction on setting up the Pi's basic image and enabling Wifi. Once you can connect to the Pi through SSH, you can follow this guide to install Docker https://blog.alexellis.io/getting-started-with-docker-on-raspberry-pi.
+
+## Software Information
 
 ### Arduino Libraries in Use
 * Wire (built in I2C library) - [See Arduino Reference Site](https://www.arduino.cc/en/Reference/Wire)

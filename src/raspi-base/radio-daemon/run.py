@@ -5,12 +5,13 @@ import logging
 import os
 import argparse
 import daemon
+import lockfile
 from pathlib import Path
 from logging.handlers import RotatingFileHandler, SMTPHandler
 
 from dotenv import load_dotenv
 from ratelimitingfilter import RateLimitingFilter
-from anemioradiodaemon.radiodaemon import RadioDaemon
+from anemioradiodaemon.radiodaemon import RadioDaemon, connect_db
 
 # Load environment vars.
 from dotenv import load_dotenv
@@ -22,7 +23,7 @@ load_dotenv()
 # Setup arguments.
 parser = argparse.ArgumentParser("anemio-daemon")
 parser.add_argument("--interactive-testing", dest='interactiveTesting',
-                    help="Show the output in the terminal.", type=bool, default=False, required=False)
+                    help="Show the output in the terminal.", action='store_true', default=False, required=False)
 args = parser.parse_args()
 
 if __name__ == '__main__':
@@ -68,7 +69,21 @@ if __name__ == '__main__':
         radio_daemon.run()
 
     else:
+        stdlog = open('anemio-std.log', 'w+')
+        log = open('anemio.log', 'a+')
+        log1 = open('anemio.log.1', 'a+')
+        db = open(DEFAULT_DB_NAME, 'a+')
+        db_conn = connect_db(DEFAULT_DB_NAME)
+
         # For "production", we will run the program as a Daemon.
-        with daemon.DaemonContext():
-            radio_daemon = RadioDaemon(logger=logger)
+        with daemon.DaemonContext(
+            files_preserve=['anemio.log', 'anemio.log.1', 'anemio.db'],
+            working_directory='/home/pi/raspi-base/radio-daemon',
+            stdin=None,
+            stdout=stdlog,
+            stderr=stdlog,
+            umask=0o0022,
+            pidfile=lockfile.FileLock('/var/run/anemio-radio-daemon.pid'),
+        ):
+            radio_daemon = RadioDaemon(db_conn=db_conn, logger=logger)
             radio_daemon.run()
