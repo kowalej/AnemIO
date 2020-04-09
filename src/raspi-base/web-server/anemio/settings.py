@@ -11,7 +11,14 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
 import os
+from pathlib import Path
 
+# Load environment vars.
+from dotenv import load_dotenv
+env_path = Path('../') / '.local.env'
+load_dotenv(env_path, verbose=True)
+
+load_dotenv()
 
 # Basic settings
 # ------------------------------------
@@ -24,12 +31,12 @@ PROJECT_ROOT = BASE_DIR = os.path.dirname(PROJECT_APP_PATH)
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'qv29mt-bkl-g#3f4jw*h+@&aw9u0nf(@_$4axdauvaf9xbk@*-'
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = int(os.getenv('DEBUG', 0))
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', '127.0.0.1').split(',')
 
 
 # Application definition
@@ -109,11 +116,11 @@ WSGI_APPLICATION = 'anemio.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'django.db'),
+        'NAME': os.path.join(BASE_DIR, os.getenv('DJANGO_DB_NAME', 'django.db')),
     },
     'station': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, '../../radio-daemon/anemio-test.db'),
+        'NAME': os.path.join(BASE_DIR, os.getenv('ANEMIO_DB_NAME', '../../radio-daemon/anemio.db')),
     }
 }
 
@@ -190,7 +197,7 @@ CACHES = {
 
 # Celery (task queue / scheduling)
 # ------------------------------------
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
 CELERY_RESULT_BACKEND = 'django-db'
 CELERY_CACHE_BACKEND = 'default'  # Uses django "default" (memcached) cache.
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'

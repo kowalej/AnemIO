@@ -266,3 +266,5 @@ venv
 RFM69/
 src/raspi-base/web-server/anemio/django.db
 src/raspi-base/web-server/anemio/django.db
+
+images/

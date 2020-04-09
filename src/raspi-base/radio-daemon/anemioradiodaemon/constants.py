@@ -1,7 +1,7 @@
 from enum import Enum
 import os
 
-DEFAULT_DB_NAME = 'anemio.db'
+DEFAULT_DB_NAME = 'data/anemio.db'
 
 # Average time it takes to receive data after it was sent by station.
 DEFAULT_RADIO_DELAY_MS = 20 

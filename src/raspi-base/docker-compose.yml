@@ -1,0 +1,29 @@
+version: 3.7
+
+  services:
+    anemio-daemon:
+      restart: always
+      build:
+        ./radio-daemon
+      devices:
+        - /dev/gpiomem
+      volumes:
+        - ./anemio-data:/data/anemio
+
+    anemio-web-redis:
+      image: redis
+      expose:
+        - 6379
+      volumes_from:
+
+
+    anemio-web-memcached:
+      image: memcached:alpine
+      expose:
+        - 11211
+      entrypoint:
+        - memcached
+        - -m 64
+
+volumes:
+  - anemio-data

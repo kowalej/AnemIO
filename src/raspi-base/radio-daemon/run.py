@@ -1,11 +1,7 @@
 #!/usr/bin/env python3
 
-from anemioradiodaemon.constants import *
 import logging
-import os
 import argparse
-import daemon
-import lockfile
 from pathlib import Path
 from logging.handlers import RotatingFileHandler, SMTPHandler
 
@@ -19,6 +15,9 @@ env_path = Path('.') / '.prod.env'
 load_dotenv(env_path, verbose=True)
 
 load_dotenv()
+
+from anemioradiodaemon.constants import *
+
 
 # Setup arguments.
 parser = argparse.ArgumentParser("anemio-daemon")
@@ -37,7 +36,7 @@ if __name__ == '__main__':
         # Log info to file, limited to 5MB in size.
         log_formatter = logging.Formatter(
             '%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s')
-        logFile = 'anemio.log'
+        logFile = '/data/anemio.log'
         # We will log to files with a max size of 5MB, of which there are up to 2 (i.e. backupCount).
         # This means there is a maximum log size of 10MB on disk.
         file_handler = RotatingFileHandler(logFile, mode='a', maxBytes=LOG_FILE_MAX_SIZE_MB*1024*1024,
@@ -63,27 +62,5 @@ if __name__ == '__main__':
         logger.addHandler(file_handler)
         logger.addHandler(smtp_handler)
     
-    # Interactive testing, we will run the module normally.
-    if args.interactiveTesting:
-        radio_daemon = RadioDaemon(logger=logger)
-        radio_daemon.run()
-
-    else:
-        stdlog = open('anemio-std.log', 'w+')
-        log = open('anemio.log', 'a+')
-        log1 = open('anemio.log.1', 'a+')
-        db = open(DEFAULT_DB_NAME, 'a+')
-        db_conn = connect_db(DEFAULT_DB_NAME)
-
-        # For "production", we will run the program as a Daemon.
-        with daemon.DaemonContext(
-            files_preserve=['anemio.log', 'anemio.log.1', 'anemio.db'],
-            working_directory='/home/pi/raspi-base/radio-daemon',
-            stdin=None,
-            stdout=stdlog,
-            stderr=stdlog,
-            umask=0o0022,
-            pidfile=lockfile.FileLock('/var/run/anemio-radio-daemon.pid'),
-        ):
-            radio_daemon = RadioDaemon(db_conn=db_conn, logger=logger)
-            radio_daemon.run()
+    radio_daemon = RadioDaemon(logger=logger)
+    radio_daemon.run()

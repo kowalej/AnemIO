@@ -26,12 +26,9 @@ from .constants import *
 def connect_db(db_name = DEFAULT_DB_NAME, logger=logging.getLogger()):
 	# DB setup.
 	logger.info('Connecting to database {}...'.format(db_name))
-	try:
-		dburi = 'file:{}?mode=rw'.format(pathname2url(db_name))
-		db_conn = sqlite3.connect(dburi, uri=True)
-	except sqlite3.OperationalError:
+	if os.path.isfile(db_name):
 		logger.info('DB does not exist, creating {}...'.format(db_name))
-		db_conn = sqlite3.connect(db_name)
+	db_conn = sqlite3.connect(db_name, uri=True)
 	logger.info('Done.')
 	return db_conn
 
@@ -45,6 +42,9 @@ class RadioDaemon():
 	def __init__(self, db_conn: Connection = None, radio: Radio = None, logger = logging.getLogger('anemio'), **kwargs):
 		# Database connection object.
 		self.db_conn = db_conn
+
+		# Event loop.
+		self.loop = None
 
 		# Radio object.
 		self.radio = radio
@@ -516,15 +516,24 @@ class RadioDaemon():
 			await asyncio.sleep(self.transceive_sleep_sec)
 
 	# Starts up the main data capture loop.
-	def _start_daemon(self, radio, loop):
+	def start_daemon(self):
 		self.logger.info('Radio settings: NODE = {0}, NETWORK = {1}'.format(RADIO_BASE_NODE_ID, NET))
 		self.logger.info('Listening...')
-		loop.run_until_complete(self._transceiver(radio))
+		if self.loop is not None:
+			self.loop.run_until_complete(self._transceiver(self.radio))
 
 	# Stops the main loops.
-	def _stop_daemon(self, loop):
+	def stop_daemon(self):
 		self.logger.info('Stopping radio listening...')
-		loop.stop()
+		if self.loop is not None:
+			self.loop.stop()
+
+	# Shuts down the daemon.
+	def shutdown(self):
+		self.logger.info('Shutting down.')
+		if self.loop is not None:
+			self.loop.close()
+		exit(0)
 
 	# Tries to record the station's location based on this device's IP address.
 	def record_location(self):
@@ -553,7 +562,7 @@ class RadioDaemon():
 	def run(self):
 		try:
 			# Get our async loop object.
-			loop = asyncio.get_event_loop()
+			self.loop = asyncio.get_event_loop()
 
 			# Record station location estimate, based on our base station's IP address.
 			self.record_location()
@@ -572,20 +581,19 @@ class RadioDaemon():
 						autoAcknowledge = True,  # Station expects Acknowledgements.
 						verbose = False
 					) as radio:
+					self.radio = radio
 					self.logger.info('Done.')
-					self._start_daemon(radio, loop)
+					self.start_daemon()
 			else:
-				self._start_daemon(self.radio, loop)
+				self.start_daemon()
 
 		except KeyboardInterrupt: # If CTRL+C is pressed, exit cleanly:
 			self.logger.info('Keyboard interrupt.')
-			self._stop_daemon(loop)
+			self.stop_daemon()
 
 		except Exception:
 			self.logger.info('An error occured: {0}.', exc_info=1)
-			self._stop_daemon(loop)
+			self.stop_daemon()
 
 		finally:
-			self.logger.info('Shutting down.')
-			if loop is not None:
-				loop.close()
+			self.shutdown()
