@@ -1,0 +1,114 @@
+#cloud-config
+# vim: syntax=yaml
+#
+
+# This will do the inital configuration of you Raspberry Pi to run AnemIO.
+
+# Set your hostname here.
+# The manage_etc_hosts will update the hosts file entries as well
+hostname: anemio-pi
+manage_etc_hosts: true
+
+# Setup one or more users here.
+# You may want a separate user for SSH and "root" access.
+users:
+  - name: anemio
+    gecos: "AnemIO Captain"
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    groups: users,docker,video,input
+    plain_text_passwd: changeme
+    lock_passwd: false
+    ssh_pwauth: true
+    chpasswd: { expire: false }
+
+# Set the locale of the system.
+locale: "en_US.UTF-8"
+
+# Set the timezone.
+# Value of 'timezone' must exist in /usr/share/zoneinfo.
+timezone: "America/Toronto"
+
+# Update apt packages on first boot.
+# YOU CAN ONLY SET THESE TO TRUE IF YOU ARE USING ETHERNET.
+#  - cloud-init will not have picked up WiFi at this point in the boot sequence.
+#  - for WiFi usage, packages are added by running commands in the runcmd section below, after activating wlan0. 
+# Warning: enabling these settings may make the inital boot take a long time.
+# If you are worried about config issues you may want to disable the package updates, 
+# and update manually once you can SSH to the device.
+# package_update: true
+# package_reboot_if_required: true
+package_upgrade: false
+
+# Install any additional apt packages you need here.
+packages:
+  # 6tunnel can be installed to help us route ipv6 traffic to ipv4 service.
+  # - 6tunnel
+
+# Connect to WiFi - fill in your SSID and PSK (password).
+# To use unencrypted Wifi password (so people can see it in this plaintext file) - simply replace <MY_WIFI_PASSWORD_HERE> with your password.
+# To use encrypted Wifi password use command `wpa_passphrase <ssid> <password>` - use output with psk=<output> (NO QUOTES!)
+write_files:
+  - content: |
+      auto lo
+      iface lo inet loopback
+      
+      allow-hotplug wlan0
+      iface wlan0 inet dhcp
+        wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
+    path: /etc/network/interfaces.d/wlan0
+  - content: |
+      country=ca
+      ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+      update_config=1
+      network={
+      ssid="Ninistation"
+      psk=896c4ab8a9617d6bd20d182af761b8d9cfa0b52dd691c5bf49fb83795547b1ef
+      proto=RSN
+      key_mgmt=WPA-PSK
+      pairwise=CCMP
+      auth_alg=OPEN
+      }
+    path: /etc/wpa_supplicant/wpa_supplicant.conf
+  - content: |
+      {
+        "labels": [ "os=linux", "arch=arm64" ],
+        "experimental": true,
+        "dns": [ "8.8.8.8" ]
+      }
+    path: /etc/docker/daemon.json
+    owner: root:root
+  - content: |
+      changeme
+    path: /tmp/portainer-pass
+
+# These commands will be ran once on first boot only.
+runcmd:
+  # Activate WiFi interface.
+  - "/etc/init.d/networking restart"
+
+  # Sleep for a bit to ensure WiFi is ready.
+  - [ sleep, "10" ]
+
+  # Pickup the hostname changes.
+  - [ systemctl, restart, avahi-daemon ]
+
+  # Restart docker to pickup config and dns changes.
+  - [ systemctl, restart, docker ]
+
+  # If you are using WiFi only (no ethernet) we will run apt-get commands manually.
+  # If you are using ethernet, comment the following apt-get related stuff out
+  # and uncomment as well as enable the normal package settings above.
+  # Update and install packages.
+  - [ apt-get, update ]
+  - [ apt-get, "-y", install, "6tunnel" ]
+  # Don't upgrade if you are worried about initial boot time.
+  # - [ apt-get, upgrade ]
+
+  # Run portainer, so we can see our logs and control stuff from a UI.
+  # The admin password (last argument) is set in the file /tmp/portainer-pass - by default it is set to the plaintext value of "changeme".
+  # To create your own password you could modify the file contents of /tmp/portainer-pass above.
+  # You can also use a BCrypt password string passed into the command line. For details, see https://portainer.readthedocs.io/en/stable/configuration.html#admin-password.
+  # Regardless of how you set the initial password, you should probably change that password after first login.
+  # For all Portainer docs, see https://portainer.readthedocs.io/en/latest/configuration.html
+  - [ docker, run, -d, --restart, always, --name, portainer, -p, "9000:9000", --mount, "type=volume,src=portainer_data,dst=/data", --mount, "type=bind,src=//var/run/docker.sock,dst=/var/run/docker.sock", -v, "/tmp/portainer-pass:/tmp/portainer-pass", portainer/portainer, -H, "unix:///var/run/docker.sock", --admin-password-file, "/tmp/portainer-pass" ]

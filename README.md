@@ -1,9 +1,11 @@
 ﻿## Base Station Information
 
 ### Setting up and Running the Base Station
-The base station (i.e. data collection) software consists of a "radio daemon" and web server, all written in Python. These libraries are meant to run on a Raspberry Pi, and have been conveniently preconfigured as Docker containers. To get started you will need to flash your Raspberry Pi with an appropriate image and ensure Docker is installed on it. After that it will just be a matter of copying the source files to the device, and starting up the containers. Below I have included instructions on how to set everything up using a Rasberry Pi image distribution called [Hypriot](https://blog.hypriot.com/). You could alternatively use the defacto Raspbian (Lite) image or another OS like [Balena](https://www.balena.io/os/). Hypriot is my preference because it is optimized to run Docker containers and is easy to configure in conjunction with their [flash tool](https://github.com/hypriot/flash). 
+The base station (i.e. data collection) software consists of a "radio daemon" and web server, all written in Python. These libraries are meant to run on a Raspberry Pi, and have been conveniently preconfigured as Docker containers. To get started you will need to flash your Raspberry Pi with an appropriate image and ensure Docker is installed on it. After that it will just be a matter of copying the source files to the device, and starting up the containers. Below I have included instructions on how to set everything up using a Rasberry Pi image distribution called [Hypriot](https://blog.hypriot.com/). You could alternatively use the defacto Raspbian (Lite) image or another OS like [Balena](https://www.balena.io/os/). Hypriot is my preference because it is optimized to run Docker containers and is easy to configure in conjunction with their config files and [flash tool](https://github.com/hypriot/flash).
 
 Note: If you don't want to use Hypriot you may start at the  official [Raspberry Pi image installation guide](https://www.raspberrypi.org/documentation/installation/installing-images/README.md) for instructions on setting up the Pi's basic image and enabling Wifi. Once you can connect to the Pi through SSH, you can follow this guide to manually install Docker https://blog.alexellis.io/getting-started-with-docker-on-raspberry-pi.
+
+If you already have a Pi up and running and know how to setup Docker, you can probably skip these instructions.
 
 ### Raspberry Pi Hypriot Setup
 
@@ -13,8 +15,11 @@ Note: If you don't want to use Hypriot you may start at the  official [Raspberry
 3. Before flashing please copy the template file user-data.yml from the `\src\raspi-base\raspi-config-files` folder of this repo to a temporary location. You will need to edit this copy of `user-data.yml` before flashing (mainly to just replace the Wifi SSID / password).
 4. Download and install [Balena Etcher (Recommended)](https://www.balena.io/etcher/) or [Rufus](https://rufus.ie/). Both are easy to use and you will be able to just select the extracted Hypriot .img file and flash it onto your device.
 5. After your device is flashed, you should be able to browse the SD card on your computer (usually F: drive, where you flashed to). Browse this device and edit the existing user-data file with the contents of your modified user-data.yml file from earlier.
-6. Safely eject your SD card!
-7. You are now done, and should be able to boot from this SD card by inserting it into your Pi and powering the Pi on.
+6. Copy the contents `\src\raspi-base\raspi-config-files\config.txt` to the config.txt file on the SD card.
+7. Get the current date time by running the powershell script `(Get-Date).ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss")`.
+8. Copy that date time into fake-hwclock.data on the SD card. You could also just have manually edited this file, but running the script is safer so that you get the proper date time format.
+9. Safely eject your SD card using the system tray tool!
+10. You are now done, and should be able to boot from this SD card by inserting it into your Pi and powering the Pi on.
 
 #### Flash Pi on Linux/Mac with Hypriot Flash Utility
 1. Head over to the [Hypriot downloads](https://blog.hypriot.com/downloads/) page and grab the latest distribution - as of writing I am using [1.12.0](https://github.com/hypriot/image-builder-rpi/releases/download/v1.12.0/hypriotos-rpi-v1.12.0.img.zip).
