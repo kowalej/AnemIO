@@ -1,21 +1,36 @@
 from enum import Enum
 import os
 
-DEFAULT_DB_NAME = 'data/anemio.db'
+# We will try to load environment vars. This is helpful if we are using a .env file, versus setting all our environment variables.
+from dotenv import load_dotenv
+from pathlib import Path
+env_path = os.getenv('ANEMIO_ENVIRONMENT_FILE_PATH', None)
+if env_path is None:
+    env_path = Path('.') / '.prod.env'
+try:
+    load_dotenv(env_path, verbose=True)
+except IOError:
+    try:
+        load_dotenv()
+    except IOError:
+        pass
+
+DEFAULT_DB_NAME = '/data/anemio/anemio.db'
 
 # Average time it takes to receive data after it was sent by station.
-DEFAULT_RADIO_DELAY_MS = 20 
+DEFAULT_RADIO_DELAY_MS = 20
 
 # Sleep time will be 50 ms (try to send command or get new set of packets every 50 ms).
-DEFAULT_TRANSRECEIVE_SLEEP_SEC = 50.0/1000.0
+DEFAULT_TRANSRECEIVE_SLEEP_SEC = 50.0 / 1000.0
 
-RADIO_STATION_NODE_ID = 97 # Station node number.
-RADIO_BASE_NODE_ID = 87 # Base station node number.
-NET = 223 # Radio network.
-ENCRYPT_KEY= os.getenv('ANEMIO_ENCRYPT_KEY', 'J53Y25U5D8CE79NO') # tries to get from environment first.
+RADIO_STATION_NODE_ID = 97  # Station node number.
+RADIO_BASE_NODE_ID = 87  # Base station node number.
+RADIO_NETWORK_ID = 223  # Radio network.
+ENCRYPT_KEY = os.getenv('ANEMIO_ENCRYPT_KEY', 'J53Y25U5D8CE79NO')  # tries to get from environment first.
 
 # File log parameters.
 LOG_FILE_MAX_SIZE_MB = os.getenv('ANEMIO_LOG_FILE_MAX_SIZE_MB', 5)
+LOG_FILE_NAME = '/data/anemio/anemio.log'
 LOG_FILE_BACKUP_COUNT = os.getenv('ANEMIO_LOG_FILE_BACKUP_COUNT', 2)
 
 # Email parameters.

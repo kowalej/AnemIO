@@ -11,14 +11,20 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
 import os
-from pathlib import Path
 
-# Load environment vars.
+# We will try to load environment vars. This is helpful if we are using a .env file, versus setting all our environment variables.
 from dotenv import load_dotenv
-env_path = Path('../') / '.local.env'
-load_dotenv(env_path, verbose=True)
-
-load_dotenv()
+from pathlib import Path
+env_path = os.getenv('ANEMIO_ENVIRONMENT_FILE_PATH', None)
+if env_path is None:
+    env_path = Path('.') / '.prod.env'
+try:
+    load_dotenv(env_path, verbose=True)
+except IOError:
+    try:
+        load_dotenv()
+    except IOError:
+        pass
 
 # Basic settings
 # ------------------------------------
@@ -110,17 +116,23 @@ STATICFILES_DIRS = (
 WSGI_APPLICATION = 'anemio.wsgi.application'
 
 
-# Database
+# Databases
+DJANGO_DB_NAME = os.getenv('DJANGO_DB_NAME', None)
+DJANGO_DB_NAME = DJANGO_DB_NAME if DJANGO_DB_NAME is not None else os.path.join(BASE_DIR, 'django.db')
+
+ANEMIO_DB_NAME = os.getenv('ANEMIO_DB_NAME', None)
+ANEMIO_DB_NAME = ANEMIO_DB_NAME if ANEMIO_DB_NAME is not None else os.path.join(BASE_DIR, '../../radio-daemon/anemio.db')
+
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
 # ------------------------------------
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, os.getenv('DJANGO_DB_NAME', 'django.db')),
+        'NAME': DJANGO_DB_NAME,
     },
     'station': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, os.getenv('ANEMIO_DB_NAME', '../../radio-daemon/anemio.db')),
+        'NAME': ANEMIO_DB_NAME,
     }
 }
 
@@ -190,18 +202,18 @@ REST_FRAMEWORK = {
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
-        'LOCATION': '127.0.0.1:11211',
+        'LOCATION': os.getenv('ANEMIO_MEMCACHED_URL', '127.0.0.1:11211'),
     }
 }
 
 
 # Celery (task queue / scheduling)
 # ------------------------------------
-CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+CELERY_BROKER_URL = os.getenv('ANEMIO_CELERY_BROKER_URL', 'redis://localhost:6379/0')
 CELERY_RESULT_BACKEND = 'django-db'
 CELERY_CACHE_BACKEND = 'default'  # Uses django "default" (memcached) cache.
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
-CELERY_RESULT_EXPIRES = CELERY_TASK_RESULT_EXPIRES = 14400  # 4 hours - this value is expressed as the time in seconds that we save results for.
+CELERY_RESULT_EXPIRES = CELERY_TASK_RESULT_EXPIRES = 14400  # 4 hours - this value is expressed as the time in seconds that we keep results.
 
 
 # Constance settings (for global config)
