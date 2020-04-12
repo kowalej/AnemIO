@@ -52,10 +52,12 @@ String RadioTransceiver::receive(int wait) {
 			for (byte i = 0; i < _radio.DATALEN; i++) {
 				message[i] = (char)_radio.DATA[i];
 			}
+			if (_radio.ACKRequested()) {
+				_radio.sendACK();
+			}
 			sleep();
-			return message;
+			return String(message);
 		}
-		delay(10);
 	}
 	sleep();
 	return "";

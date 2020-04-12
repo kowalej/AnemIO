@@ -29,9 +29,9 @@ void AnemioStation::setup(bool initialLaunch) {
 		// We won't even bother starting the i2c interface, or anything else, at this point.
 		while (_internalState == InternalState::WAIT_FOR_INITIALIZE) {
 			debugA("Waiting for initialize signal from base station...");
-			String receivedValue = _radioTransceiver.receive(RADIO_RECEIVE_WAIT_MS * 5);
+			String receivedValue = _radioTransceiver.receive(RADIO_RECEIVE_WAIT_MS);
 			if (receivedValue.length() > 0) {
-				debugA("%s", receivedValue.c_str());
+				debugA("Received signal from base station, value: %s.", receivedValue.c_str());
 				handleCommand(receivedValue);
 			}
 		}
@@ -153,16 +153,24 @@ void AnemioStation::healthCheck() {
 }
 
 void AnemioStation::handleCommand(String commandInput) {
+	// Remove special characters so we are just left with the command value as a string.
+	commandInput.replace("[", "");
+	commandInput.replace("]", "");
+	commandInput.trim();
+
+	debugA("Command input fixed: %s", commandInput.c_str());
+	debugA("Test value compare: %s", String(RadioCommands::INITIALIZE).c_str());
+
 	// Always put into sleep mode if requested.
-	if (commandInput == "[" + String(RadioCommands::SLEEP) + "]") {
+	if (commandInput == String(RadioCommands::SLEEP)) {
 		_internalState = InternalState::SLEEPING;
 	}
 	// Always restart the device if requested.
-	else if (commandInput == "[" + String(RadioCommands::RESTART) + "]") {
+	else if (commandInput == String(RadioCommands::RESTART)) {
 		soft_restart();
 	}
 	// Init the device by always moving it to online state and forcing setup only if we were sleeping.
-	else if (commandInput == "[" + String(RadioCommands::INITIALIZE) + "]") {
+	else if (commandInput == String(RadioCommands::INITIALIZE)) {
 		if (_internalState == InternalState::SLEEPING) {
 			setup(false);
 		}
@@ -170,7 +178,7 @@ void AnemioStation::handleCommand(String commandInput) {
 	}
 	// Calibrate the device only if requested during ONLINE state.
 	// Force setup if coming from SLEEPING state.
-	else if (commandInput == "[" + String(RadioCommands::CALIBRATE) + "]") {
+	else if (commandInput == String(RadioCommands::CALIBRATE)) {
 		if (_internalState == InternalState::ONLINE) {
 			_windDirectionProvider.calibrateZero();
 		}

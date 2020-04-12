@@ -3,6 +3,7 @@ import logging
 import os
 import re
 import sqlite3
+import RPi.GPIO as GPIO
 from datetime import timezone, datetime
 from contextlib import closing
 from sqlite3 import Connection
@@ -479,9 +480,9 @@ class RadioDaemon():
                                 )
                                 self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.UNREACHABLE)
 
-                    # If state is unknown, the Daemon probably just booted / was reactivated.
+                    # If state is unknown or unreachable, usually the Daemon just booted / was reactivated.
                     # The station is likely waiting for itialize signal to get it started our out of sleep mode.
-                    if station_state == StationState.UNKNOWN:
+                    if station_state in [StationState.UNKNOWN, StationState.UNREACHABLE]:
                         self.logger.info('Sending initialize request to station. Attempts may continue for up to ~20 seconds.')
                         success = radio.send(
                             RADIO_STATION_NODE_ID,
@@ -491,14 +492,15 @@ class RadioDaemon():
                         self.logger.info('Initialize request %s.', 'successful' if success else 'unsuccessful')
                         if success:
                             self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.ONLINE)
+                            self.radio_last_receive = datetime.now(timezone.utc)
 
                     for packet in radio.get_packets():
                         packet.received = packet.received.replace(tzinfo=timezone.utc)
                         self.radio_last_receive = packet.received
 
-                        # Back online baby (we received a packet after being unreachable, or sleeping, although unusual).
+                        # Back online baby (we received a packet while in unknown, unreachable, or sleeping state, although unusual).
                         # Since we had lost the signal, we should restart so that we can ensure proper operation.
-                        if station_state == StationState.UNREACHABLE or station_state == StationState.SLEEPING:
+                        if station_state in [StationState.UNKNOWN, StationState.UNREACHABLE, StationState.SLEEPING]:
                             self.logger.critical(
                                 'Station has come back "online" after being unreachable. Must request restart. Current datetime: %s.',
                                 datetime.now(timezone.utc).strftime()
@@ -610,6 +612,7 @@ class RadioDaemon():
         self.logger.info('Shutting down.')
         if self.loop is not None:
             self.loop.close()
+        GPIO.cleanup()
         exit(0)
 
     # Tries to record the station's location based on this device's IP address.
