@@ -1,7 +1,7 @@
 version: '3.7'
 
 services:
-  anemio-daemon:
+  anemio-radio-daemon:
     build:
       ./radio-daemon
     restart: always
@@ -13,7 +13,7 @@ services:
       - .radio-daemon.prod.env
     privileged: true
     devices: 
-      - /dev/gpiomem:/dev/gpiomem
+      - /dev/gpiomem
     environment:
       - UDEV=1
     command: [ "python", "./run.py", "--interactive-testing" ]
@@ -24,7 +24,7 @@ services:
     expose:
       - 6379
     volumes:
-      anemio-redis:/data
+      - anemio-redis:/data
     networks:
       - anemio-net
 
@@ -39,23 +39,28 @@ services:
     networks:
       - anemio-net
 
-  anemio-web-nginx:
-    build:
-      - ./web-server/nginx
-    restart: always
-    ports:
-      - 80:80/tcp
-      - 443:443/tcp
-    volumes:
-      - ./web-server/nginx/nginx.conf:/etc/nginx/nginx.conf
-      - anemio-certs:/etc/letsencrypt
-    env_file:
-      - .web-server.prod.env
-    command: /bin/bash -c "envsubst < /etc/nginx/conf.d/anemio.template > /etc/nginx/conf.d/default.conf && exec nginx -g 'daemon off;'"
+    anemio-web-traefik:
+      image: "traefik:v2.0.0-rc3"
+      command:
+        - "--log.level=DEBUG"
+        - "--api.insecure=true"
+        - "--providers.docker=true"
+        - "--providers.docker.exposedbydefault=false"
+        - "--entrypoints.websecure.address=:443"
+        - "--certificatesresolvers.mytlschallenge.acme.tlschallenge=true"
+        #- "--certificatesresolvers.mytlschallenge.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+        - "--certificatesresolvers.mytlschallenge.acme.email=kowaleskij@gmail.com"
+        - "--certificatesresolvers.mytlschallenge.acme.storage=/letsencrypt/acme.json"
+      ports:
+        - "443:443"
+        - "8080:8080"
+      volumes:
+        - "anemio-certs:/letsencrypt"
+        - "/var/run/docker.sock:/var/run/docker.sock:ro"
 
   anemio-web-django:
     depends_on:
-      - anemio-web-nginx
+      - anemio-web-traefik
       - anemio-web-redis
       - anemio-web-memcached
     restart: always

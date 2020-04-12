@@ -477,11 +477,15 @@ class RadioDaemon():
                     # If state is unknown, the Daemon probably just booted / was reactivated.
                     # The station is likely waiting for itialize signal to get it started our out of sleep mode.
                     if station_state == StationState.UNKNOWN:
-                        self.logger.info('Sending restart request to station. Attempts may continue for up to ~20 seconds.')
-                        success = radio.send(RADIO_STATION_NODE_ID, str(RadioCommands.RESTART.value), attempts=RADIO_INITIALIZE_RETRY_NUM)
-                        self.logger.info('Restart request %s.', 'successful' if success else 'unsuccessful')
+                        self.logger.info('Sending initialize request to station. Attempts may continue for up to ~20 seconds.')
+                        success = radio.send(
+                            RADIO_STATION_NODE_ID,
+                            str(RadioCommands.INITIALIZE.value),
+                            attempts=RADIO_INITIALIZE_RETRY_NUM
+                        )
+                        self.logger.info('Initialize request %s.', 'successful' if success else 'unsuccessful')
                         if success:
-                            self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.RESTARTING)
+                            self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.ONLINE)
 
                     for packet in radio.get_packets():
                         packet.received = packet.received.replace(tzinfo=timezone.utc)

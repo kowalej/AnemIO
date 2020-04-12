@@ -19,7 +19,7 @@ python-http-client==3.2.4
 ratelim==0.1.6
 ratelimitingfilter==1.2
 requests==2.21.0
-#-e git+git://github.com/kowalej/RFM69.git#egg=rpi-rfm69
+-e git+git://github.com/kowalej/RFM69.git#egg=rpi-rfm69
 RPi.GPIO==0.7.0
 sendgrid==6.1.1
 six==1.12.0
