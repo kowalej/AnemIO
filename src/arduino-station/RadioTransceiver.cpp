@@ -16,7 +16,7 @@ bool RadioTransceiver::setup() {
 	// Set modes / calibrate.
 	_radio.setHighPower(); // Set to high power since we are using RFM69HCW.
 	_radio.rcCalibration(); // Perform this calibration to optimize for temperature variability.
-	_radio.spyMode(false); // Don't sniff all packets on network, since we are only ever sending messages anyways.
+	_radio.spyMode(false); // Don't sniff all packets on network, since we only want the messages send to us specifically.
 	_radio.setPowerLevel((int)(0.85f * 31)); // 85% (of 31).
 
 	// Encryption.

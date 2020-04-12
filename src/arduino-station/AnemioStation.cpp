@@ -31,6 +31,7 @@ void AnemioStation::setup(bool initialLaunch) {
 			debugA("Waiting for initialize signal from base station...");
 			String receivedValue = _radioTransceiver.receive(RADIO_RECEIVE_WAIT_MS * 5);
 			if (receivedValue.length() > 0) {
+				debugA("%s", receivedValue.c_str());
 				handleCommand(receivedValue);
 			}
 		}

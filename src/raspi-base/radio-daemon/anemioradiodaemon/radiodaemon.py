@@ -47,6 +47,11 @@ def get_ts(timestamp, offset_ms=0):
     return int((unix_ts - (offset_ms / 1000)) * 1000)
 
 
+# Formats a radio command into it's proper format for sending (adds brackets).
+def format_radio_command(radio_command: RadioCommands):
+    return '[' + str(radio_command.value) + ']'
+
+
 class RadioDaemon():
     # Construct the class.
     def __init__(self, db_conn: Connection = None, radio: Radio = None, logger=logging.getLogger('anemio'), **kwargs):
@@ -480,7 +485,7 @@ class RadioDaemon():
                         self.logger.info('Sending initialize request to station. Attempts may continue for up to ~20 seconds.')
                         success = radio.send(
                             RADIO_STATION_NODE_ID,
-                            str(RadioCommands.INITIALIZE.value),
+                            format_radio_command(RadioCommands.INITIALIZE),
                             attempts=RADIO_INITIALIZE_RETRY_NUM
                         )
                         self.logger.info('Initialize request %s.', 'successful' if success else 'unsuccessful')
@@ -529,7 +534,11 @@ class RadioDaemon():
                 # Requested restart, so we try to send the restart command to the station.
                 elif station_state == StationState.RESTART_REQUESTED:
                     self.logger.info('Sending restart request to station. Attempts may continue for up to ~20 seconds.')
-                    success = radio.send(RADIO_STATION_NODE_ID, str(RadioCommands.RESTART.value), attempts=RADIO_COMMAND_RETRY_NUM)
+                    success = radio.send(
+                        RADIO_STATION_NODE_ID,
+                        format_radio_command(RadioCommands.RESTART),
+                        attempts=RADIO_COMMAND_RETRY_NUM
+                    )
                     self.logger.info('Restart request %s.', 'successful' if success else 'unsuccessful')
                     if success:
                         self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.RESTARTING)
@@ -537,7 +546,11 @@ class RadioDaemon():
                 # Requested sleep, so we try to send the sleep command to the station.
                 elif station_state == StationState.SLEEP_REQUESTED:
                     self.logger.info('Sending sleep request to station. Attempts may continue for up to ~20 seconds.')
-                    success = radio.send(RADIO_STATION_NODE_ID, str(RadioCommands.SLEEP.value), attempts=RADIO_COMMAND_RETRY_NUM)
+                    success = radio.send(
+                        RADIO_STATION_NODE_ID,
+                        format_radio_command(RadioCommands.SLEEP),
+                        attempts=RADIO_COMMAND_RETRY_NUM
+                    )
                     self.logger.info('Sleep request %s.', 'successful' if success else 'unsuccessful')
                     if success:
                         self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.SLEEPING)
@@ -545,7 +558,10 @@ class RadioDaemon():
                 # Requested wake, so we try to send the wake command to the station.
                 elif station_state == StationState.WAKE_REQUESTED:
                     self.logger.info('Sending wake request to station. Attempts may continue for up to ~20 seconds.')
-                    success = radio.send(RADIO_STATION_NODE_ID, str(RadioCommands.WAKE.value), attempts=WAKE_COMMAND_RETRY_NUM)
+                    success = radio.send(
+                        RADIO_STATION_NODE_ID,
+                        format_radio_command(RadioCommands.WAKE),
+                        attempts=WAKE_COMMAND_RETRY_NUM)
                     self.logger.info('Wake request %s.', 'successful, setup should now begin' if success else 'unsuccessful')
                     if success:
                         self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.ONLINE)
@@ -553,7 +569,11 @@ class RadioDaemon():
                 # Requested calibration, so we try to send the calibrate command to the station.
                 elif station_state == StationState.CALIBRATE_REQUESTED:
                     self.logger.info('Sending calibrate request to station. Attempts may continue for up to ~20 seconds.')
-                    success = radio.send(RADIO_STATION_NODE_ID, str(RadioCommands.CALIBRATE.value), attempts=RADIO_COMMAND_RETRY_NUM)
+                    success = radio.send(
+                        RADIO_STATION_NODE_ID,
+                        format_radio_command(RadioCommands.CALIBRATE),
+                        attempts=RADIO_COMMAND_RETRY_NUM
+                    )
                     self.logger.info('Calibrate request %s.', 'successful, setup should now begin' if success else 'unsuccessful')
                     if success:
                         self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.CALIBRATING)
@@ -570,6 +590,7 @@ class RadioDaemon():
 
     # Starts up the main data capture loop.
     def start_daemon(self):
+        # Start off in an unknown state, since we aren't connected to the station.
         self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.UNKNOWN)
         self.logger.info('Radio settings: NODE = {0}, NETWORK = {1}'.format(RADIO_BASE_NODE_ID, RADIO_NETWORK_ID))
         self.logger.info('Listening...')
@@ -578,6 +599,7 @@ class RadioDaemon():
 
     # Stops the main loops.
     def stop_daemon(self):
+        # Finish in an offline state, since daemon is no longer collecting data.
         self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.OFFLINE)
         self.logger.info('Stopping radio listening...')
         if self.loop is not None:
