@@ -23,7 +23,10 @@ from .constants import (
     ENCRYPT_KEY,
     COMPACT_MESSAGES_START,
     COMPACT_MESSAGES_END,
-    RADIO_NETWORK_ID
+    RADIO_NETWORK_ID,
+    RADIO_COMMAND_RETRY_NUM,
+    WAKE_COMMAND_RETRY_NUM,
+    RADIO_INITIALIZE_RETRY_NUM
 )
 
 
@@ -87,8 +90,6 @@ class RadioDaemon():
             self.db_conn = connect_db(logger=self.logger)
             self.close_db = True
         self._create_db_schema()
-
-        self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.UNKNOWN)
 
     def __del__(self):
         if self.close_db and self.db_conn is not None:
@@ -468,21 +469,32 @@ class RadioDaemon():
                             if msg_delta.total_seconds() > MAX_NO_RECEIVE_SECONDS:
                                 self.logger.critical(
                                     'Station has become unreachable. Last message received at: %s. Current datetime: %s.',
-                                    str(self.radio_last_receive),
-                                    datetime.now(timezone.utc).strftime()
+                                    self.radio_last_receive.isoformat(),
+                                    datetime.now(timezone.utc).isoformat()
                                 )
                                 self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.UNREACHABLE)
+
+                    # If state is unknown, the Daemon probably just booted / was reactivated.
+                    # The station is likely waiting for itialize signal to get it started our out of sleep mode.
+                    if station_state == StationState.UNKNOWN:
+                        self.logger.info('Sending restart request to station. Attempts may continue for up to ~20 seconds.')
+                        success = radio.send(RADIO_STATION_NODE_ID, str(RadioCommands.RESTART.value), attempts=RADIO_INITIALIZE_RETRY_NUM)
+                        self.logger.info('Restart request %s.', 'successful' if success else 'unsuccessful')
+                        if success:
+                            self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.RESTARTING)
+
                     for packet in radio.get_packets():
                         packet.received = packet.received.replace(tzinfo=timezone.utc)
                         self.radio_last_receive = packet.received
 
                         # Back online baby (we received a packet after being unreachable, or sleeping, although unusual).
+                        # Since we had lost the signal, we should restart so that we can ensure proper operation.
                         if station_state == StationState.UNREACHABLE or station_state == StationState.SLEEPING:
                             self.logger.critical(
-                                'Station has come back online after being unreachable. Current datetime: %s.',
+                                'Station has come back "online" after being unreachable. Must request restart. Current datetime: %s.',
                                 datetime.now(timezone.utc).strftime()
                             )
-                            self._set_station_state(get_ts(packet.received, self.average_radio_delay_ms), StationState.ONLINE)
+                            self._set_station_state(get_ts(packet.received, self.average_radio_delay_ms), StationState.RESTART_REQUESTED)
 
                         self.logger.info('Packet received:')
                         self.logger.info(packet)
@@ -512,32 +524,32 @@ class RadioDaemon():
 
                 # Requested restart, so we try to send the restart command to the station.
                 elif station_state == StationState.RESTART_REQUESTED:
-                    self.logger.info('Sending restart request to station.')
-                    success = radio.send(RADIO_STATION_NODE_ID, str(RadioCommands.RESTART.value))
+                    self.logger.info('Sending restart request to station. Attempts may continue for up to ~20 seconds.')
+                    success = radio.send(RADIO_STATION_NODE_ID, str(RadioCommands.RESTART.value), attempts=RADIO_COMMAND_RETRY_NUM)
                     self.logger.info('Restart request %s.', 'successful' if success else 'unsuccessful')
                     if success:
                         self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.RESTARTING)
 
                 # Requested sleep, so we try to send the sleep command to the station.
                 elif station_state == StationState.SLEEP_REQUESTED:
-                    self.logger.info('Sending sleep request to station.')
-                    success = radio.send(RADIO_STATION_NODE_ID, str(RadioCommands.SLEEP.value))
+                    self.logger.info('Sending sleep request to station. Attempts may continue for up to ~20 seconds.')
+                    success = radio.send(RADIO_STATION_NODE_ID, str(RadioCommands.SLEEP.value), attempts=RADIO_COMMAND_RETRY_NUM)
                     self.logger.info('Sleep request %s.', 'successful' if success else 'unsuccessful')
                     if success:
                         self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.SLEEPING)
 
                 # Requested wake, so we try to send the wake command to the station.
                 elif station_state == StationState.WAKE_REQUESTED:
-                    self.logger.info('Sending wake request to station.')
-                    success = radio.send(RADIO_STATION_NODE_ID, str(RadioCommands.WAKE.value))
+                    self.logger.info('Sending wake request to station. Attempts may continue for up to ~20 seconds.')
+                    success = radio.send(RADIO_STATION_NODE_ID, str(RadioCommands.WAKE.value), attempts=WAKE_COMMAND_RETRY_NUM)
                     self.logger.info('Wake request %s.', 'successful, setup should now begin' if success else 'unsuccessful')
                     if success:
                         self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.ONLINE)
 
                 # Requested calibration, so we try to send the calibrate command to the station.
                 elif station_state == StationState.CALIBRATE_REQUESTED:
-                    self.logger.info('Sending calibrate request to station.')
-                    success = radio.send(RADIO_STATION_NODE_ID, str(RadioCommands.CALIBRATE.value))
+                    self.logger.info('Sending calibrate request to station. Attempts may continue for up to ~20 seconds.')
+                    success = radio.send(RADIO_STATION_NODE_ID, str(RadioCommands.CALIBRATE.value), attempts=RADIO_COMMAND_RETRY_NUM)
                     self.logger.info('Calibrate request %s.', 'successful, setup should now begin' if success else 'unsuccessful')
                     if success:
                         self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.CALIBRATING)
@@ -554,6 +566,7 @@ class RadioDaemon():
 
     # Starts up the main data capture loop.
     def start_daemon(self):
+        self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.UNKNOWN)
         self.logger.info('Radio settings: NODE = {0}, NETWORK = {1}'.format(RADIO_BASE_NODE_ID, RADIO_NETWORK_ID))
         self.logger.info('Listening...')
         if self.loop is not None:
@@ -561,6 +574,7 @@ class RadioDaemon():
 
     # Stops the main loops.
     def stop_daemon(self):
+        self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.OFFLINE)
         self.logger.info('Stopping radio listening...')
         if self.loop is not None:
             self.loop.stop()

@@ -57,15 +57,17 @@ class AnemioStation {
 
 		RadioTransceiver _radioTransceiver;
 
+		InternalState _internalState;
+
 		bool _online[Devices::TOTAL];
 		unsigned long _lastCheck[ReadingChecks::ReadingChecks::TOTAL];
 		unsigned long _radioLastTransmit;
 		unsigned long _radioLastReceive;
 
-		bool _sleeping = false;
-
 		bool setupDevice_(Devices device);
 		bool checkDeviceOnline_(Devices device);
+
+		void handleCommand(String command);
 
 		char formatBuff[RADIO_MAX_MESSAGE_LENGTH];
 

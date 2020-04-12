@@ -1,6 +1,8 @@
 #include "AnemioStation.h"
 
 AnemioStation::AnemioStation() {
+	_internalState = InternalState::WAIT_FOR_INITIALIZE;
+
 	for (int i = 0; i < Devices::TOTAL; i++) {
 		_online[i] = false;
 		_lastCheck[i] = 0;
@@ -21,6 +23,16 @@ void AnemioStation::setup(bool initialLaunch) {
 		}
 		if (!radioSetup) {
 			soft_restart();
+		}
+
+		// Wait (indefinitely) until the base station sends us a signal, so we know we have an established connection.
+		// We won't even bother starting the i2c interface, or anything else, at this point.
+		while (_internalState == InternalState::WAIT_FOR_INITIALIZE) {
+			debugA("Waiting for initialize signal from base station...");
+			String receivedValue = _radioTransceiver.receive(RADIO_RECEIVE_WAIT_MS * 5);
+			if (receivedValue.length > 0) {
+				handleCommand(receivedValue);
+			}
 		}
 
 		// Startup i2c interface.
@@ -139,9 +151,38 @@ void AnemioStation::healthCheck() {
 	}
 }
 
+void AnemioStation::handleCommand(String commandInput) {
+	// Always put into sleep mode if requested.
+	if (commandInput == "[" + String(RadioCommands::SLEEP) + "]") {
+		_internalState = InternalState::SLEEPING;
+	}
+	// Always restart the device if requested.
+	else if (commandInput == "[" + String(RadioCommands::RESTART) + "]") {
+		soft_restart();
+	}
+	// Init the device by always moving it to online state and forcing setup only if we were sleeping.
+	else if (commandInput == "[" + String(RadioCommands::INITIALIZE) + "]") {
+		if (_internalState == InternalState::SLEEPING) {
+			setup(false);
+		}
+		_internalState = InternalState::ONLINE;
+	}
+	// Calibrate the device only if requested during ONLINE state.
+	// Force setup if coming from SLEEPING state.
+	else if (commandInput == "[" + String(RadioCommands::CALIBRATE) + "]") {
+		if (_internalState == InternalState::ONLINE) {
+			_windDirectionProvider.calibrateZero();
+		}
+		else if (_internalState == InternalState::SLEEPING) {
+			setup(false);
+		}
+		_internalState = InternalState::ONLINE;
+	}
+}
+
 void AnemioStation::loop() {
 	// Station is in "sleep" low power mode. This would be for night hour operation and is controlled by the ground station.
-	if (_sleeping)
+	if (_internalState == InternalState::SLEEPING)
 	{
 		#ifndef DEBUG_DISABLED
 			delay(1000); // Let serial finish.
@@ -152,10 +193,7 @@ void AnemioStation::loop() {
 		// Need to setup the radio each time, since we went into deep sleep mode.
 		_radioTransceiver.setup();
 		String receivedValue = _radioTransceiver.receive(RADIO_SLEEP_MODE_RECEIVE_WAIT_MS);
-		if (receivedValue == "[" + String(RadioCommands::WAKE) + "]") {
-			setup(false);
-			_sleeping = false;
-		}
+		handleCommand(receivedValue);
 	}
 
 	// Station is in normal operating mode, collecting and sending data regularily.
@@ -375,19 +413,9 @@ void AnemioStation::loop() {
 		if (TIME_DELTA(_radioLastReceive) >= RADIO_RECEIVE_INTERVAL_MS) {
 			debugD("Radio receive start: %lu\n", millis());
 			String receivedValue = _radioTransceiver.receive(RADIO_RECEIVE_WAIT_MS);
-			// Put into sleep mode (note, that sleep mode has a different routing for getting commands above).
-			if (receivedValue == "[" + String(RadioCommands::SLEEP) + "]") {
-				_sleeping = true;
-			}
-			// Restart the device.
-			else if (receivedValue == "[" + String(RadioCommands::RESTART) + "]") {
-				soft_restart();
-			}
-			else if (receivedValue == "[" + String(RadioCommands::CALIBRATE) + "]") {
-				_windDirectionProvider.calibrateZero();
-			}
 			_radioLastReceive = millis();
 			debugD("Radio receive end: %lu\n", _radioLastTransmit);
+			handleCommand(receivedValue);
 		}
 
 		// Loop sleep.

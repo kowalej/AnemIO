@@ -31,13 +31,18 @@ int compare(const void* a, const void* b)
 
 void WindDirectionProvider::calibrateZero() {
 	debugI("Calibration the raw zero position of wind direction sensor (AS5040), sampling position for %d seconds...", WIND_DIRECTION_ZERO_TIME_SECONDS);
-	int delayTimeMillis = WIND_DIRECTION_ZERO_TIME_SECONDS * 1000;
+
+	// Time the encoder so we can get our delay time between reads, so that we have a total time of WIND_DIRECTION_ZERO_TIME.
+	unsigned long tStart = millis();
+	_enc.read();
+	unsigned long tEnd = millis();
+	int delayMillis = (WIND_DIRECTION_ZERO_TIME_SECONDS * 1000 / WIND_DIRECTION_ZERO_NUM_SAMPLES) - (tEnd - tStart);
+
+	// Get our evenly spaced samples while user holds wind sock, aligned with compass "Y" axis.
 	int values[WIND_DIRECTION_ZERO_NUM_SAMPLES];
 	for(int i = 0; i < WIND_DIRECTION_ZERO_NUM_SAMPLES; i++) {
-		unsigned long timestart = millis();
 		values[i] = _enc.read();
-		unsigned long timeend = millis();
-		delay(delayTimeMillis - (timeend - timestart));
+		delay(delayMillis);
 	}
 
 	// Sort the values so we can do a median average.

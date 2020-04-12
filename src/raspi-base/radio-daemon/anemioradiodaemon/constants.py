@@ -20,13 +20,25 @@ DEFAULT_DB_NAME = '/data/anemio/anemio.db'
 # Average time it takes to receive data after it was sent by station.
 DEFAULT_RADIO_DELAY_MS = 20
 
+# Maximum time between receiving commands over the radio.
+RADIO_RECEIVE_INTERVAL_MS = 15000
+# Time we send radio commands to ensure our station received them.
+RADIO_COMMAND_RETRY_NUM = int(1.25 * RADIO_RECEIVE_INTERVAL_MS / 50)  # Divide by radio.py wait time.
+
+# How long to sleep before checking for message.
+SLEEP_MODE_SLEEP_TIME_MS = 15000
+# Time we send radio commands to ensure our station received them.
+WAKE_COMMAND_RETRY_NUM = int(1.25 * SLEEP_MODE_SLEEP_TIME_MS / 50)  # Divide by radio.py wait time.
+
+RADIO_INITIALIZE_RETRY_NUM = WAKE_COMMAND_RETRY_NUM
+
 # Sleep time will be 50 ms (try to send command or get new set of packets every 50 ms).
 DEFAULT_TRANSRECEIVE_SLEEP_SEC = 50.0 / 1000.0
 
 RADIO_STATION_NODE_ID = 97  # Station node number.
 RADIO_BASE_NODE_ID = 87  # Base station node number.
 RADIO_NETWORK_ID = 223  # Radio network.
-ENCRYPT_KEY = os.getenv('ANEMIO_ENCRYPT_KEY', 'J53Y25U5D8CE79NO')  # tries to get from environment first.
+ENCRYPT_KEY = os.getenv('ANEMIO_ENCRYPT_KEY', 'J53Y25U5D8CE79NO')  # Tries to get from environment first.
 
 # File log parameters.
 LOG_FILE_MAX_SIZE_MB = os.getenv('ANEMIO_LOG_FILE_MAX_SIZE_MB', 5)
@@ -50,7 +62,7 @@ COMPACT_MESSAGES_START = "^^"
 COMPACT_MESSAGES_END = "$$"
 
 # Maximum allowed time to receive no radio messages, until reporting that we are in unreachable state.
-MAX_NO_RECEIVE_SECONDS = 5
+MAX_NO_RECEIVE_SECONDS = 25
 
 
 class Devices(Enum):
@@ -87,6 +99,7 @@ class SensorCategory(Enum):
 
 
 class RadioCommands(Enum):
+    INITIALIZE = 0
     SETUP_START = 1
     REPORT_SETUP_STATE = 2
     SETUP_FINISH = 3
@@ -99,7 +112,6 @@ class RadioCommands(Enum):
     WAKE = 10
     RESTART = 11
     CALIBRATE = 12
-    TOTAL = 13
 
 
 class StationState(Enum):
