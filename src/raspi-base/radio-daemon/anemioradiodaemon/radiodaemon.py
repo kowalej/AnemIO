@@ -493,6 +493,7 @@ class RadioDaemon():
                         if success:
                             self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.ONLINE)
                             self.radio_last_receive = datetime.now(timezone.utc)
+                            continue
 
                     for packet in radio.get_packets():
                         packet.received = packet.received.replace(tzinfo=timezone.utc)
@@ -503,9 +504,10 @@ class RadioDaemon():
                         if station_state in [StationState.UNKNOWN, StationState.UNREACHABLE, StationState.SLEEPING]:
                             self.logger.critical(
                                 'Station has come back "online" after being unreachable. Must request restart. Current datetime: %s.',
-                                datetime.now(timezone.utc).strftime()
+                                datetime.now(timezone.utc).isoformat()
                             )
                             self._set_station_state(get_ts(packet.received, self.average_radio_delay_ms), StationState.RESTART_REQUESTED)
+                            continue
 
                         self.logger.info('Packet received:')
                         self.logger.info(packet)
@@ -544,6 +546,7 @@ class RadioDaemon():
                     self.logger.info('Restart request %s.', 'successful' if success else 'unsuccessful')
                     if success:
                         self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.RESTARTING)
+                        self.radio_last_receive = datetime.now(timezone.utc)
 
                 # Requested sleep, so we try to send the sleep command to the station.
                 elif station_state == StationState.SLEEP_REQUESTED:
@@ -556,6 +559,7 @@ class RadioDaemon():
                     self.logger.info('Sleep request %s.', 'successful' if success else 'unsuccessful')
                     if success:
                         self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.SLEEPING)
+                        self.radio_last_receive = datetime.now(timezone.utc)
 
                 # Requested wake, so we try to send the wake command to the station.
                 elif station_state == StationState.WAKE_REQUESTED:
@@ -567,6 +571,7 @@ class RadioDaemon():
                     self.logger.info('Wake request %s.', 'successful, setup should now begin' if success else 'unsuccessful')
                     if success:
                         self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.ONLINE)
+                        self.radio_last_receive = datetime.now(timezone.utc)
 
                 # Requested calibration, so we try to send the calibrate command to the station.
                 elif station_state == StationState.CALIBRATE_REQUESTED:
@@ -579,6 +584,7 @@ class RadioDaemon():
                     self.logger.info('Calibrate request %s.', 'successful, setup should now begin' if success else 'unsuccessful')
                     if success:
                         self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.CALIBRATING)
+                        self.radio_last_receive = datetime.now(timezone.utc)
 
             except asyncio.CancelledError:
                 self.logger.info('Radio transceiving cancelled.')

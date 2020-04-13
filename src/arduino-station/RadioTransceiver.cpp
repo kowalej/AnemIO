@@ -44,7 +44,7 @@ void RadioTransceiver::wake() {
 
 String RadioTransceiver::receive(int wait) {
 	wake();
-	char message[61];
+	char message[61] = { null };
 	unsigned long startTime = millis();
 	while(millis() - startTime < wait)
 	{
@@ -56,6 +56,7 @@ String RadioTransceiver::receive(int wait) {
 				_radio.sendACK();
 			}
 			sleep();
+			debugI("Radio message received from %d: %s.", _radio.SENDERID, message);
 			return String(message);
 		}
 	}

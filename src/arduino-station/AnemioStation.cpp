@@ -40,6 +40,9 @@ void AnemioStation::setup(bool initialLaunch) {
 		Wire.begin();
 	}
 
+	// This small delay ensures the base station can always be ready to receive in time after initialization, restarting, etc.
+	delay(1000);
+
 	// Start using radio for a bit (wake up).
 	_radioTransceiver.wake();
 
@@ -157,9 +160,6 @@ void AnemioStation::handleCommand(String commandInput) {
 	commandInput.replace("[", "");
 	commandInput.replace("]", "");
 	commandInput.trim();
-
-	debugA("Command input fixed: %s", commandInput.c_str());
-	debugA("Test value compare: %s", String(RadioCommands::INITIALIZE).c_str());
 
 	// Always put into sleep mode if requested.
 	if (commandInput == String(RadioCommands::SLEEP)) {
