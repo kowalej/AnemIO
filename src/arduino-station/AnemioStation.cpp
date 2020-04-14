@@ -2,16 +2,17 @@
 
 AnemioStation::AnemioStation() {
 	_internalState = InternalState::WAIT_FOR_INITIALIZE;
+}
 
+void AnemioStation::setup(bool initialLaunch) {
+	// Clean online values and transmit / receive metadata.
 	for (int i = 0; i < Devices::TOTAL; i++) {
 		_online[i] = false;
 		_lastCheck[i] = 0;
 	}
 	_radioLastTransmit = 0;
-	_radioLastTransmit = 0;
-}
+	_radioLastReceive = 0;
 
-void AnemioStation::setup(bool initialLaunch) {
 	if (initialLaunch) {
 		// Setup radio - if we cannot setup succesfully, we will retry a few times, and if we're still not setup, we will restart the Arduino.
 		bool radioSetup = false;
@@ -28,11 +29,15 @@ void AnemioStation::setup(bool initialLaunch) {
 		// Wait (indefinitely) until the base station sends us a signal, so we know we have an established connection.
 		// We won't even bother starting the i2c interface, or anything else, at this point.
 		while (_internalState == InternalState::WAIT_FOR_INITIALIZE) {
+			// Wait about 15 seconds then delay for a couple..
 			debugA("Waiting for initialize signal from base station...");
-			String receivedValue = _radioTransceiver.receive(RADIO_RECEIVE_WAIT_MS);
+			String receivedValue = _radioTransceiver.receive(RADIO_RECEIVE_WAIT_MS * 10);
 			if (receivedValue.length() > 0) {
 				debugA("Received signal from base station, value: %s.", receivedValue.c_str());
 				handleCommand(receivedValue);
+			}
+			else {
+				delay(2000);
 			}
 		}
 
@@ -41,7 +46,7 @@ void AnemioStation::setup(bool initialLaunch) {
 	}
 
 	// This small delay ensures the base station can always be ready to receive in time after initialization, restarting, etc.
-	delay(1000);
+	delay(2000);
 
 	// Start using radio for a bit (wake up).
 	_radioTransceiver.wake();
@@ -171,10 +176,12 @@ void AnemioStation::handleCommand(String commandInput) {
 	}
 	// Init the device by always moving it to online state and forcing setup only if we were sleeping.
 	else if (commandInput == String(RadioCommands::INITIALIZE)) {
-		if (_internalState == InternalState::SLEEPING) {
+		if (_internalState == InternalState::WAIT_FOR_INITIALIZE) {
+			_internalState = InternalState::ONLINE;
+		}
+		else {
 			setup(false);
 		}
-		_internalState = InternalState::ONLINE;
 	}
 	// Calibrate the device only if requested during ONLINE state.
 	// Force setup if coming from SLEEPING state.
@@ -423,7 +430,7 @@ void AnemioStation::loop() {
 			debugD("Radio receive start: %lu\n", millis());
 			String receivedValue = _radioTransceiver.receive(RADIO_RECEIVE_WAIT_MS);
 			_radioLastReceive = millis();
-			debugD("Radio receive end: %lu\n", _radioLastTransmit);
+			debugD("Radio receive end: %lu\n", _radioLastReceive);
 			handleCommand(receivedValue);
 		}
 

@@ -39,15 +39,19 @@ RUN pip wheel --no-cache-dir --no-deps --wheel-dir /usr/src/app/wheels -r requir
 # Pull official base image.
 FROM balenalib/rpi-debian-python:3.8-buster-run
 
-# Create directory for the app.
-RUN mkdir -p /home/app
+# Set home directory.
+ENV HOME=/home
 
-# Create the appropriate directories.
-ENV HOME=/home/app
-ENV APP_HOME=/home/app/anemio
+# Create directory for the app(s).
+RUN mkdir -p $HOME/app
+
+# Create the appropriate directories for Anemio.
+ENV APP_HOME=$HOME/app/anemio
 ENV APP_DATA=/data/anemio
 RUN mkdir $APP_HOME
 RUN mkdir -p $APP_DATA
+
+# Working directory, everything below is relative to this.
 WORKDIR $APP_HOME
 
 # Install dependencies.
@@ -57,7 +61,7 @@ RUN pip install --upgrade pip
 RUN pip install --no-cache /wheels/*
 
 # Copy project.
-COPY . $APP_HOME
+COPY . .
 
 # Uncomment if you want to build for x86-x64.
 # RUN ["cross-build-end"]

@@ -57,6 +57,7 @@ String RadioTransceiver::receive(int wait) {
 			}
 			sleep();
 			debugI("Radio message received from %d: %s.", _radio.SENDERID, message);
+			debugA("String value %s.", String(message).c_str());
 			return String(message);
 		}
 	}

@@ -439,7 +439,7 @@ class RadioDaemon():
                 return StationState.UNREACHABLE
             return StationState(r[0][0])
 
-    def _set_station_state(self, timestamp, state):
+    def _set_station_state(self, timestamp, state: StationState):
         with closing(self.db_conn.cursor()) as c:
             c.execute(
                 'INSERT INTO station_state(timestamp, state) VALUES (?,?)',
@@ -479,11 +479,13 @@ class RadioDaemon():
                                     datetime.now(timezone.utc).isoformat()
                                 )
                                 self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.UNREACHABLE)
+                                radio.packets = []
+                                radio.sleep()
 
                     # If state is unknown or unreachable, usually the Daemon just booted / was reactivated.
                     # The station is likely waiting for itialize signal to get it started our out of sleep mode.
-                    if station_state in [StationState.UNKNOWN, StationState.UNREACHABLE]:
-                        self.logger.info('Sending initialize request to station. Attempts may continue for up to ~20 seconds.')
+                    if station_state in [StationState.UNKNOWN, StationState.UNREACHABLE, StationState.RESTARTING]:
+                        self.logger.info('Sending initialize request to station. Attempts may continue for up to ~45 seconds.')
                         success = radio.send(
                             RADIO_STATION_NODE_ID,
                             format_radio_command(RadioCommands.INITIALIZE),
@@ -493,6 +495,7 @@ class RadioDaemon():
                         if success:
                             self._set_station_state(get_ts(datetime.now(timezone.utc)), StationState.ONLINE)
                             self.radio_last_receive = datetime.now(timezone.utc)
+                            radio.begin_receive()
                             continue
 
                     for packet in radio.get_packets():
@@ -503,11 +506,11 @@ class RadioDaemon():
                         # Since we had lost the signal, we should restart so that we can ensure proper operation.
                         if station_state in [StationState.UNKNOWN, StationState.UNREACHABLE, StationState.SLEEPING]:
                             self.logger.critical(
-                                'Station has come back "online" after being unreachable. Must request restart. Current datetime: %s.',
+                                'Station has come back "online" after being unreachable. Must re-initialize. Current datetime: %s.',
                                 datetime.now(timezone.utc).isoformat()
                             )
-                            self._set_station_state(get_ts(packet.received, self.average_radio_delay_ms), StationState.RESTART_REQUESTED)
-                            continue
+                            self._set_station_state(get_ts(packet.received, self.average_radio_delay_ms), StationState.UNKNOWN)
+                            break
 
                         self.logger.info('Packet received:')
                         self.logger.info(packet)
@@ -663,7 +666,7 @@ class RadioDaemon():
                         RADIO_NETWORK_ID,
                         isHighPower=True,
                         encryptionKey=ENCRYPT_KEY,
-                        power=100,  # Send at 100% power, since we don't care about power saving on this end (we are wired in).
+                        power=10,  # Send at 100% power, since we don't care about power saving on this end (we are wired in).
                         promiscuous=False,  # We don't care about any messages except our weather station.
                         autoAcknowledge=True,  # Station expects Acknowledgements.
                         verbose=False

@@ -17,7 +17,6 @@ from rest_framework_api_key import permissions as api_permissions
 
 
 # Create your views here.
-f = permissions.DjangoModelPermissions
 logger = logging.getLogger(__name__)
 
 

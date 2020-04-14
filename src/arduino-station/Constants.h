@@ -18,7 +18,7 @@ namespace {
 
 	const uint16_t RADIO_SEND_INTERVAL_MS = 5000; // Maximum time between transmitting consecutive sample sets over the radio.
 	const uint16_t RADIO_RECEIVE_INTERVAL_MS = 15000; // Maximum time between receiving commands over the radio.
-	const uint16_t RADIO_RECEIVE_WAIT_MS = 1000; // Default time to wait for command from base station.
+	const uint16_t RADIO_RECEIVE_WAIT_MS = 1500; // Default time to wait for command from base station.
 	const uint16_t RADIO_SLEEP_MODE_RECEIVE_WAIT_MS = 2000; // How long check for wake message before sleeping again.
 
 	const uint16_t SLEEP_MODE_SLEEP_TIME_MS = 15000; // How long to sleep before checking for message.

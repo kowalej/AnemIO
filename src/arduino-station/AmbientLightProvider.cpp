@@ -37,7 +37,7 @@ const String AmbientLightProvider::getAmbientLightState(SampleSet &samples)
 		average += samples.ambientLightSamples.peek(i)->second();
 	}
 	average = average / sampleCount;
-	debugD("Ambi average: %s", String(average).c_str());
+	debugD("Ambient light average: %s", String(average).c_str());
 
 	// Get lux and use lookup below to determine overall state.
 	float lux = getLux(average);

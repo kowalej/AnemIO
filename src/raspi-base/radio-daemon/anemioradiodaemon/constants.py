@@ -28,7 +28,9 @@ RADIO_COMMAND_RETRY_NUM = int(1.25 * RADIO_RECEIVE_INTERVAL_MS / 1000)  # Divide
 # How long to sleep before checking for message.
 SLEEP_MODE_SLEEP_TIME_MS = 15000
 # Time we send radio commands to ensure our station received them.
-WAKE_COMMAND_RETRY_NUM = RADIO_INITIALIZE_RETRY_NUM = int(1.25 * SLEEP_MODE_SLEEP_TIME_MS / 1000)  # Divide by radio.py  CSMA limit time ms.
+WAKE_COMMAND_RETRY_NUM = int(1.25 * SLEEP_MODE_SLEEP_TIME_MS / 1000)  # Divide by radio.py  CSMA limit time ms.
+
+RADIO_INITIALIZE_RETRY_NUM = 42
 
 # Sleep time will be 50 ms (try to send command or get new set of packets every 50 ms).
 DEFAULT_TRANSRECEIVE_SLEEP_SEC = 50.0 / 1000.0
