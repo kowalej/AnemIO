@@ -15,8 +15,6 @@ except IOError:
     except IOError:
         pass
 
-DEFAULT_DB_NAME = '/data/anemio/anemio.db'
-
 # Average time it takes to receive data after it was sent by station.
 DEFAULT_RADIO_DELAY_MS = 20
 
@@ -35,10 +33,14 @@ RADIO_INITIALIZE_RETRY_NUM = 42
 # Sleep time will be 50 ms (try to send command or get new set of packets every 50 ms).
 DEFAULT_TRANSRECEIVE_SLEEP_SEC = 50.0 / 1000.0
 
+# Database.
+DEFAULT_DB_NAME = os.getenv('ANEMIO_DB_NAME', 'anemio.db')
+
+# Radio details.
 RADIO_STATION_NODE_ID = 97  # Station node number.
 RADIO_BASE_NODE_ID = 87  # Base station node number.
 RADIO_NETWORK_ID = 223  # Radio network.
-ENCRYPT_KEY = os.getenv('ANEMIO_ENCRYPT_KEY', 'J53Y25U5D8CE79NO')  # Tries to get from environment first.
+ENCRYPT_KEY = os.getenv('ANEMIO_ENCRYPT_KEY', 'J53Y25U5D8CE79NO')  # Encrypting data makes system more reliable.
 
 # File log parameters.
 LOG_FILE_MAX_SIZE_MB = os.getenv('ANEMIO_LOG_FILE_MAX_SIZE_MB', 5)

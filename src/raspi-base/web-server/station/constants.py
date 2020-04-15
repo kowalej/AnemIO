@@ -1,7 +1,6 @@
 from enum import Enum
 import os
 
-DEFAULT_DB_NAME = 'anemio.db'
 
 # Email parameters.
 EMAIL_FROM = os.getenv('ANEMIO_EMAIL_FROM', '')

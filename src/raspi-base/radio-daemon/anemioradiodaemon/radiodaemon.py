@@ -15,7 +15,7 @@ from .constants import (
     StationState,
     RadioCommands,
     SensorCategory,
-    DEFAULT_DB_NAME,
+    DB_NAME,
     DEFAULT_RADIO_DELAY_MS,
     DEFAULT_TRANSRECEIVE_SLEEP_SEC,
     MAX_NO_RECEIVE_SECONDS,
@@ -32,7 +32,7 @@ from .constants import (
 
 
 # Sets up the database, returns connection.
-def connect_db(db_name=DEFAULT_DB_NAME, logger=logging.getLogger()):
+def connect_db(db_name=DB_NAME, logger=logging.getLogger()):
     # DB setup.
     logger.info('Connecting to database {}...'.format(db_name))
     if not os.path.isfile(db_name):

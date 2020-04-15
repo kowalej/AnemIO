@@ -39,24 +39,40 @@ services:
     networks:
       - anemio-net
 
-    anemio-web-traefik:
-      image: "traefik:v2.0.0-rc3"
-      command:
-        - "--log.level=DEBUG"
-        - "--api.insecure=true"
-        - "--providers.docker=true"
-        - "--providers.docker.exposedbydefault=false"
-        - "--entrypoints.websecure.address=:443"
-        - "--certificatesresolvers.mytlschallenge.acme.tlschallenge=true"
-        #- "--certificatesresolvers.mytlschallenge.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
-        - "--certificatesresolvers.mytlschallenge.acme.email=kowaleskij@gmail.com"
-        - "--certificatesresolvers.mytlschallenge.acme.storage=/letsencrypt/acme.json"
-      ports:
-        - "443:443"
-        - "8080:8080"
+    anemio-web-celery:
+      build: ./web-server
+      command: celery -A anemio worker -l info
       volumes:
-        - "anemio-certs:/letsencrypt"
-        - "/var/run/docker.sock:/var/run/docker.sock:ro"
+        - ./web-server:/home/anemio/app
+      depends_on:
+        - anemio-web-redis
+
+    anemio-web-celery-beat:
+      build: ./web-server
+      command: celery -A anemio beat -l info
+      volumes:
+        - ./web-server:/home/anemio/app
+      depends_on:
+        - anemio-web-redis
+
+  anemio-web-traefik:
+    image: "traefik:v2.0.0-rc3"
+    command:
+      - "--log.level=DEBUG"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.mytlschallenge.acme.tlschallenge=true"
+      #- "--certificatesresolvers.mytlschallenge.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+      - "--certificatesresolvers.mytlschallenge.acme.email=kowaleskij@gmail.com"
+      - "--certificatesresolvers.mytlschallenge.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - "anemio-certs:/letsencrypt"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
 
   anemio-web-django:
     depends_on:
@@ -64,8 +80,7 @@ services:
       - anemio-web-redis
       - anemio-web-memcached
     restart: always
-    build:
-      ./web-server
+    build: ./web-server
     volumes:
       - anemio-data:/data/anemio
     networks:
