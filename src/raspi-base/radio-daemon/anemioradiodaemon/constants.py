@@ -15,18 +15,21 @@ except IOError:
     except IOError:
         pass
 
-# Average time it takes to receive data after it was sent by station.
+# Additional "buffer" to add to our wait times (in case station is busy processing).
+TIME_BUFFER = 1.5
+
+# Average time it takes to receive data after it was sent by station (i.e. lag).
 DEFAULT_RADIO_DELAY_MS = 20
 
-# Maximum time between receiving commands over the radio.
+# How often does the station check for radio commands during normal operation.
 RADIO_RECEIVE_INTERVAL_MS = 15000
 # Time we send radio commands to ensure our station received them.
-RADIO_COMMAND_RETRY_NUM = int(1.25 * RADIO_RECEIVE_INTERVAL_MS / 1000)  # Divide by radio.py CSMA limit time ms.
+RADIO_COMMAND_RETRY_NUM = int(TIME_BUFFER * RADIO_RECEIVE_INTERVAL_MS / 1000)  # Divide by radio.py CSMA limit time ms.
 
-# How long to sleep before checking for message.
+# How often does the station check for radio commands during sleep mode.
 SLEEP_MODE_SLEEP_TIME_MS = 15000
 # Time we send radio commands to ensure our station received them.
-WAKE_COMMAND_RETRY_NUM = int(1.25 * SLEEP_MODE_SLEEP_TIME_MS / 1000)  # Divide by radio.py  CSMA limit time ms.
+WAKE_COMMAND_RETRY_NUM = int(TIME_BUFFER * SLEEP_MODE_SLEEP_TIME_MS / 1000)  # Divide by radio.py  CSMA limit time ms.
 
 RADIO_INITIALIZE_RETRY_NUM = 42
 

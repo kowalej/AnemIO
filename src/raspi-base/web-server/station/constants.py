@@ -10,6 +10,9 @@ EMAIL_PORT = os.getenv('ANEMIO_EMAIL_PORT', '')
 EMAIL_USER = os.getenv('ANEMIO_EMAIL_USER', '')
 EMAIL_PASSWORD = os.getenv('ANEMIO_EMAIL_PASSWORD', '')
 
+# How often does our station send data.
+RADIO_SEND_INTERVAL_MS = 5000
+
 
 class Devices(Enum):
     AMBIENT_LIGHT = 0
