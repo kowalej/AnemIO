@@ -1,5 +1,5 @@
 # Pull official base image.
-FROM balenalib/rpi-debian-python:3.7.4-buster-build
+FROM balenalib/rpi-debian-python:3.8-buster-build
 
 # Set working directory.
 WORKDIR /usr/src/app

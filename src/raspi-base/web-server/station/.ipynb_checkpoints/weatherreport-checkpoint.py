@@ -26,7 +26,7 @@ class WeatherReport():
     # Note that exact calendar dates are not considered, meaning that (for example) if your start_date_time
     # begins in the middle of a real calendar week, the measure of one week will start at that exact date time
     # and jump to the middle of the next real calendar week (i.e. increment 7 days from your start_date_time).
-    def __init__(self, end_date_time: datetime, start_date_time: datetime, period='i'):
+    def __init__(self, end_date_time: datetime.datetime, start_date_time: datetime.datetime, period='i'):
         self.end_date_time = end_date_time
         self.start_date_time = start_date_time
         self.period = period
@@ -50,4 +50,6 @@ class WeatherReport():
             )
         )
         df_accelerometerXyz.rolling(5, win_type='boxcar').average()
-        self.start_date_time.day
+
+    # def calc_from_aggregate(self):
+    #     if self.period == 'd':

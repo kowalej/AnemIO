@@ -19,11 +19,11 @@ class AccelerometerXyzFilterSet(django_filters.FilterSet):
 
 class AmbientLightStateFilterSet(django_filters.FilterSet):
     timestamp = timestamp_dt_filter
-    state = django_filters.CharFilter(lookup_expr='in')
+    value = django_filters.CharFilter(lookup_expr='contains')
 
     class Meta:
         model = AmbientLightState
-        fields = ['timestamp', 'state']
+        fields = ['timestamp', 'value']
 
 
 class AmbientLightValuesFilterSet(django_filters.FilterSet):
@@ -46,11 +46,11 @@ class BatteryLevelFilterSet(django_filters.FilterSet):
 
 class CompassHeadingFilterSet(django_filters.FilterSet):
     timestamp = timestamp_dt_filter
-    heading = django_filters.RangeFilter()
+    value = django_filters.RangeFilter()
 
     class Meta:
         model = CompassHeading
-        fields = ['timestamp', 'heading']
+        fields = ['timestamp', 'value']
 
 
 class CompassXyzFilterSet(django_filters.FilterSet):
@@ -111,7 +111,7 @@ class PressureTemperatureFilterSet(django_filters.FilterSet):
 
 class RainGaugeFilterSet(django_filters.FilterSet):
     timestamp = timestamp_dt_filter
-    state = django_filters.CharFilter(lookup_expr='in')
+    state = django_filters.CharFilter(lookup_expr='contains')
 
     class Meta:
         model = RainGauge
@@ -120,7 +120,7 @@ class RainGaugeFilterSet(django_filters.FilterSet):
 
 class RainStateFilterSet(django_filters.FilterSet):
     timestamp = timestamp_dt_filter
-    state = django_filters.CharFilter(lookup_expr='in')
+    state = django_filters.CharFilter(lookup_expr='contains')
 
     class Meta:
         model = RainState

@@ -11,13 +11,18 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
 import os
+from dotenv import load_dotenv
+from pathlib import Path, PosixPath, PurePosixPath
+
+# Full filesystem path to the project.
+PROJECT_APP_PATH = os.path.dirname(os.path.abspath(__file__))
+PROJECT_APP = os.path.basename(PROJECT_APP_PATH)
+PROJECT_ROOT = BASE_DIR = os.path.dirname(PROJECT_APP_PATH)
 
 # We will try to load environment vars. This is helpful if we are using a .env file, versus setting all our environment variables.
-from dotenv import load_dotenv
-from pathlib import Path
 env_path = os.getenv('ANEMIO_ENVIRONMENT_FILE_PATH', None)
 if env_path is None:
-    env_path = Path('.') / '.prod.env'
+    env_path = BASE_DIR + '\\.local.env'
 try:
     load_dotenv(env_path, verbose=True)
 except IOError:
@@ -28,19 +33,15 @@ except IOError:
 
 # Basic settings
 # ------------------------------------
-# Full filesystem path to the project.
-PROJECT_APP_PATH = os.path.dirname(os.path.abspath(__file__))
-PROJECT_APP = os.path.basename(PROJECT_APP_PATH)
-PROJECT_ROOT = BASE_DIR = os.path.dirname(PROJECT_APP_PATH)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'b)z6ri&+9exu3$xxvli)dny-zwc9+fzzjikl6#y114a@qf70p-')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = int(os.getenv('DEBUG', 0))
+DEBUG = bool(os.getenv('DEBUG', False))
 
 ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', '127.0.0.1').split(',')
 
@@ -56,6 +57,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework_api_key',
+    'django_extensions',
     'django_filters',
     'constance.backends.database',
     'constance',
@@ -119,9 +121,11 @@ WSGI_APPLICATION = 'anemio.wsgi.application'
 # Databases
 DJANGO_DB_NAME = os.getenv('DJANGO_DB_NAME', None)
 DJANGO_DB_NAME = DJANGO_DB_NAME if DJANGO_DB_NAME is not None else os.path.join(BASE_DIR, 'django.db')
+DJANGO_DB_NAME = os.path.normpath(DJANGO_DB_NAME)
 
 ANEMIO_DB_NAME = os.getenv('ANEMIO_DB_NAME', None)
-ANEMIO_DB_NAME = ANEMIO_DB_NAME if ANEMIO_DB_NAME is not None else os.path.join(BASE_DIR, '../../radio-daemon/anemio.db')
+ANEMIO_DB_NAME = ANEMIO_DB_NAME if ANEMIO_DB_NAME is not None else os.path.join(BASE_DIR, '..', 'radio-daemon', 'anemio-test.db')
+ANEMIO_DB_NAME = os.path.normpath(ANEMIO_DB_NAME)
 
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
 # ------------------------------------

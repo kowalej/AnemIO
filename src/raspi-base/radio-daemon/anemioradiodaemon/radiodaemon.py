@@ -268,6 +268,7 @@ class RadioDaemon():
 
                 # Station is starting or returning from wake (devices will be initialized).
                 if command == RadioCommands.SETUP_START:
+                    # I: - is setup from boot / setup from wake (0/1).
                     m = re.match('I:([0,1])', contents)
                     if m is not None:
                         boot_type = StationState.SETUP_BOOT if int(m.group(1)) == 1 else StationState.SETUP_WAKE
@@ -282,6 +283,7 @@ class RadioDaemon():
 
                 # Device has initialized (successfully or not).
                 elif command == RadioCommands.REPORT_SETUP_STATE:
+                    # D: - device (id), O: - is initialized / not initialized (0/1).
                     m = re.match('D:([0-9]+)O:([0,1])', contents)
                     if m is not None:
                         self.device_statuses[int(m.group(1))] = True if int(m.group(2)) == 1 else False
@@ -307,6 +309,7 @@ class RadioDaemon():
                         (timestamp, repr(online_devices), repr(offline_devices), True)
                     )
 
+                    # O: - number online, F: - number offline (failed).
                     m = re.match('O:([0-9]+)F:([0-9])', contents)
                     if m is not None:
                         # Sanity checks.
@@ -337,6 +340,7 @@ class RadioDaemon():
 
                 # Device randomly comes online or offline.
                 elif command == RadioCommands.REPORT_ONLINE_STATE:
+                    # D: - device (id), O: - online / offline (0/1).
                     m = re.match('D:([0-9]+)O:([0,1])', contents)
                     if m is not None:
                         self.device_statuses[int(m.group(1))] = True if int(m.group(2)) == 1 else False
@@ -364,6 +368,7 @@ class RadioDaemon():
                 elif command == RadioCommands.SAMPLES_START:
                     self.current_sample_group = None
                     self.samples_start_timestamp = timestamp
+                    # T: - base (station) timestamp for samples.
                     m = re.match('T:([0-9]+)', contents)
                     if m is not None:
                         self.samples_start_station_timestamp = int(m.group(1))
@@ -373,13 +378,19 @@ class RadioDaemon():
                 # New group of samples (series of readings from a device or some metric).
                 elif command == RadioCommands.SAMPLE_GROUP_DIVIDER:
                     end_sample_group()
-                    m = re.match('^S:([0-9]+)F:([A-Z,]+)N:([0-9]+)B:([0-9]+)R:((?:-1|[0-9]+)(?:\.[0-9]+)?)$', contents)  # noqa: W605
+                    # S: - sample group (id).
+                    # F: - format of samples, will include types for each column (i = int, r = real, t = text).
+                    # N: - number of samples in group.
+                    # B: - base timestamp for group (this is a relative number that is subtracted to the base timestamp for all groups).
+                    # R: - roundtrip average (latency of packets).
+                    m = re.match('^S:([0-9]+)F:((?:[A-Z]+(?:i|r|t),)+(?:[A-Z]+(?:i|r|t)))N:([0-9]+)B:([0-9]+)R:((?:-1|[0-9]+)(?:\.[0-9]+)?)$', contents)  # noqa: W605
                     if m is not None:
                         self.current_sample_group = SensorCategory(int(m.group(1)))
                         self.current_sample_group_db_table = self.current_sample_group.name.lower()
-                        self.current_sample_group_format = m.group(2)
-                        self.current_sample_group_db_format = self.current_sample_group_format.lower() \
-                            .replace('t,', 'timestamp,').replace('v', 'value')
+                        self.current_sample_group_format = [x[:-1] for x in m.group(2).split(',')]
+                        self.current_sample_group_format_types = [x[-1] for x in m.group(2).split(',')]
+                        self.current_sample_group_db_format = ','.join(self.current_sample_group_format).lower() \
+                            .replace('t', 'timestamp,').replace('v', 'value')
                         self.current_sample_group_db_value_specifier = ','.join(['?' for x in self.current_sample_group_format.split(',')])
                         self.current_sample_group_expected_count = int(m.group(3))
                         self.current_sample_group_sample_count = 0
@@ -394,10 +405,24 @@ class RadioDaemon():
                     samples = contents.split('|')
                     self.current_sample_group_sample_count += len(samples)
                     for sample in samples:
-                        values = sample.split(',')
                         try:
-                            if(len(values) == len(self.current_sample_group_format.split(','))):
-                                real_timestamp = self.samples_start_timestamp - self.current_sample_group_base_time_offset + int(values[0])
+                            values_raw = [int(x) for x in sample.split(',')]
+                            values = []
+                            for i in range(0, len(values_raw)):
+                                type = self.current_sample_group_format_types[i]
+                                if type == 'i':
+                                    values[i] = int(values_raw[i])
+                                elif type == 'r':
+                                    values[i] = float(values_raw[i])
+                                elif type == 't':
+                                    values[i] = str(values_raw[i])
+                                else:
+                                    self.logger.error('Bad sample format, type %s unsupported. Supported types are i (int), r (real), t (text).', type)
+                                    return
+                            if(len(values) == len(self.current_sample_group_format)):
+                                real_timestamp = self.samples_start_timestamp - self.current_sample_group_base_time_offset
+                                if self.current_sample_group_format[0] == 't':
+                                    real_timestamp += values[0]
                                 c.execute(
                                     'INSERT INTO {}({}) VALUES ({})'.format(
                                         self.current_sample_group_db_table,
@@ -411,7 +436,7 @@ class RadioDaemon():
                                 self.logger.error(
                                     'Bad sample: %s, does not match length for expected sample format: %s.',
                                     sample,
-                                    self.current_sample_group_format
+                                    ','.join(self.current_sample_group_format)
                                 )
                         except Exception:
                             self.logger.error('Bad sample: %s, exception thrown during parsing: %s.', sample, contents, exc_info=1)
@@ -512,9 +537,17 @@ class RadioDaemon():
                             self._set_station_state(get_ts(packet.received, self.average_radio_delay_ms), StationState.UNKNOWN)
                             break
 
-                        self.logger.info('Packet received:')
-                        self.logger.info(packet)
                         message = ''.join([chr(letter) for letter in packet.data])
+                        self.logger.info('Packet received:')
+                        self.logger.info(
+                            { 
+                                'received': packet.receieved,
+                                'receiver': packet.receiver,
+                                'sender': packet.sender,
+                                'rssi': packet.rssi,
+                                'data': message
+                            }
+                        )
 
                         # See if we have started a long series of messages (compact messaging).
                         # Compact messages start with control characters ^^ and end with $$ - which we will remove.

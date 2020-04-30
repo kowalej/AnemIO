@@ -8,9 +8,17 @@
 
 ## Environment Setup
 
+### Docker
+You can develop by using the docker-compose file which will setup the appropriate requirements for you.
+
+### Native
 The application requires Python, Redis, and Memcached. Python and the required packages should be installed using a Python virtualenv or conda environment.
 For Windows - conda is useful, especially to get Memcached to install correctly (`conda install python-memcached` should just work). To run Redis easily for testing, Docker is recommended. You can simpy do `docker run --name anemio-redis -d redis -p "6379:6379"`.
 
+
+## Run Jupyter Notebook
+
+`python manage.py shell_plus --notebook` - select Django Shell-Plus as Kernel
 
 ## For Production on Pi
 
