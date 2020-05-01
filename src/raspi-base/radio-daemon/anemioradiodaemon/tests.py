@@ -257,7 +257,7 @@ class TestAnemioRadioDaemon(unittest.TestCase):
             Packet(1, 1, 1, list(bytearray(b'[7]0,Partly Sunny'))),
             Packet(1, 1, 1, list(bytearray(b'[6]S:3F:Ti,Xr,Yr,ZrN:7B:3453R:674.31'))),
             Packet(1, 1, 1, list(bytearray(b'[7]0,11.09,30.73,72.86|526,10.91,30.64,72.55|1046,10.82,30.27,72.65|1571,11.09,30.64,73.06|2107,10.91,30.55,73.16|2633,11.00,30.64,73.06|3169,10.82,30.45,72.86'))),
-            Packet(1, 1, 1, list(bytearray(b'[6]S:4F:Ti,VrN:7B:3452R:598.41'))),
+            Packet(1, 1, 1, list(bytearray(b'[6]S:4F:Ti,ViN:7B:3452R:598.41'))),
             Packet(1, 1, 1, list(bytearray(b'[7]0,70|525,70|1045,70|1570,70|2106,70|2632,70|3168,70'))),
             Packet(1, 1, 1, list(bytearray(b'[6]S:6F:Ti,VrN:4B:3409R:428.71'))),
             Packet(1, 1, 1, list(bytearray(b'[7]0,100276.00|1045,100287.00|2106,100283.00|3168,100291.00'))),
