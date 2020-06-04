@@ -132,7 +132,7 @@ class RainGauge(models.Model):
 class RainState(models.Model):
     id = models.IntegerField(primary_key=True, name='ROWID')
     timestamp = UnixDateTimeField(assume_milliseconds=True, blank=False, null=False)
-    state = models.TextField(blank=False, null=False)
+    value = models.TextField(blank=False, null=False)
 
     class Meta:
         managed = False
@@ -194,11 +194,12 @@ class WaterTemperature(models.Model):
 class WeatherReport(models.Model):
     id = models.IntegerField(primary_key=True, name='ROWID')
     timestamp = UnixDateTimeField(assume_milliseconds=True, blank=False, null=False)
-    temperature = models.FloatField(blank=False, null=False)
+    value = models.CharField(blank=False, null=False, max_length=500)
+    unit = models.CharField(blank=False, null=False, max_length=15)
 
     class Meta:
-        managed = False
-        db_table = 'wind_speed'
+        managed = True
+        db_table = 'weather_report'
 
 
 class WindDirection(models.Model):
@@ -215,7 +216,7 @@ class WindSpeed(models.Model):
     id = models.IntegerField(primary_key=True, name='ROWID')
     timestamp = UnixDateTimeField(assume_milliseconds=True, blank=False, null=False)
     value = models.FloatField(blank=False, null=False)
-    temperature = models.FloatField(blank=False, null=False)
+    tc = models.FloatField(blank=False, null=False)
 
     class Meta:
         managed = False

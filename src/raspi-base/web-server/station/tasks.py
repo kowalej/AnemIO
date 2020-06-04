@@ -5,9 +5,9 @@ from celery import shared_task
 from station import constants, models
 from datetime import timezone, datetime
 import logging
+from station.models import WeatherReport
 
 
-# Create your views here.
 logger = logging.getLogger(__name__)
 
 
@@ -60,7 +60,12 @@ def station_request_offline():
 
 
 @shared_task
-def push_data(negative_offset_seconds, start_datetime=datetime.now(timezone.utc), destination='pwsweather'):
+def generate_aggrege_report(end_datetime=datetime.now(timezone.utc), period):
+    wr = WeatherReport(start_date_time: datetime, end_date_time: datetime, period='i')
+
+
+@shared_task
+def push_data(negative_offset_seconds, end_datetime=datetime.now(timezone.utc), destination='pwsweather'):
     if destination == 'pwsweather':
         pass
     else:

@@ -18,7 +18,7 @@ For Windows - conda is useful, especially to get Memcached to install correctly 
 
 ## Run Jupyter Notebook
 
-`python manage.py shell_plus --notebook` - select Django Shell-Plus as Kernel
+`python manage.py shell_plus --notebook` - **select Django Shell-Plus as Kernel**
 
 ## For Production on Pi
 
